@@ -1,13 +1,16 @@
 from django.urls import path, include
 
-from .views import UploadCsvView, HistogramDataView
+from data_processing import views
 
 app_name = 'data_processing'
 
 urlpatterns = [
+    path('projects/', views.ProjectView.as_view(), name='projects'),
     path(
-        'upload-csv/', UploadCsvView.as_view(),
-        name='upload-csv'),
+        'csvs/', views.CsvDataView.as_view(),
+        name='csvs'),
     path(
-        'histogram-data/', HistogramDataView.as_view(),
-        name='histogram-data'),]
+        'histograms/', views.HistogramDataView.as_view(),
+        name='histograms'),
+    path('columns/', views.ColumnsView.as_view(), name='columns'),
+]

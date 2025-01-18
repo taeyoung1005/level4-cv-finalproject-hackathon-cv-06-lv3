@@ -1,14 +1,26 @@
 from rest_framework import serializers
-from .models import CsvDataRecord, HistogramRecord
+from data_processing import models
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Project
+        fields = '__all__'
 
 
 class CsvDataRecordSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CsvDataRecord
+        model = models.CsvDataRecord
+        fields = '__all__'
+
+
+class ColumnRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ColumnRecord
         fields = '__all__'
 
 
 class HistogramRecordSerializer(serializers.ModelSerializer):
     class Meta:
-        model = HistogramRecord
+        model = models.HistogramRecord
         fields = '__all__'
