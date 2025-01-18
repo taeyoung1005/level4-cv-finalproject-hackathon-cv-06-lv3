@@ -1,6 +1,5 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 
 # 1. 데이터 불러오기
 def load_data(file_path):
@@ -23,10 +22,10 @@ def detect_and_handle_outliers(df, columns, threshold=3):
     return df
 
 # 4. 데이터 스케일링
-def scale_features(df, features):
-    scaler = StandardScaler()
-    df[features] = scaler.fit_transform(df[features])
-    return df, scaler
+# def scale_features(df, features):
+#     scaler = StandardScaler()
+#     df[features] = scaler.fit_transform(df[features])
+#     return df, scaler
 
 # 5. 학습 및 테스트 데이터 분할
 def split_data(df, target, test_size=0.2, random_state=42):
@@ -35,28 +34,28 @@ def split_data(df, target, test_size=0.2, random_state=42):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
     return X_train, X_test, y_train, y_test
 
-# Main 함수
-if __name__ == "__main__":
-    # CSV 파일 경로
-    file_path = "/data/ephemeral/home/hackerton/data/concrete.csv"
+# # Main 함수
+# if __name__ == "__main__":
+#     # CSV 파일 경로
+#     file_path = "/data/ephemeral/home/hackerton/data/concrete.csv"
 
-    # 1. 데이터 불러오기
-    df = load_data(file_path)
+#     # 1. 데이터 불러오기
+#     df = load_data(file_path)
 
-    # 2. 결측치 처리
-    df = handle_missing_values(df)
+#     # 2. 결측치 처리
+#     df = handle_missing_values(df)
 
-    # 3. 이상치 탐지 및 처리
-    numeric_columns = ["cement", "slag", "ash", "water", "superplastic", "coarseagg", "fineagg", "age", "strength"]
-    df = detect_and_handle_outliers(df, numeric_columns)
+#     # 3. 이상치 탐지 및 처리
+#     numeric_columns = ["cement", "slag", "ash", "water", "superplastic", "coarseagg", "fineagg", "age", "strength"]
+#     df = detect_and_handle_outliers(df, numeric_columns)
 
-    # 4. 데이터 스케일링
-    df, scaler = scale_features(df, numeric_columns[:-1])  # 목표 변수 제외
+#     # 4. 데이터 스케일링
+#     df, scaler = scale_features(df, numeric_columns[:-1])  # 목표 변수 제외
 
-    # 5. 학습 및 테스트 데이터 분할
-    X_train, X_test, y_train, y_test = split_data(df, target="strength")
+#     # 5. 학습 및 테스트 데이터 분할
+#     X_train, X_test, y_train, y_test = split_data(df, target="strength")
 
-    # 처리 결과 출력
-    print("Training Data Shape:", X_train.shape)
-    print("Test Data Shape:", X_test.shape)
-    print("Preprocessing completed successfully!")
+#     # 처리 결과 출력
+#     print("Training Data Shape:", X_train.shape)
+#     print("Test Data Shape:", X_test.shape)
+#     print("Preprocessing completed successfully!")

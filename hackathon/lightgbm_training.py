@@ -2,35 +2,10 @@ import lightgbm as lgb
 import pandas as pd
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from joblib import dump
-from src.data.data_preprocessing import (
-    load_data,
-    handle_missing_values,
-    detect_and_handle_outliers,
-    scale_features,
-    split_data
-)
 import time
 import os
 
 # 1. 데이터 전처리
-def preprocess_data(file_path):
-    # 데이터 불러오기
-    df = load_data(file_path)
-
-    # 결측치 처리
-    df = handle_missing_values(df)
-
-    # 이상치 탐지 및 처리
-    numeric_columns = ["cement", "slag", "ash", "water", "superplastic", "coarseagg", "fineagg", "age", "strength"]
-    df = detect_and_handle_outliers(df, numeric_columns)
-
-    # 데이터 스케일링
-    df, scaler = scale_features(df, numeric_columns[:-1])  # 목표 변수 제외
-
-    # 학습 및 테스트 데이터 분할
-    X_train, X_test, y_train, y_test = split_data(df, target="strength")
-
-    return X_train, X_test, y_train, y_test, scaler
 
 # 2. LightGBM 학습
 def train_lightgbm(X_train, X_test, y_train, y_test):
