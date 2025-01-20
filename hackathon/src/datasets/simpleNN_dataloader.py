@@ -25,6 +25,6 @@ def simpleNN_load_data(X_train,X_test,y_train,y_test):
     train_data = SimpleNN_dataloader(X_train,y_train)
     test_data = SimpleNN_dataloader(X_test,y_test)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=100, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=100, shuffle=False)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=10, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=10, shuffle=False)
     return train_loader, test_loader

@@ -54,5 +54,7 @@ def lightgbm_evaluate(model, train_data, val_data):
 
 
 def lightgbm_predict(model, X_test):
+    
+    X_test = X_test.get_data()
     y_pred = model.predict(X_test, num_iteration=model.best_iteration)
     return y_pred
