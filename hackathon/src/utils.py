@@ -161,3 +161,22 @@ class Logger:
 
     def __del__(self):
         self.close()
+
+
+def measure_time(func, *args, **kwargs):
+    """
+    Measures the execution time of a function and logs it.
+    
+    Args:
+        func (callable): The function to measure.
+        *args: Positional arguments for the function.
+        **kwargs: Keyword arguments for the function.
+    
+    Returns:
+        The result of the function.
+    """
+    start_time = time.time()
+    result = func(*args, **kwargs)
+    elapsed_time = time.time() - start_time
+    logging.info(f"{func.__name__} executed in {elapsed_time:.2f} seconds.")
+    return result
