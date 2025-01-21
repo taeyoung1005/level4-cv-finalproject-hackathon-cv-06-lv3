@@ -3,7 +3,7 @@
 import argparse
 import logging
 
-from src.utils import Setting
+from src.utils import Setting, measure_time
 import src.datasets as datasets
 import src.surrogate as surrogate
 import src.search as search
@@ -47,7 +47,7 @@ def main(args):
     # 모델 학습
     try:
         train_func = getattr(surrogate, f'{model_name}_train')
-        model = train_func(train_data, val_data)
+        model = measure_time(train_func, train_data, val_data)
     except AttributeError:
         logging.error(f"지원되지 않는 모델 '{model_name}'의 학습 함수입니다.")
         return
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     arg = parser.add_argument
     arg('--dataset', '--dset', '-dset', type=str, default='cement',
         choices=['cement', 'melb'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
-    arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete.csv',
+    arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
     arg('--model', '--model', '-model', type=str, default='lightgbm',
         choices=['lightgbm'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
