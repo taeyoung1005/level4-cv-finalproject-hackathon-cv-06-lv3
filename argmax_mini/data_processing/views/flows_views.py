@@ -1,6 +1,7 @@
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
+from rest_framework.parsers import JSONParser
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -12,6 +13,7 @@ class FlowsView(APIView):
     '''
     프로젝트의 Flow 조회, 생성, 삭제, 수정
     '''
+    parser_classes = [JSONParser]  # 파일 업로드를 지원하는 파서 추가
     @swagger_auto_schema(
         operation_description="프로젝트의 Flow 조회",
         manual_parameters=[
@@ -23,6 +25,7 @@ class FlowsView(APIView):
                 required=True,
             ),
         ],
+        request_body_required=True,
         responses={
             200: openapi.Response(description="Flow data retrieved successfully"),
             400: openapi.Response(description="Invalid project ID"),
@@ -58,6 +61,7 @@ class FlowsView(APIView):
                 'flow_name': openapi.Schema(type=openapi.TYPE_STRING, description="Name of the flow"),
             }
         ),
+        request_body_required=True,
         responses={
             201: openapi.Response(description="Flow created successfully"),
             400: openapi.Response(description="Invalid project ID or flow name"),
@@ -86,15 +90,13 @@ class FlowsView(APIView):
 
     @swagger_auto_schema(
         operation_description="프로젝트의 Flow 삭제",
-        manual_parameters=[
-            openapi.Parameter(
-                "flow_id",
-                openapi.IN_QUERY,
-                description="ID of the flow",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'flow_id': openapi.Schema(type=openapi.TYPE_STRING, description="ID of the flow"),
+            }
+        ),
+        request_body_required=True,
         responses={
             200: openapi.Response(description="Flow deleted successfully"),
             400: openapi.Response(description="Invalid flow ID"),
@@ -124,6 +126,7 @@ class FlowsView(APIView):
                 'flow_name': openapi.Schema(type=openapi.TYPE_STRING, description="Name of the flow"),
             }
         ),
+        request_body_required=True,
         responses={
             200: openapi.Response(description="Flow updated successfully"),
             400: openapi.Response(description="Invalid flow ID or flow name"),
@@ -152,25 +155,25 @@ class FlowCsvDataRecordView(APIView):
     '''
     Flow에 속한 CSV 데이터 조회, 추가, 삭제
     '''
+    parser_classes = [JSONParser]  # 파일 업로드를 지원하는 파서 추가
 
     @swagger_auto_schema(
         operation_description="Flow에 속한 CSV 데이터 추가",
-        manual_parameters=[
-            openapi.Parameter(
-                "flow_id",
-                openapi.IN_QUERY,
-                description="ID of the flow",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-            openapi.Parameter(
-                "csv_id",
-                openapi.IN_QUERY,
-                description="ID of the CSV file",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'csv_ids': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
+                    description="ID of the CSV file",
+                ),
+                'flow_id': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="ID of the flow",
+                ),
+            }
+        ),
+        request_body_required=True,
         responses={
             201: openapi.Response(description="CSV data added successfully"),
             400: openapi.Response(description="Invalid flow ID"),
@@ -182,8 +185,8 @@ class FlowCsvDataRecordView(APIView):
         Flow에 CSV 데이터 추가
         '''
 
-        csv_ids: list = request.data.get("csv_ids")
         flow_id = str(request.data.get("flow_id"))
+        csv_ids: list = request.data.get("csv_ids")
 
         if not flow_id or not flow_id.isdigit():
             return JsonResponse({"error": "No flow_id provided"}, status=400)
@@ -205,22 +208,20 @@ class FlowCsvDataRecordView(APIView):
 
     @swagger_auto_schema(
         operation_description="Flow에 속한 CSV 데이터 삭제",
-        manual_parameters=[
-            openapi.Parameter(
-                "flow_id",
-                openapi.IN_QUERY,
-                description="ID of the flow",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-            openapi.Parameter(
-                "csv_id",
-                openapi.IN_QUERY,
-                description="ID of the CSV file",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'flow_id': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="ID of the flow",
+                ),
+                'csv_id': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="ID of the CSV file",
+                ),
+            }
+        ),
+        request_body_required=True,
         responses={
             200: openapi.Response(description="CSV data deleted successfully"),
             400: openapi.Response(description="Invalid flow ID or CSV ID"),
@@ -246,7 +247,7 @@ class FlowCsvDataRecordView(APIView):
         if not models.CsvDataRecord.objects.filter(id=csv_id).exists():
             return JsonResponse({"error": "CSV not found"}, status=404)
 
-        return JsonResponse({}, status=200)
+        return JsonResponse({'csv_id': csv_id}, status=200)
 
     @swagger_auto_schema(
         operation_description="Flow에 속한 CSV 데이터 조회",
@@ -259,6 +260,7 @@ class FlowCsvDataRecordView(APIView):
                 required=True,
             ),
         ],
+        request_body_required=True,
         responses={
             200: openapi.Response(description="CSV data retrieved successfully"),
             400: openapi.Response(description="Invalid flow ID"),

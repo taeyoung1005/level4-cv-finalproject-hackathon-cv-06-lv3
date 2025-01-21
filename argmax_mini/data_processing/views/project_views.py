@@ -4,6 +4,7 @@ import numpy as np
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.parsers import JSONParser
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -16,6 +17,8 @@ class ProjectView(APIView):
     '''
     프로젝트 생성 및 조회
     '''
+    parser_classes = [JSONParser]  # 파일 업로드를 지원하는 파서 추가
+
     @swagger_auto_schema(
         operation_description="프로젝트 생성",
         request_body=openapi.Schema(
@@ -31,6 +34,7 @@ class ProjectView(APIView):
                 ),
             }
         ),
+        request_body_required=True,
         responses={
             201: openapi.Response(description="Project created successfully"),
             400: openapi.Response(description="Invalid request body"),
@@ -70,15 +74,16 @@ class ProjectView(APIView):
 
     @swagger_auto_schema(
         operation_description="프로젝트 삭제",
-        manual_parameters=[
-            openapi.Parameter(
-                "project_id",
-                openapi.IN_QUERY,
-                description="ID of the project to delete",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'project_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the project to delete"
+                ),
+            }
+        ),
+        request_body_required=True,
         responses={
             204: openapi.Response(description="Project deleted successfully"),
             400: openapi.Response(description="Invalid project ID"),
@@ -89,9 +94,9 @@ class ProjectView(APIView):
         '''
         프로젝트 삭제
         '''
-        project_id = request.GET.get("project_id")
+        project_id = str(request.data.get("project_id"))
 
-        if not project_id or not project_id.isdigit():
+        if not project_id or not project_id.isdigit() or project_id == 'None':
             return JsonResponse(
                 {"error": "No project_id provided"},
                 status=400)
@@ -107,18 +112,13 @@ class ProjectView(APIView):
 
     @swagger_auto_schema(
         operation_description="프로젝트 수정",
-        manual_parameters=[
-            openapi.Parameter(
-                "project_id",
-                openapi.IN_QUERY,
-                description="ID of the project to update",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            ),
-        ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
+                'project_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the project to update"
+                ),
                 'name': openapi.Schema(
                     type=openapi.TYPE_STRING,
                     description="프로젝트 이름"
@@ -129,6 +129,7 @@ class ProjectView(APIView):
                 ),
             }
         ),
+        request_body_required=True,
         responses={
             200: openapi.Response(description="Project updated successfully"),
             400: openapi.Response(description="Invalid request body"),
@@ -139,9 +140,8 @@ class ProjectView(APIView):
         '''
         프로젝트 수정
         '''
-        project_id = request.GET.get("project_id")
-
-        if not project_id or not project_id.isdigit():
+        project_id = str(request.data.get("project_id"))
+        if not project_id or not project_id.isdigit() or project_id == 'None':
             return JsonResponse(
                 {"error": "No project_id provided"},
                 status=400)

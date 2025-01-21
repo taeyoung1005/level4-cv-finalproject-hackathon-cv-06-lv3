@@ -68,7 +68,7 @@ class ProjectViewTests(APITestCase):
         """
         프로젝트 삭제 테스트
         """
-        response = self.client.delete(f"{self.base_url}?project_id={self.project1.id}")
+        response = self.client.delete(self.base_url, {'project_id':self.project1.id}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
@@ -79,7 +79,7 @@ class ProjectViewTests(APITestCase):
         """
         존재하지 않는 프로젝트 삭제 시도 테스트
         """
-        response = self.client.delete(f"{self.base_url}?project_id=9999")
+        response = self.client.delete(self.base_url, {'project_id':9999}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("error", response.json())
@@ -90,10 +90,11 @@ class ProjectViewTests(APITestCase):
         프로젝트 수정 테스트
         """
         data = {
+            "project_id": self.project1.id,
             "name": "Updated Project",
             "description": "Updated description."
         }
-        response = self.client.put(f"{self.base_url}?project_id={self.project1.id}", data, format="json")
+        response = self.client.put(self.base_url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("project_id", response.json())
@@ -108,9 +109,10 @@ class ProjectViewTests(APITestCase):
         프로젝트 부분 수정 테스트
         """
         data = {
+            "project_id": self.project1.id,
             "description": "Partially updated description."
         }
-        response = self.client.put(f"{self.base_url}?project_id={self.project1.id}", data, format="json")
+        response = self.client.put(self.base_url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("project_id", response.json())
@@ -124,9 +126,10 @@ class ProjectViewTests(APITestCase):
         존재하지 않는 프로젝트 수정 시도 테스트
         """
         data = {
+            "project_id": 9999,
             "name": "Nonexistent Project"
         }
-        response = self.client.put(f"{self.base_url}?project_id=9999", data, format="json")
+        response = self.client.put(self.base_url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("error", response.json())

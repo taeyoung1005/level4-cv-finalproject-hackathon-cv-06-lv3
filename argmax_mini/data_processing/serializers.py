@@ -24,3 +24,9 @@ class HistogramRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.HistogramRecord
         fields = '__all__'
+
+
+class FlowCsvDataRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.FlowCsvDataRecord
+        fields = '__all__'
