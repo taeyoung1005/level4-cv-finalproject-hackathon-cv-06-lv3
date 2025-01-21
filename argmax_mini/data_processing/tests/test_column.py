@@ -9,7 +9,7 @@ import pandas as pd
 from data_processing.models import Project, CsvDataRecord, ColumnRecord
 
 
-class ColumnsViewPutTests(APITestCase):
+class ColumnsViewTests(APITestCase):
     def setUp(self):
         """
         테스트를 위한 데이터 초기화
@@ -19,13 +19,13 @@ class ColumnsViewPutTests(APITestCase):
             os.path.dirname(__file__), './features')
 
         # 첫 번째 CSV 파일 선택 및 데이터베이스에 삽입
-        csv_files = [f for f in os.listdir(
+        self.csv_files = [f for f in os.listdir(
             self.features_dir) if f.endswith('.csv')]
-        if not csv_files:
+        if not self.csv_files:
             raise FileNotFoundError(
                 "No CSV files found in ./features directory.")
 
-        file_path = os.path.join(self.features_dir, csv_files[0])
+        file_path = os.path.join(self.features_dir, self.csv_files[0])
         df = pd.read_csv(file_path)
 
         # Project 생성
@@ -37,7 +37,7 @@ class ColumnsViewPutTests(APITestCase):
         # 데이터베이스에 삽입
         self.csv_record = CsvDataRecord.objects.create(
             project=self.project_record,
-            file_name=csv_files[0],
+            file_name=self.csv_files[0],
         )
 
         # ColumnRecord 생성
@@ -127,3 +127,35 @@ class ColumnsViewPutTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("error", response.json())
         self.assertEqual(response.json()["error"], "File not found")
+
+    def test_get_column_list(self):
+        """
+        컬럼 리스트를 성공적으로 가져오는지 테스트
+        """
+        # 쿼리파라미터로 csv_id를 전달
+        response = self.client.get(
+            self.columns_url, {"csv_id": self.csv_record.id})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # 컬럼 타입별로 컬럼 이름 리스트 확인
+        self.assertIn("numerical", response.json())
+        self.assertIn("categorical", response.json())
+        self.assertIn("unavailable", response.json())
+
+    def test_get_column_list_invalid_csv_id(self):
+        """
+        유효하지 않은 csv_id로 요청을 보내는 경우를 테스트
+        """
+        response = self.client.get(self.columns_url, {"csv_id": 9999})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "File not found")
+
+    def test_get_column_list_no_csv_id(self):
+        """
+        csv_id를 제공하지 않은 경우를 테스트
+        """
+        response = self.client.get(self.columns_url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["error"], "No csv_id provided")
