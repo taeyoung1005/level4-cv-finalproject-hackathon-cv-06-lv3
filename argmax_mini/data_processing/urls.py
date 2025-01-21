@@ -13,4 +13,8 @@ urlpatterns = [
         'histograms/', views.HistogramDataView.as_view(),
         name='histograms'),
     path('columns/', views.ColumnsView.as_view(), name='columns'),
+    path('flows/', views.FlowsView.as_view(), name='flows'),
+    path(
+        'flows/csvs/', views.FlowCsvDataRecordView.as_view(),
+        name='flow_csvs'),
 ]
