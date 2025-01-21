@@ -22,6 +22,8 @@ def load_and_split_data(file_path: str, target: str):
     X_train, X_test, y_train, y_test = split_data(df, target=target)
 
     # 타겟을 넘파이 배열로 변환
+    X_train = X_train.to_numpy()
+    X_test = X_test.to_numpy()
     y_train = y_train.to_numpy()
     y_test = y_test.to_numpy()
 
