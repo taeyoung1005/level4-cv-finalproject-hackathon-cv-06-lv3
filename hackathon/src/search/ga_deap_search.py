@@ -89,7 +89,7 @@ def ga_deap_search(model, pred_func, X_train, X_test, y_test):
 
         x_pred = x_pred.reshape(1,8)
         res.append(x_pred)
-        break
+        # break
     
     return np.concatenate(res, axis=0)
 
