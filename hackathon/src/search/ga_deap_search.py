@@ -16,15 +16,16 @@ def ga_deap_search(model, pred_func, X_train, X_test, y_test):
 
         def fitness(population):
             # x_tensor = torch.tensor(individual, dtype=torch.float32).unsqueeze(0).to('cuda') # 배치차원추가
-            x_tensors = torch.tensor(population, dtype=torch.float32).reshape(-1, 8).to('cuda')
+            # x_tensors = torch.tensor(population, dtype=torch.float32).reshape(-1, 8).to('cuda')
 
             # print('x_tensors shape : ', x_tensors.shape)
             # print('x_tensors type : ', type(x_tensors))
-            
-            with torch.no_grad():
-                y_pred = pred_func(model=model, X_test=x_tensors)
-                y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
-            
+            population = np.concatenate(population, axis=0)
+
+            # with torch.no_grad():
+            y_pred = pred_func(model=model, X_test=population)
+            y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
+        
             # print('y pred shape : ', y_pred_tensor.shape)
             # print('y pred type : ', type(y_pred_tensor))
             
@@ -32,6 +33,7 @@ def ga_deap_search(model, pred_func, X_train, X_test, y_test):
             return fit_fun
 
         creator.create('FitnessMax', base.Fitness, weights=(1.0,))
+        #TODO numpy array로 변환
         creator.create('Individual', list, fitness=creator.FitnessMax)
 
 
