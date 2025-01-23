@@ -23,9 +23,15 @@ def load_and_split_data(file_path: str, target: str):
 
     # 타겟을 넘파이 배열로 변환
     X_train = X_train.to_numpy()
-    X_test = X_test.to_numpy()
     y_train = y_train.to_numpy()
+    X_test = X_test.to_numpy()
     y_test = y_test.to_numpy()
+
+    if y_train.ndim == 1:
+        y_train = y_train.reshape(-1, 1)
+    if y_test.ndim == 1:
+        y_test = y_test.reshape(-1, 1)
+
 
     return X_train, X_test, y_train, y_test
 

@@ -86,7 +86,7 @@ def simpleNN_evaluate(model,train_loader,test_loader):
 
     # return rmse, mae, r2
 
-def simpleNN_predict(model,X_test):
+def simpleNN_predict(model,X_test) -> np.ndarray:
     model.eval()
     if isinstance(X_test, torch.Tensor):
         with torch.no_grad():
@@ -105,3 +105,8 @@ def simpleNN_predict(model,X_test):
                 y_pred.append(output)
         y_pred = np.concatenate(y_pred, axis=0).squeeze()
         return y_pred
+    elif isinstance(X_test, np.ndarray):
+        with torch.no_grad():
+            X_test = torch.tensor(X_test, dtype=torch.float32).to(model.device)
+            output = model(X_test)
+        return output.cpu().numpy()

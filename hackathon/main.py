@@ -20,6 +20,11 @@ def main(args):
     model_name = args.model
     search_model = args.search_model
 
+    if model_name == 'simpleNN':
+        raise ValueError("simpleNN is not supported for now")
+    if search_model == 'backprob':
+        raise ValueError("backprob is not supported for now")
+    
     # 데이터 로드 및 분할
     try:
         load_data_func = getattr(datasets, f'{datatype}_data')
@@ -31,12 +36,12 @@ def main(args):
 
     # 모델별 데이터 로드
     try:
-        load_model_data_func = getattr(datasets, f'{model_name}_load_data')
+        load_data_loader_func = getattr(datasets, f'{model_name}_load_data')
     except AttributeError:
         logging.error(f"지원되지 않는 모델 '{model_name}' 입니다.")
         return
 
-    train_data, val_data = load_model_data_func(X_train, X_test, y_train, y_test)
+    train_loader, val_loader = load_data_loader_func(X_train, X_test, y_train, y_test)
     
     # 데이터셋 형태 출력
     logging.info(f"X_train.shape: {X_train.shape}")
@@ -47,34 +52,37 @@ def main(args):
     # 모델 학습
     try:
         train_func = getattr(surrogate, f'{model_name}_train')
-        model = measure_time(train_func, train_data, val_data)
+        # model = measure_time(train_func, train_loader, val_loader)
+        model = train_func(train_loader, val_loader)
     except AttributeError:
         logging.error(f"지원되지 않는 모델 '{model_name}'의 학습 함수입니다.")
         return
 
     # 예측 수행
-    try:
-        predict_func = getattr(surrogate, f'{model_name}_predict')
-        y_pred = predict_func(model, val_data)
-    except AttributeError:
-        logging.error(f"지원되지 않는 모델 '{model_name}'의 예측 함수입니다.")
-        return
+    # try:
+    predict_func = getattr(surrogate, f'{model_name}_predict')
+    y_pred = predict_func(model, X_test)
+    # print(y_pred.shape) # (batch_size, 1)
+    # except AttributeError:
+    #     logging.error(f"지원되지 않는 모델 '{model_name}'의 예측 함수입니다.")
+    #     return
 
     # 모델 평가
     try:
         rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
+        #TODO mutiple Y일 때 수정!!!!!!
         logging.info(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R²: {r2:.4f}")
     except Exception as e:
         logging.error(f"모델 평가 중 오류 발생: {e}")
         return
 
     # 최적화/검색 수행
-    try:
-        search_func = getattr(search, f'{search_model}_search')
-        x_opt = search_func(model, predict_func, X_train, val_data)
-    except AttributeError:
-        logging.error(f"지원되지 않는 검색 모델 '{search_model}' 입니다.")
-        return
+    # try:
+    search_func = getattr(search, f'{search_model}_search')
+    x_opt = search_func(model, predict_func, X_train, X_test, y_test)
+    # except AttributeError:
+    #     logging.error(f"지원되지 않는 검색 모델 '{search_model}' 입니다.")
+    #     return
 
     # 최적화 결과 평가
     try:
