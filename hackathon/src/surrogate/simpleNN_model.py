@@ -92,7 +92,8 @@ def simpleNN_predict(model,X_test):
         with torch.no_grad():
             X_test = X_test.to(model.device)
             output = model(X_test)
-        return output.numpy()
+        # return output.numpy()
+        return output.cpu().numpy()  # GPU에서 CPU로 복사 후 numpy로 변환
     elif isinstance(X_test, torch.utils.data.DataLoader):
         y_pred = []
         for data,target in X_test:
