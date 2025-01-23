@@ -18,15 +18,15 @@ def ga_deap_search(model, pred_func, X_train, X_test, y_test):
             # x_tensor = torch.tensor(individual, dtype=torch.float32).unsqueeze(0).to('cuda') # 배치차원추가
             x_tensors = torch.tensor(population, dtype=torch.float32).reshape(-1, 8).to('cuda')
 
-            print('x_tensors shape : ', x_tensors.shape)
-            print('x_tensors type : ', type(x_tensors))
+            # print('x_tensors shape : ', x_tensors.shape)
+            # print('x_tensors type : ', type(x_tensors))
             
             with torch.no_grad():
-                y_pred = pred_func(model=simpleNN_model, X_test=x_tensors)
+                y_pred = pred_func(model=model, X_test=x_tensors)
                 y_pred_tensor = torch.tensor(y_pred, dtype=torch.float32)
             
-            print('y pred shape : ', y_pred_tensor.shape)
-            print('y pred type : ', type(y_pred_tensor))
+            # print('y pred shape : ', y_pred_tensor.shape)
+            # print('y pred type : ', type(y_pred_tensor))
             
             fit_fun = -(y_pred_tensor - gt_y)**2
             return fit_fun
@@ -50,7 +50,7 @@ def ga_deap_search(model, pred_func, X_train, X_test, y_test):
         pop_size = 50
         # pop_size = len(test)
         population = toolbox.population(n=pop_size)
-        print('population type', type(population))
+        # print('population type', type(population))
         for gen in range(100):
 
             # fitness_scores = [toolbox.evaluate(ind)[0] for ind in population]

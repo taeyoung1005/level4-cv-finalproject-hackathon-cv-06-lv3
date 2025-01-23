@@ -33,20 +33,20 @@ def ga_pygmo_search(model, pred_func, X_train, X_test, y_test):
             
 
         def get_bounds(self):
-            return (self.x_min.tolist(), self.x_max.tolist()) 
+            return (self.x_min.tolist(), self.x_max.tolist())
         
     def batch_evaluate_population(model, pop, gt_y, pred_func):
         
         x_tensors = torch.tensor(pop.get_x(), dtype=torch.float32).reshape(-1, 8).to('cuda')
-        print('batch x_tensors shape : ', x_tensors.shape)
-        print('batch x_tensors type : ', type(x_tensors))
+        # print('batch x_tensors shape : ', x_tensors.shape)
+        # print('batch x_tensors type : ', type(x_tensors))
 
         with torch.no_grad():
-            y_preds = pred_func(model=simpleNN_model, X_test=x_tensors)
+            y_preds = pred_func(model=model, X_test=x_tensors)
             y_pred_tensor = torch.tensor(y_preds, dtype=torch.float32)
         
-        print('batch y_pred_tensor shape : ', y_pred_tensor.shape)
-        print('batch y_pred_tensor type : ', type(y_pred_tensor))
+        # print('batch y_pred_tensor shape : ', y_pred_tensor.shape)
+        # print('batch y_pred_tensor type : ', type(y_pred_tensor))
 
         fitness_values = -((y_pred_tensor - gt_y) ** 2).cpu().numpy()
         
@@ -70,14 +70,14 @@ def ga_pygmo_search(model, pred_func, X_train, X_test, y_test):
 
     for gt_y in tqdm(gt_ys):
 
-        prob = pg.problem(SphereProblem(simpleNN_model, gt_y, x_min, x_max))
+        prob = pg.problem(SphereProblem(model, gt_y, x_min, x_max))
 
         algo = pg.algorithm(pg.sga(gen=100, cr=0.7, eta_c=1.0, m=0.2, param_m=1.0))
 
         pop = pg.population(prob, size=50)
 
         # 배치 평가 호출
-        pop = batch_evaluate_population(simpleNN_model, pop, gt_y, pred_func)
+        pop = batch_evaluate_population(model, pop, gt_y, pred_func)
         
         # pop = algo.evolve(pop)
 
