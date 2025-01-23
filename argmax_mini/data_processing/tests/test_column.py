@@ -37,7 +37,7 @@ class ColumnsViewTests(APITestCase):
         # 데이터베이스에 삽입
         self.csv_record = CsvDataRecord.objects.create(
             project=self.project_record,
-            file_name=self.csv_files[0],
+            file=self.csv_files[0],
         )
 
         # ColumnRecord 생성

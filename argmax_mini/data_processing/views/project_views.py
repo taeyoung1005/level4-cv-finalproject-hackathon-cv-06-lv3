@@ -108,7 +108,7 @@ class ProjectView(APIView):
 
         project.delete()
 
-        return JsonResponse({}, status=204)
+        return JsonResponse({'project_id':project_id}, status=200)
 
     @swagger_auto_schema(
         operation_description="프로젝트 수정",

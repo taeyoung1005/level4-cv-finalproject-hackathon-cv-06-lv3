@@ -14,6 +14,7 @@ class FlowsView(APIView):
     프로젝트의 Flow 조회, 생성, 삭제, 수정
     '''
     parser_classes = [JSONParser]  # 파일 업로드를 지원하는 파서 추가
+
     @swagger_auto_schema(
         operation_description="프로젝트의 Flow 조회",
         manual_parameters=[
@@ -25,7 +26,6 @@ class FlowsView(APIView):
                 required=True,
             ),
         ],
-        request_body_required=True,
         responses={
             200: openapi.Response(description="Flow data retrieved successfully"),
             400: openapi.Response(description="Invalid project ID"),
@@ -260,7 +260,6 @@ class FlowCsvDataRecordView(APIView):
                 required=True,
             ),
         ],
-        request_body_required=True,
         responses={
             200: openapi.Response(description="CSV data retrieved successfully"),
             400: openapi.Response(description="Invalid flow ID"),

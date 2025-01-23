@@ -4,7 +4,7 @@ import numpy as np
 
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser,  JSONParser
+from rest_framework.parsers import MultiPartParser,  JSONParser, FormParser
 from rest_framework import status
 
 from drf_yasg.utils import swagger_auto_schema
@@ -18,7 +18,7 @@ class CsvDataView(APIView):
     '''
     CSV 파일 업로드, 조회, 수정 및 삭제 기능 제공
     '''
-    parser_classes = [MultiPartParser, JSONParser]
+    parser_classes = [MultiPartParser, JSONParser, FormParser]
 
     @swagger_auto_schema(
         operation_description="CSV 파일 업로드",
@@ -39,13 +39,13 @@ class CsvDataView(APIView):
                     description="ID of the project to which the CSV file belongs",
                 ),
             },
+            required=['file', 'writer', 'project_id'],  # 필수 필드 정의
         ),
-        request_body_required=True,
-        consumes=["multipart/form-data"],  # 파일 업로드를 위한 content-type
         responses={
             201: openapi.Response(description="File uploaded successfully"),
             400: openapi.Response(description="Invalid or empty CSV file"),
         },
+        consumes=["multipart/form-data"],  # Swagger에서 form-data를 명시
     )
     def post(self, request, *args, **kwargs):
         csv_file = request.FILES.get("file")
@@ -79,9 +79,10 @@ class CsvDataView(APIView):
         data_json = df.to_json(orient="records")
         csv_record_serializer = CsvDataRecordSerializer(data={
             'project': project.id,
-            'file_name': csv_file.name,
-            'data': json.loads(data_json),
+            'file': csv_file,
             'writer': writer,
+            'size': round(csv_file.size / 1024, 2),
+            'rows': len(df),
         })
 
         if csv_record_serializer.is_valid():
@@ -89,8 +90,8 @@ class CsvDataView(APIView):
         else:
             return JsonResponse(csv_record_serializer.errors, status=400)
 
-        # 컬럼 정보 저장
         for column_name in df.columns:
+            # 컬럼 정보 저장
             column_type = "numerical" if pd.api.types.is_numeric_dtype(
                 df[column_name]) else "categorical"
             column_record_serializer = ColumnRecordSerializer(data={
@@ -98,12 +99,35 @@ class CsvDataView(APIView):
                 'column_name': column_name,
                 'column_type': column_type,
                 'property_type': 'environmental',
+                'missing_values_ratio': round(df[column_name].isnull().sum() / len(df) * 100, 2),
             })
 
             if column_record_serializer.is_valid():
                 column_record_serializer.save()
             else:
                 return JsonResponse(column_record_serializer.errors, status=400)
+
+            # 히스토그램 데이터 저장
+            if column_type == "numerical":
+                counts, bin_edges = np.histogram(
+                    df[column_name].dropna(), bins=10)
+                models.HistogramRecord.objects.create(
+                    column=column_record_serializer.instance,
+                    counts=json.dumps(counts.tolist()),
+                    bin_edges=json.dumps(bin_edges.tolist())
+                )
+            elif column_type == "categorical":
+                # 카테고리별 빈도 계산
+                value_counts = df[column_name].dropna().value_counts()
+                category_counts = value_counts.tolist()
+                category_names = value_counts.index.tolist()
+
+                # 히스토그램 데이터 저장
+                models.HistogramRecord.objects.create(
+                    column=column_record_serializer.instance,
+                    counts=json.dumps(category_counts),  # 빈도 직렬화
+                    bin_edges=json.dumps(category_names)  # 카테고리 이름 직렬화
+                )
 
         return JsonResponse(
             {'file_id': csv_record.id},
@@ -160,4 +184,4 @@ class CsvDataView(APIView):
 
         csv_record.delete()
 
-        return JsonResponse({'file_id': file_id}, status=204)
+        return JsonResponse({'file_id': file_id}, status=200)

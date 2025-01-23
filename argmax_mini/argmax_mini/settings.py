@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',  # Add this line
     'drf_yasg',  # Add this line
     'rest_framework',  # Add this line
     'data_processing',  # Add this line
@@ -50,7 +51,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True  # 모든 출처에서의 요청 허용
 
 ROOT_URLCONF = 'argmax_mini.urls'
 
@@ -124,3 +129,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
+
+# Add this line
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media/'

@@ -14,6 +14,7 @@ class ColumnsView(APIView):
     CSV 파일의 컬럼 속성 조회 및 수정
     '''
     parser_classes = [JSONParser]  # 파일 업로드를 지원하는 파서 추가
+
     @swagger_auto_schema(
         operation_description="CSV 파일의 컬럼 속성 조회",
         manual_parameters=[
@@ -25,7 +26,6 @@ class ColumnsView(APIView):
                 required=True,
             ),
         ],
-        request_body_required=True,
         responses={
             200: openapi.Response(description="Column columns retrieved successfully"),
             400: openapi.Response(description="Invalid file ID"),

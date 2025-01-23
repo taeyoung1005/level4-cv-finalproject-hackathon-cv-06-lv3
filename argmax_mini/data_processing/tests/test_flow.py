@@ -43,7 +43,7 @@ class FlowsTest(APITestCase):
             # 데이터베이스에 삽입
             self.csv_record = CsvDataRecord.objects.create(
                 project=self.project_record,
-                file_name=csv,
+                file=csv,
                 writer="test_writer"
             )
             self.csv_records.append(self.csv_record)
@@ -68,7 +68,7 @@ class FlowsTest(APITestCase):
         """
         url = reverse('data_processing:flows')
         data = {
-            'flow_name': 'test_flow'
+            'flow': 'test_flow'
         }
 
         response = self.client.post(url, data, format='json')
@@ -283,7 +283,7 @@ class FlowCsvDataRecordTest(APITestCase):
             df = pd.read_csv(file_path)
             csv_record = CsvDataRecord.objects.create(
                 project=self.project_record,
-                file_name=csv_file,
+                file=csv_file,
                 writer="test_writer"
             )
             self.csv_records.append(csv_record)
