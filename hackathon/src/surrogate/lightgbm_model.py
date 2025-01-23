@@ -55,6 +55,8 @@ def lightgbm_evaluate(model, train_data, val_data):
 
 def lightgbm_predict(model, X_test):
     
-    X_test = X_test.get_data()
+    # X_test = X_test.get_data()
+    # Tensor를 numpy 배열로 변환
+    X_test = X_test.detach().cpu().numpy()
     y_pred = model.predict(X_test, num_iteration=model.best_iteration)
     return y_pred
