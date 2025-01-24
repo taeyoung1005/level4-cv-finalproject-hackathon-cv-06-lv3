@@ -2,3 +2,4 @@
 *.pth
 *.pt
 __pycache__/
+*.parquet
