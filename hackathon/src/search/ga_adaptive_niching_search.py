@@ -24,28 +24,53 @@ def fitness_sharing(population, sigma, alpha):
     - sigma: 니치 크기
     - alpha: 거리의 중요도 조정 파라미터
     """
-    for ind in population:
-        # ind와 다른 모든 개체 사이의 거리 계산(자기 자신 포함)
-        distances = [
-            np.linalg.norm(np.array(ind) - np.array(other)) for other in population
-        ]
-        # print(len(distances)) # 50
+    # 개체군을 numpy 배열로 변환
+    population_array = np.array([np.array(ind).squeeze() for ind in population])
+    # print(population_array.shape) # (50, 8)
 
-        # 공유 함수 값 계산 : dist < sigma일 때만 적합도를 공유하도록 설계
-        sh_values = [
-            1 - (dist / sigma) ** alpha if dist < sigma else 0
-            for dist in distances
-        ] # distances를 기반으로 적합도 공유 비율을 나타내는 리스트
+    # 개체 간 거리 계산 (모든 개체 쌍의 거리)
+    distances = np.linalg.norm(
+        population_array[:, np.newaxis, :] - population_array[np.newaxis, :, :], axis=2
+    )
+    # print(distances.shape) # (50, 50)
 
-        # 다른 개체들과 적합도를 나누는 정도를 나타냄
-        # sharing_factor가 크다 = 해당 개체와 가까운 개체가 많다
-        sharing_factor = sum(sh_values)
-        # print(sharing_factor) # 12.976303413814554
-        
-        # 적합도 조정
-        if sharing_factor > 0: # 근처에 다른 개체가 있는 경우
-            # print(ind.fitness.values)
+    # 공유 함수 값 계산 : dist < sigma일 때만 적합도를 공유하도록 설계
+    sh_values = np.where(
+        distances < sigma, 1 - (distances / sigma) ** alpha, 0
+    )
+    # print(sh_values.shape) # (50, 50)
+
+    # 다른 개체들과 적합도를 나누는 정도를 나타냄
+    sharing_factors = np.sum(sh_values, axis=1)  # 각 개체별 sharing factor 계산
+    # print(sharing_factors.shape) # (50,)
+
+    # 적합도 조정
+    for ind, sharing_factor in zip(population, sharing_factors):
+        if sharing_factor > 0.0:  # 근처에 다른 개체가 있는 경우
             ind.fitness.values = (ind.fitness.values[0] / sharing_factor,)
+
+    # for ind in population:
+    #     # ind와 다른 모든 개체 사이의 거리 계산(자기 자신 포함)
+    #     distances = [
+    #         np.linalg.norm(np.array(ind) - np.array(other)) for other in population
+    #     ]
+    #     # print(len(distances)) # 50
+
+    #     # 공유 함수 값 계산 : dist < sigma일 때만 적합도를 공유하도록 설계
+    #     sh_values = [
+    #         1 - (dist / sigma) ** alpha if dist < sigma else 0
+    #         for dist in distances
+    #     ] # distances를 기반으로 적합도 공유 비율을 나타내는 리스트
+
+    #     # 다른 개체들과 적합도를 나누는 정도를 나타냄
+    #     # sharing_factor가 크다 = 해당 개체와 가까운 개체가 많다
+    #     sharing_factor = sum(sh_values)
+    #     # print(sharing_factor) # 12.976303413814554
+        
+    #     # 적합도 조정
+    #     if sharing_factor > 0: # 근처에 다른 개체가 있는 경우
+    #         # print(ind.fitness.values)
+    #         ind.fitness.values = (ind.fitness.values[0] / sharing_factor,)
 
 def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_gen=10, initial_sigma=2.0, min_sigma=0.5, decay_constant=5.0):
     """
