@@ -3,3 +3,4 @@ from .backprob_search import backprob_search
 from .eval_search_model import eval_search_model
 from .ga_deap_search import ga_deap_search
 from .ga_pygmo_search import ga_pygmo_search
+from .ga_adaptive_niching_search import ga_adaptive_niching_search
