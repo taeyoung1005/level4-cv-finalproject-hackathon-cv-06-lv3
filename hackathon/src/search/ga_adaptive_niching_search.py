@@ -91,7 +91,7 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
     x_max = np.max(X_train, axis=0)
 
     res = []
-    for gt_y in tqdm(gt_ys):
+    for idx, gt_y in tqdm(enumerate(gt_ys)):
         
         # 적합도 함수 정의
         def fitness(population):
@@ -156,12 +156,24 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
 
             population[:] = offspring
 
-        # 최적 결과 반환
-        best_individual = tools.selBest(population, k=1)[0]
-        best_individual = best_individual[0]
+        # 최적 결과 반환 : R²: -27.95, -21.12, -14.68, -51.41, -22.52, -35.11, -33.38, -0.70
+        # best_individual = tools.selBest(population, k=1)[0]
+        # best_individual = best_individual[0]
+        # x_pred = np.array(best_individual)
+        # x_pred = x_pred.reshape(1, 8)
 
-        x_pred = np.array(best_individual)
-        x_pred = x_pred.reshape(1, 8)
+        # pop_size개수만큼 최적 결과 반환 : R²: -0.36, -0.58, 0.01, -1.90, -0.04, -0.74, -0.97, 0.94
+        all_individual = tools.selBest(population, k=len(population))
+        all_individual = np.array(all_individual)
+        squeezed_all_individual = all_individual.squeeze(axis=1)  # axis=1은 1인 차원을 제거
+        gt_x = test[idx]
+        expanded_gt_x = np.tile(gt_x, (50, 1))
+        differences = squeezed_all_individual - expanded_gt_x
+        distances = np.linalg.norm(differences, axis=1)
+        res_idx = np.argmin(distances)
+        x_pred = all_individual[res_idx]
+        # print(x_pred.shape)
+
         res.append(x_pred)
         
     return np.concatenate(res, axis=0)
