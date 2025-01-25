@@ -167,7 +167,7 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
         all_individual = np.array(all_individual)
         squeezed_all_individual = all_individual.squeeze(axis=1)  # axis=1은 1인 차원을 제거
         gt_x = test[idx]
-        expanded_gt_x = np.tile(gt_x, (50, 1))
+        expanded_gt_x = np.tile(gt_x, (pop_size, 1))
         differences = squeezed_all_individual - expanded_gt_x
         distances = np.linalg.norm(differences, axis=1)
         res_idx = np.argmin(distances)
