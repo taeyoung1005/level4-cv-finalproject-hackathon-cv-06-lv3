@@ -1,5 +1,6 @@
 # main.py
 
+import time
 import argparse
 import logging
 
@@ -79,7 +80,11 @@ def main(args):
     # 최적화/검색 수행
     # try:
     search_func = getattr(search, f'{search_model}_search')
+    start_time = time.time()
     x_opt = search_func(model, predict_func, X_train, X_test, y_test)
+    end_time = time.time()
+    print(f"search model 소요 시간: {end_time - start_time:.4f}초")
+
     # except AttributeError:
     #     logging.error(f"지원되지 않는 검색 모델 '{search_model}' 입니다.")
     #     return
