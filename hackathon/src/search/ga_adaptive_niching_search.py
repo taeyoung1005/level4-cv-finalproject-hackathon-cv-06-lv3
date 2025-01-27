@@ -69,7 +69,6 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
 
     res = []
 <<<<<<< Updated upstream
-    for gt_y in tqdm(gt_ys):
 =======
     for idx, gt_y in tqdm(enumerate(gt_ys), total=len(gt_ys)):
 >>>>>>> Stashed changes
