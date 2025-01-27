@@ -2,37 +2,37 @@ from rest_framework import serializers
 from data_processing import models
 
 
-class ProjectSerializer(serializers.ModelSerializer):
+class ProjectModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.Project
+        model = models.ProjectModel
         fields = '__all__'
 
 
-class CsvDataRecordSerializer(serializers.ModelSerializer):
+class CsvModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.CsvDataRecord
+        model = models.CsvModel
         fields = '__all__'
 
 
-class ColumnRecordSerializer(serializers.ModelSerializer):
+class ColumnModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.ColumnRecord
+        model = models.ColumnModel
         fields = '__all__'
 
 
-class HistogramRecordSerializer(serializers.ModelSerializer):
+class ConcatColumnModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.HistogramRecord
+        model = models.ConcatColumnModel
         fields = '__all__'
 
 
-class FlowSerializer(serializers.ModelSerializer):
+class HistogramModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.HistogramModel
+        fields = '__all__'
+
+
+class FlowModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.FlowModel
-        fields = '__all__'
-
-
-class FlowCsvDataRecordSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.FlowCsvDataRecord
         fields = '__all__'

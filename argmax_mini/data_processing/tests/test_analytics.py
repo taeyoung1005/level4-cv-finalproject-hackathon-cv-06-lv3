@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 import pandas as pd
 
-from data_processing.models import Project
+from data_processing.models import ProjectModel
 
 
 class HistogramDataTests(APITestCase):
@@ -16,30 +16,30 @@ class HistogramDataTests(APITestCase):
     def setUp(self):
         """
         테스트 환경을 설정합니다.
-        - CSV 파일 업로드를 위한 URL과 히스토그램 데이터를 가져오는 URL을 설정합니다.
-        - ./features 폴더에 있는 CSV 파일들을 읽어옵니다.
+        - CsvModel 파일 업로드를 위한 URL과 히스토그램 데이터를 가져오는 URL을 설정합니다.
+        - ./features 폴더에 있는 CsvModel 파일들을 읽어옵니다.
         """
         self.upload_url = reverse('data_processing:csvs')
         self.histogram_url = reverse('data_processing:histograms')
         self.features_dir = os.path.join(
             os.path.dirname(__file__), './features')
 
-        # features 폴더에서 CSV 파일 로드
-        self.csv_files = [
+        # features 폴더에서 CsvModel 파일 로드
+        self.csvs = [
             os.path.join(self.features_dir, f)
             for f in os.listdir(self.features_dir) if f.endswith('.csv')]
 
-        self.project = Project.objects.create(name="Test Project")
+        self.project = ProjectModel.objects.create(name="Test Project")
 
     def test_get_histogram_success(self):
         """
-        유효한 CSV 파일들을 업로드하고 히스토그램 데이터를 성공적으로 가져오는지 테스트.
+        유효한 CsvModel 파일들을 업로드하고 히스토그램 데이터를 성공적으로 가져오는지 테스트.
         """
-        for file_path in self.csv_files:
-            with open(file_path, 'r') as csv_file:
-                # CSV 파일 업로드
+        for file_path in self.csvs:
+            with open(file_path, 'r') as file:
+                # CsvModel 파일 업로드
                 response = self.client.post(
-                    self.upload_url, {'file': csv_file, 'writer': '박태영', 'project_id': self.project.id}, format='multipart')
+                    self.upload_url, {'file': file, 'writer': '박태영', 'project_id': self.project.id}, format='multipart')
                 self.assertEqual(
                     response.status_code,
                     status.HTTP_201_CREATED,

@@ -1,23 +1,29 @@
-import json
-import pandas as pd
-import numpy as np
-from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.parsers import JSONParser
-
+from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from data_processing.models import ProjectModel
+from data_processing.serializers import ProjectModelSerializer
 
-from data_processing import models
-from data_processing.serializers import ProjectSerializer
+# 헬퍼 함수 추가: 중복되는 로직을 제거하고 재사용성을 높임
+
+
+def get_project_by_id(project_id):
+    if not project_id or not str(project_id).isdigit():
+        raise ValueError("Invalid project_id")
+    try:
+        return ProjectModel.objects.get(id=project_id)
+    except ProjectModel.DoesNotExist:
+        raise ProjectModel.DoesNotExist
 
 
 class ProjectView(APIView):
-    '''
-    프로젝트 생성 및 조회
-    '''
-    parser_classes = [JSONParser]  # 파일 업로드를 지원하는 파서 추가
+    """
+    프로젝트 생성, 조회, 삭제, 수정 API
+    """
+    parser_classes = [JSONParser]  # 기본적으로 JSON 파싱을 지원
 
     @swagger_auto_schema(
         operation_description="프로젝트 생성",
@@ -41,19 +47,17 @@ class ProjectView(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        '''
+        """
         프로젝트 생성
-        '''
-        project_serializer = ProjectSerializer(data=request.data)
-
+        """
+        project_serializer = ProjectModelSerializer(data=request.data)
         if project_serializer.is_valid():
             project = project_serializer.save()
-        else:
-            return JsonResponse(project_serializer.errors, status=400)
-
-        return JsonResponse(
-            {'project_id': project.id},
-            status=status.HTTP_201_CREATED)
+            return Response(
+                {'project_id': project.id},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(project_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
         operation_description="프로젝트 목록 조회",
@@ -62,15 +66,12 @@ class ProjectView(APIView):
         },
     )
     def get(self, request, *args, **kwargs):
-        '''
+        """
         프로젝트 목록 조회
-        '''
-        projects = models.Project.objects.all()
-        project_serializer = ProjectSerializer(projects, many=True)
-
-        return JsonResponse(
-            {"projects": project_serializer.data},
-            status=200)
+        """
+        projects = ProjectModel.objects.all()
+        project_serializer = ProjectModelSerializer(projects, many=True)
+        return Response({"projects": project_serializer.data}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="프로젝트 삭제",
@@ -91,24 +92,18 @@ class ProjectView(APIView):
         },
     )
     def delete(self, request, *args, **kwargs):
-        '''
+        """
         프로젝트 삭제
-        '''
-        project_id = str(request.data.get("project_id"))
-
-        if not project_id or not project_id.isdigit() or project_id == 'None':
-            return JsonResponse(
-                {"error": "No project_id provided"},
-                status=400)
-
+        """
+        project_id = request.data.get("project_id")
         try:
-            project = models.Project.objects.get(id=project_id)
-        except models.Project.DoesNotExist:
-            return JsonResponse({"error": "Project not found"}, status=404)
-
-        project.delete()
-
-        return JsonResponse({'project_id':project_id}, status=200)
+            project = get_project_by_id(project_id)
+            project.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ValueError:
+            return Response({"error": "Invalid project_id"}, status=status.HTTP_400_BAD_REQUEST)
+        except ProjectModel.DoesNotExist:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="프로젝트 수정",
@@ -137,28 +132,23 @@ class ProjectView(APIView):
         },
     )
     def put(self, request, *args, **kwargs):
-        '''
+        """
         프로젝트 수정
-        '''
-        project_id = str(request.data.get("project_id"))
-        if not project_id or not project_id.isdigit() or project_id == 'None':
-            return JsonResponse(
-                {"error": "No project_id provided"},
-                status=400)
-
+        """
+        project_id = request.data.get("project_id")
         try:
-            project = models.Project.objects.get(id=project_id)
-        except models.Project.DoesNotExist:
-            return JsonResponse({"error": "Project not found"}, status=404)
-
-        project_serializer = ProjectSerializer(
-            project, data=request.data, partial=True)
-
-        if project_serializer.is_valid():
-            project = project_serializer.save()
-        else:
-            return JsonResponse(project_serializer.errors, status=400)
-
-        return JsonResponse(
-            {'project_id': project.id},
-            status=status.HTTP_200_OK)
+            project = get_project_by_id(project_id)
+            project_serializer = ProjectModelSerializer(
+                project, data=request.data, partial=True
+            )
+            if project_serializer.is_valid():
+                project = project_serializer.save()
+                return Response(
+                    {'project_id': project.id},
+                    status=status.HTTP_200_OK
+                )
+            return Response(project_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({"error": "Invalid project_id"}, status=status.HTTP_400_BAD_REQUEST)
+        except ProjectModel.DoesNotExist:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)

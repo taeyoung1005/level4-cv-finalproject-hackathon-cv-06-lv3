@@ -6,10 +6,10 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 import pandas as pd
 
-from data_processing.models import Project, CsvDataRecord, ColumnRecord
+from data_processing.models import ProjectModel, ConcatColumnModel, ColumnModel
 
 
-class ColumnsViewTests(APITestCase):
+class ConcatColumnViewTests(APITestCase):
     def setUp(self):
         """
         테스트를 위한 데이터 초기화
@@ -18,26 +18,26 @@ class ColumnsViewTests(APITestCase):
         self.features_dir = os.path.join(
             os.path.dirname(__file__), './features')
 
-        # 첫 번째 CSV 파일 선택 및 데이터베이스에 삽입
-        self.csv_files = [f for f in os.listdir(
-            self.features_dir) if f.endswith('.csv')]
-        if not self.csv_files:
+        # 첫 번째 CsvModel 파일 선택 및 데이터베이스에 삽입
+        self.CsvModel_files = [f for f in os.listdir(
+            self.features_dir) if f.endswith('.CsvModel')]
+        if not self.CsvModel_files:
             raise FileNotFoundError(
-                "No CSV files found in ./features directory.")
+                "No CsvModel files found in ./features directory.")
 
-        file_path = os.path.join(self.features_dir, self.csv_files[0])
-        df = pd.read_csv(file_path)
+        file_path = os.path.join(self.features_dir, self.CsvModel_files[0])
+        df = pd.read_CsvModel(file_path)
 
         # Project 생성
-        self.project_record = Project.objects.create(
+        self.project_record = ProjectModel.objects.create(
             name="test_project",
             description="test_description"
         )
 
         # 데이터베이스에 삽입
-        self.csv_record = CsvDataRecord.objects.create(
+        self.CsvModel_record = CsvModel.objects.create(
             project=self.project_record,
-            file=self.csv_files[0],
+            file=self.CsvModel_files[0],
         )
 
         # ColumnRecord 생성
@@ -45,8 +45,8 @@ class ColumnsViewTests(APITestCase):
         for column in df.columns:
             column_type = "numerical" if pd.api.types.is_numeric_dtype(
                 df[column]) else "categorical"
-            column_record = ColumnRecord.objects.create(
-                csv=self.csv_record,
+            column_record = Column.objects.create(
+                CsvModel=self.CsvModel_record,
                 column_name=column,
                 column_type=column_type,
             )
@@ -61,7 +61,7 @@ class ColumnsViewTests(APITestCase):
         new_property_type = "categorical"
 
         data = {
-            "csv_id": self.csv_record.id,
+            "CsvModel_id": self.CsvModel_record.id,
             "column_name": column_name,
             "property_type": new_property_type
         }
@@ -83,7 +83,7 @@ class ColumnsViewTests(APITestCase):
         잘못된 요청 데이터로 컬럼 타입 업데이트를 테스트
         """
         data = {
-            "csv_id": self.csv_record.id,
+            "CsvModel_id": self.CsvModel_record.id,
             "property_type": "numerical"  # column_name이 없음
         }
 
@@ -101,7 +101,7 @@ class ColumnsViewTests(APITestCase):
         존재하지 않는 컬럼 이름으로 요청을 보내는 경우를 테스트
         """
         data = {
-            "csv_id": self.csv_record.id,
+            "CsvModel_id": self.CsvModel_record.id,
             "column_name": "nonexistent_column",
             "property_type": "categorical"
         }
@@ -112,12 +112,12 @@ class ColumnsViewTests(APITestCase):
         self.assertIn("error", response.json())
         self.assertEqual(response.json()["error"], "Column not found")
 
-    def test_put_invalid_csv_id(self):
+    def test_put_invalid_CsvModel_id(self):
         """
-        유효하지 않은 csv_id를 제공했을 때 적절한 에러 반환 테스트
+        유효하지 않은 CsvModel_id를 제공했을 때 적절한 에러 반환 테스트
         """
         data = {
-            "csv_id": 9999,  # 존재하지 않는 ID
+            "CsvModel_id": 9999,  # 존재하지 않는 ID
             "column_name": self.columns[0].column_name,
             "property_type": "numerical"
         }
@@ -132,9 +132,9 @@ class ColumnsViewTests(APITestCase):
         """
         컬럼 리스트를 성공적으로 가져오는지 테스트
         """
-        # 쿼리파라미터로 csv_id를 전달
+        # 쿼리파라미터로 CsvModel_id를 전달
         response = self.client.get(
-            self.columns_url, {"csv_id": self.csv_record.id})
+            self.columns_url, {"CsvModel_id": self.CsvModel_record.id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # 컬럼 타입별로 컬럼 이름 리스트 확인
@@ -142,20 +142,20 @@ class ColumnsViewTests(APITestCase):
         self.assertIn("categorical", response.json())
         self.assertIn("unavailable", response.json())
 
-    def test_get_column_list_invalid_csv_id(self):
+    def test_get_column_list_invalid_CsvModel_id(self):
         """
-        유효하지 않은 csv_id로 요청을 보내는 경우를 테스트
+        유효하지 않은 CsvModel_id로 요청을 보내는 경우를 테스트
         """
-        response = self.client.get(self.columns_url, {"csv_id": 9999})
+        response = self.client.get(self.columns_url, {"CsvModel_id": 9999})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("error", response.json())
         self.assertEqual(response.json()["error"], "File not found")
 
-    def test_get_column_list_no_csv_id(self):
+    def test_get_column_list_no_CsvModel_id(self):
         """
-        csv_id를 제공하지 않은 경우를 테스트
+        CsvModel_id를 제공하지 않은 경우를 테스트
         """
         response = self.client.get(self.columns_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", response.json())
-        self.assertEqual(response.json()["error"], "No csv_id provided")
+        self.assertEqual(response.json()["error"], "No CsvModel_id provided")

@@ -1,374 +1,311 @@
-import io
-import os
-import json
-
 from django.urls import reverse
-from rest_framework import status
 from rest_framework.test import APITestCase
-import pandas as pd
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework import status
+from data_processing.models import ProjectModel, FlowModel, CsvModel
 
-from data_processing.models import CsvDataRecord, Project, FlowModel, FlowCsvDataRecord
 
-
-class FlowsTest(APITestCase):
+class FlowsViewTests(APITestCase):
     """
-    FlowModel의 테스트 클래스
-    """
-
-    def setUp(self):
-        """
-        테스트 환경을 설정합니다.
-        ./features 폴더에서 CSV 파일을 읽어와 데이터베이스에 초기 데이터를 삽입합니다.
-        """
-        self.features_dir = os.path.join(
-            os.path.dirname(__file__), './features')
-
-        # 첫 번째 CSV 파일 사용
-        csv_files = [f for f in os.listdir(
-            self.features_dir) if f.endswith('.csv')]
-        if not csv_files:
-            raise FileNotFoundError(
-                "No CSV files found in ./features directory.")
-
-        self.project_record = Project.objects.create(
-            name="test_project",
-            description="test_description"
-        )
-
-        self.csv_records = []
-        for csv in csv_files:
-            file_path = os.path.join(self.features_dir, csv)
-            df = pd.read_csv(file_path)
-
-            # 데이터베이스에 삽입
-            self.csv_record = CsvDataRecord.objects.create(
-                project=self.project_record,
-                file=csv,
-                writer="test_writer"
-            )
-            self.csv_records.append(self.csv_record)
-
-    def test_create_flow(self):
-        """
-        FlowModel을 생성하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('flow_id', response.json())
-
-    def test_create_flow_no_project_id(self):
-        """
-        project_id가 없는 경우 FlowModel을 생성하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'flow': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_create_flow_no_flow_name(self):
-        """
-        flow_name이 없는 경우 FlowModel을 생성하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_get_flows(self):
-        """
-        FlowModel을 조회하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id
-        }
-
-        response = self.client.get(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.json()['flows']), 0)
-
-    def test_get_flows_invalid_project_id(self):
-        """
-        유효하지 않은 project_id로 FlowModel을 조회하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': 999
-        }
-
-        response = self.client.get(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_get_flows_no_project_id(self):
-        """
-        project_id가 없는 경우 FlowModel을 조회하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_get_flows_invalid_project_id_type(self):
-        """
-        유효하지 않은 project_id 타입으로 FlowModel을 조회하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': 'invalid'
-        }
-
-        response = self.client.get(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_delete_flows(self):
-        """
-        FlowModel을 삭제하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        response = self.client.delete(
-            url, {'flow_id': response.json()['flow_id']}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_delete_flows_invalid_flow_id(self):
-        """
-        유효하지 않은 flow_id로 FlowModel을 삭제하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        response = self.client.delete(url, {'flow_id': 999}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_delete_flows_no_flow_id(self):
-        """
-        flow_id가 없는 경우 FlowModel을 삭제하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        response = self.client.delete(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_delete_flows_invalid_flow_id_type(self):
-        """
-        유효하지 않은 flow_id 타입으로 FlowModel을 삭제하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        response = self.client.delete(
-            url, {'flow_id': 'invalid'}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_update_flow(self):
-        """
-        FlowModel을 업데이트하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        data = {
-            'flow_id': response.json()['flow_id'],
-            'flow_name': 'updated_flow'
-        }
-
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_update_flow_no_flow_id(self):
-        """
-        flow_id가 없는 경우 FlowModel을 업데이트하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        data = {
-            'flow_name': 'updated_flow'
-        }
-
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_update_flow_no_flow_name(self):
-        """
-        flow_name이 없는 경우 FlowModel을 업데이트하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flows')
-        data = {
-            'project_id': self.project_record.id,
-            'flow_name': 'test_flow'
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        data = {
-            'flow_id': response.json()['flow_id']
-        }
-
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-
-class FlowCsvDataRecordTest(APITestCase):
-    """
-    FlowCsvDataRecord의 테스트 클래스
+    FlowsView 클래스의 엔드포인트를 테스트합니다.
     """
 
     def setUp(self):
         """
         테스트 환경 설정
         """
-        self.features_dir = os.path.join(
-            os.path.dirname(__file__), './features')
-        csv_files = [f for f in os.listdir(
-            self.features_dir) if f.endswith('.csv')]
-        if not csv_files:
-            raise FileNotFoundError(
-                "No CSV files found in ./features directory.")
+        # 테스트용 프로젝트 생성
+        self.project = ProjectModel.objects.create(
+            name="Test Project", description="Test Description"
+        )
+        # 테스트용 Flow 생성
+        self.flow = FlowModel.objects.create(
+            project=self.project, flow_name="Test Flow"
+        )
 
-        self.project_record = Project.objects.create(
-            name="test_project", description="test_description")
-        self.csv_records = []
+        # URL 네임스페이스에 맞게 수정
+        self.base_url = reverse('data_processing:flows')
 
-        for csv_file in csv_files:
-            file_path = os.path.join(self.features_dir, csv_file)
-            df = pd.read_csv(file_path)
-            csv_record = CsvDataRecord.objects.create(
-                project=self.project_record,
-                file=csv_file,
-                writer="test_writer"
-            )
-            self.csv_records.append(csv_record)
-
-    def create_flow(self, flow_name="test_flow"):
+    def test_get_flows(self):
         """
-        FlowModel 생성 헬퍼 함수
+        프로젝트의 Flow 조회 테스트
         """
-        return FlowModel.objects.create(project=self.project_record, flow_name=flow_name)
-
-    def test_create_flow_csv_data_record(self):
-        """
-        FlowCsvDataRecord를 생성하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flow_csvs')
-        flow = self.create_flow()
-
-        data = {
-            'flow_id': flow.id,
-            'csv_ids': [csv_record.id for csv_record in self.csv_records]
-        }
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('flow_id', response.json())
-        self.assertEqual(response.json()['flow_id'], str(flow.id))
-
-    def test_delete_flow_csv_data_record(self):
-        """
-        FlowCsvDataRecord를 삭제하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flow_csvs')
-        flow = self.create_flow()
-
-        for csv_record in self.csv_records:
-            FlowCsvDataRecord.objects.create(flow=flow, csv=csv_record)
-
-        csv_id_to_delete = self.csv_records[0].id
-
-        response = self.client.delete(url, {
-            'flow_id': flow.id,
-            'csv_id': csv_id_to_delete
-        }, format='json')
+        response = self.client.get(
+            self.base_url, {"project_id": self.project.id}
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("flows", response.data)
+        self.assertGreaterEqual(len(response.data["flows"]), 1)
 
-    def test_get_flow_csv_data_record(self):
+    def test_get_flows_invalid_project_id(self):
         """
-        FlowCsvDataRecord를 조회하는지 테스트합니다.
+        유효하지 않은 project_id로 Flow 조회 시도 테스트
         """
-        url = reverse('data_processing:flow_csvs')
-        flow = self.create_flow()
-
-        for csv_record in self.csv_records:
-            FlowCsvDataRecord.objects.create(flow=flow, csv=csv_record)
-
-        response = self.client.get(f"{url}?flow_id={flow.id}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        records = response.json().get('flow_csv_data_records', [])
-        self.assertEqual(len(records), len(self.csv_records))
-
-    def test_get_flow_csv_data_record_no_flow_id(self):
-        """
-        flow_id가 없는 경우 FlowCsvDataRecord를 조회하는지 테스트합니다.
-        """
-        url = reverse('data_processing:flow_csvs')
-
-        response = self.client.get(url)
+        response = self.client.get(
+            self.base_url, {"project_id": "invalid_id"}
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('error', response.json())
-        self.assertEqual(response.json()['error'], "No flow_id provided")
+        self.assertIn("error", response.data)
 
-    def test_delete_flow_csv_data_record_invalid_csv_id(self):
+    def test_get_flows_project_not_found(self):
         """
-        유효하지 않은 csv_id로 FlowCsvDataRecord를 삭제하는지 테스트합니다.
+        존재하지 않는 project_id로 Flow 조회 시도 테스트
         """
-        url = reverse('data_processing:flow_csvs')
-        flow = self.create_flow()
-
-        data = {
-            'flow_id': flow.id,
-            'csv_id': 999  # 존재하지 않는 csv_id
-        }
-
-        response = self.client.delete(url, data, format='json')
+        response = self.client.get(
+            self.base_url, {"project_id": 999}
+        )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertIn('error', response.json())
-        self.assertEqual(response.json()['error'], "CSV not found")
+        self.assertIn("error", response.data)
+
+    def test_create_flow(self):
+        """
+        프로젝트의 Flow 생성 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"project_id": self.project.id, "flow_name": "New Flow"},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("flow_id", response.data)
+
+        # 데이터베이스에 Flow가 생성되었는지 확인
+        flow_id = response.data["flow_id"]
+        self.assertTrue(FlowModel.objects.filter(id=flow_id).exists())
+
+    def test_create_flow_missing_project_id(self):
+        """
+        project_id 누락 시 Flow 생성 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"flow_name": "New Flow"},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_create_flow_missing_flow_name(self):
+        """
+        flow_name 누락 시 Flow 생성 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"project_id": self.project.id},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_create_flow_project_not_found(self):
+        """
+        존재하지 않는 project_id로 Flow 생성 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"project_id": 999, "flow_name": "New Flow"},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", response.data)
+
+    def test_delete_flow(self):
+        """
+        프로젝트의 Flow 삭제 테스트
+        """
+        response = self.client.delete(
+            self.base_url,
+            {"flow_id": self.flow.id},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("flow_id", response.data)
+
+        # 데이터베이스에서 Flow가 삭제되었는지 확인
+        self.assertFalse(FlowModel.objects.filter(id=self.flow.id).exists())
+
+    def test_delete_flow_invalid_flow_id(self):
+        """
+        유효하지 않은 flow_id로 Flow 삭제 시도 테스트
+        """
+        response = self.client.delete(
+            self.base_url,
+            {"flow_id": "invalid_id"},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_delete_flow_not_found(self):
+        """
+        존재하지 않는 flow_id로 Flow 삭제 시도 테스트
+        """
+        response = self.client.delete(
+            self.base_url,
+            {"flow_id": 999},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", response.data)
+
+    def test_update_flow(self):
+        """
+        프로젝트의 Flow 수정 테스트
+        """
+        new_flow_name = "Updated Flow"
+        response = self.client.put(
+            self.base_url,
+            {"flow_id": self.flow.id, "flow_name": new_flow_name},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("flow_id", response.data)
+        self.assertIn("flow_name", response.data)
+
+        # 데이터베이스에서 Flow 이름이 업데이트되었는지 확인
+        self.flow.refresh_from_db()
+        self.assertEqual(self.flow.flow_name, new_flow_name)
+
+    def test_update_flow_missing_flow_id(self):
+        """
+        flow_id 누락 시 Flow 수정 시도 테스트
+        """
+        response = self.client.put(
+            self.base_url,
+            {"flow_name": "Updated Flow"},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_update_flow_missing_flow_name(self):
+        """
+        flow_name 누락 시 Flow 수정 시도 테스트
+        """
+        response = self.client.put(
+            self.base_url,
+            {"flow_id": self.flow.id},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_update_flow_not_found(self):
+        """
+        존재하지 않는 flow_id로 Flow 수정 시도 테스트
+        """
+        response = self.client.put(
+            self.base_url,
+            {"flow_id": 999, "flow_name": "Updated Flow"},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", response.data)
+
+class FlowCsvAddViewTests(APITestCase):
+    """
+    FlowCsvView 클래스의 엔드포인트를 테스트합니다.
+    """
+
+    def setUp(self):
+        """
+        테스트 환경 설정
+        """
+        # 테스트용 프로젝트 생성
+        self.project = ProjectModel.objects.create(
+            name="Test Project", description="Test Description"
+        )
+        # 테스트용 Flow 생성
+        self.flow = FlowModel.objects.create(
+            project=self.project, flow_name="Test Flow"
+        )
+
+        # 테스트용 CSV 생성
+        csv_content1 = b'A,B,C\n1,2,3\n4,5,6'
+        self.csv_file1 = SimpleUploadedFile(
+            "test1.csv", csv_content1, content_type="text/csv"
+        )
+        self.csv1 = CsvModel.objects.create(
+            project=self.project,
+            csv=self.csv_file1,
+            writer="writer1",
+            size=round(len(csv_content1) / 1024, 2),
+            rows=2
+        )
+
+        csv_content2 = b'A,B,D\n7,8,9\n10,11,12'
+        self.csv_file2 = SimpleUploadedFile(
+            "test2.csv", csv_content2, content_type="text/csv"
+        )
+        self.csv2 = CsvModel.objects.create(
+            project=self.project,
+            csv=self.csv_file2,
+            writer="writer2",
+            size=round(len(csv_content2) / 1024, 2),
+            rows=2
+        )
+        self.base_url = reverse('data_processing:flow_add_csv')  # URL 네임스페이스에 맞게 수정
+
+    def test_add_csv_to_flow(self):
+        """
+        Flow에 CSV 추가 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"flow_id": self.flow.id, "csv_ids": [self.csv1.id, self.csv2.id]},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("flow_id", response.data)
+        self.assertIn("csv_ids", response.data)
+
+        # Flow에 CSV가 추가되었는지 확인
+        self.assertEqual(self.flow.csv.count(), 2)
+
+    def test_add_csv_to_flow_invalid_flow_id(self):
+        """
+        유효하지 않은 flow_id로 CSV 추가 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"flow_id": "invalid_id", "csv_ids": [self.csv1.id]},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_add_csv_to_flow_flow_not_found(self):
+        """
+        존재하지 않는 flow_id로 CSV 추가 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"flow_id": 999, "csv_ids": [self.csv1.id]},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", response.data)
+
+    def test_add_csv_to_flow_invalid_csv_id(self):
+        """
+        유효하지 않은 csv_id로 CSV 추가 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"flow_id": self.flow.id, "csv_ids": ["invalid_id"]},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_add_csv_to_flow_csv_not_found(self):
+        """
+        존재하지 않는 csv_id로 CSV 추가 시도 테스트
+        """
+        response = self.client.post(
+            self.base_url,
+            {"flow_id": self.flow.id, "csv_ids": [999]},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("error", response.data)

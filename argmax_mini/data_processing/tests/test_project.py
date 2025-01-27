@@ -2,7 +2,7 @@ import json
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from data_processing.models import Project
+from data_processing.models import ProjectModel
 
 
 class ProjectViewTests(APITestCase):
@@ -19,10 +19,12 @@ class ProjectViewTests(APITestCase):
         테스트 환경을 설정합니다.
         """
         self.base_url = reverse('data_processing:projects')
-        
+
         # 테스트용 프로젝트 생성
-        self.project1 = Project.objects.create(name="Test Project 1", description="Description 1")
-        self.project2 = Project.objects.create(name="Test Project 2", description="Description 2")
+        self.project1 = ProjectModel.objects.create(
+            name="Test Project 1", description="Description 1")
+        self.project2 = ProjectModel.objects.create(
+            name="Test Project 2", description="Description 2")
 
     def test_create_project(self):
         """
@@ -39,7 +41,7 @@ class ProjectViewTests(APITestCase):
 
         # DB 확인
         project_id = response.json()["project_id"]
-        self.assertTrue(Project.objects.filter(id=project_id).exists())
+        self.assertTrue(ProjectModel.objects.filter(id=project_id).exists())
 
     def test_create_project_invalid(self):
         """
@@ -68,18 +70,20 @@ class ProjectViewTests(APITestCase):
         """
         프로젝트 삭제 테스트
         """
-        response = self.client.delete(self.base_url, {'project_id':self.project1.id}, format='json')
+        response = self.client.delete(
+            self.base_url, {'project_id': self.project1.id}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         # DB 확인
-        self.assertFalse(Project.objects.filter(id=self.project1.id).exists())
+        self.assertFalse(ProjectModel.objects.filter(id=self.project1.id).exists())
 
     def test_delete_project_not_found(self):
         """
         존재하지 않는 프로젝트 삭제 시도 테스트
         """
-        response = self.client.delete(self.base_url, {'project_id':9999}, format='json')
+        response = self.client.delete(
+            self.base_url, {'project_id': 9999}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("error", response.json())
@@ -100,7 +104,7 @@ class ProjectViewTests(APITestCase):
         self.assertIn("project_id", response.json())
 
         # DB 확인
-        project = Project.objects.get(id=self.project1.id)
+        project = ProjectModel.objects.get(id=self.project1.id)
         self.assertEqual(project.name, "Updated Project")
         self.assertEqual(project.description, "Updated description.")
 
@@ -118,7 +122,7 @@ class ProjectViewTests(APITestCase):
         self.assertIn("project_id", response.json())
 
         # DB 확인
-        project = Project.objects.get(id=self.project1.id)
+        project = ProjectModel.objects.get(id=self.project1.id)
         self.assertEqual(project.description, "Partially updated description.")
 
     def test_update_project_not_found(self):
