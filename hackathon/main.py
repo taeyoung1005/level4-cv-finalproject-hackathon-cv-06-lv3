@@ -147,7 +147,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='모델 학습 및 최적화 스크립트')
     arg = parser.add_argument
     arg('--dataset', '--dset', '-dset', type=str, default='cement',
-        choices=['cement', 'melb'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
+        choices=['cement', 'melb', 'car'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
     arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
     arg('--model', '--model', '-model', type=str, default='lightgbm',

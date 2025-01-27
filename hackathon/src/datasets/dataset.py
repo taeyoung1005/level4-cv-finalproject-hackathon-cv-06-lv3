@@ -58,3 +58,15 @@ def melb_data(file_path: str):
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     """
     return load_and_split_data(file_path, target="Price")
+
+def car_data(file_path: str):
+    """
+    멜버른 데이터셋을 로드하고 분할합니다.
+
+    Args:
+        file_path (str): 멜버른 CSV 파일 경로.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    """
+    return load_and_split_data(file_path, target="Annual_revenue")
