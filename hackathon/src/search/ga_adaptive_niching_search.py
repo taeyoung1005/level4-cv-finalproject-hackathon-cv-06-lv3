@@ -68,10 +68,7 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
     x_max = np.max(X_train, axis=0)
 
     res = []
-<<<<<<< Updated upstream
-=======
     for idx, gt_y in tqdm(enumerate(gt_ys), total=len(gt_ys)):
->>>>>>> Stashed changes
         
         # 적합도 함수 정의
         def fitness(population):
@@ -178,24 +175,16 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
 
             # 니치 크기 조정
             sigma = adaptive_niche_size(gen, max_gen, initial_sigma, min_sigma, decay_constant)
-<<<<<<< Updated upstream
-            fitness_sharing(offspring, sigma, alpha=1.0)
-
-            population[:] = offspring
-=======
             # fitness_sharing(offspring, sigma, alpha=1.0)
             fitness_sharing(next_population, sigma, alpha=1.0)
 
             # population[:] = offspring
             population[:] = next_population
             
->>>>>>> Stashed changes
 
         # 최적 결과 반환
         best_individual = tools.selBest(population, k=1)[0]
         best_individual = best_individual[0]
-<<<<<<< Updated upstream
-=======
         x_pred = np.array(best_individual)
         x_pred = x_pred.reshape(1, 8)
 
@@ -209,9 +198,6 @@ def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_ge
         # distances = np.linalg.norm(differences, axis=1)
         # res_idx = np.argmin(distances)
         # x_pred = all_individual[res_idx]
->>>>>>> Stashed changes
 
-        x_pred = np.array(best_individual)
-        x_pred = x_pred.reshape(1, 8)
         res.append(x_pred)
     return np.concatenate(res, axis=0)
