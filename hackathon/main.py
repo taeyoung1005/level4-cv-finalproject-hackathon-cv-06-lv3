@@ -1,13 +1,14 @@
 # main.py
 
-import time
 import argparse
 import logging
+import time
 
-from src.utils import Setting, measure_time
 import src.datasets as datasets
-import src.surrogate as surrogate
 import src.search as search
+import src.surrogate as surrogate
+from src.utils import Setting, measure_time
+
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
 def main(args):
@@ -17,9 +18,9 @@ def main(args):
     # 랜덤 시드 설정
     Setting.seed_everything(args.seed)
     
-    datatype = args.dataset
-    model_name = args.model
-    search_model = args.search_model
+    datatype = args.dataset # 데이터셋
+    model_name = args.model # 사용할 서로게이트 모델 명
+    search_model = args.search_model # 사용할 서치 모델 명명
 
     if model_name == 'simpleNN':
         raise ValueError("simpleNN is not supported for now")
@@ -77,6 +78,51 @@ def main(args):
         logging.error(f"모델 평가 중 오류 발생: {e}")
         return
 
+    ### 우선 더미 값 들
+    ###TODO 모델에 추가적으로 controllable 범위, controllable 변수 명, 환경 변수 값, 아웃풋 변수 명, 최적화 목표, 프로젝트 아이디, 피쳐 별 우선순위 전달 필요
+    preprocessed_data_path = './data/concrete_processed.csv' # 전처리 된 데이터 패스스
+    # controllable_name = args.c_name # 리스트
+    controllable_name = ['cement', 'slag', 'ash', 'water', 'superplastic', 'coarseagg', 'fineagg', 'age']
+    # controllable_range = args.range # 딕셔너리
+    controllable_range = {'cement': (102.0, 540.0),
+                'slag': (0.0, 359.4),
+                'ash': (0.0, 200.1),
+                'water': (121.8, 247.0),
+                'superplastic': (0.0, 32.2),
+                'coarseagg': (801.0, 1145.0),
+                'fineagg': (594.0, 992.6),
+                'age': (1.0, 365.0)
+                } # {col:(minv,maxv) for col, minv, maxv in zip(df.columns.values, df.min().values, df.max().values)}
+                # 지금은 그냥 float 형이지만 나중에 받을 떈 np.float64
+    # data_env = args.env # 딕셔너리
+    data_env = {}
+    # output_name = args.out # 리스트
+    output_name = ['strength']
+    # pj_id = args.project_id # 인트 값 하나
+    pj_id = 13
+    # importance = args.importance # 딕셔너리
+    importance = {'cement': 2,
+                'slag': 3,
+                'ash': 1,
+                'water': 3,
+                'superplastic': 2,
+                'coarseagg': 2,
+                'fineagg': 3,
+                'age': 1
+                }
+    # optimize = args.optimize # 딕셔너리 각 피쳐 별 목표 (최대화, 최소화 등)
+    optimize = {'cement': 'maximize',
+                'slag': 'minimize',
+                'ash': 'maximize',
+                'water': 'maximize',
+                'superplastic': 'minimize',
+                'coarseagg': 'minimize',
+                'fineagg': 'minimize',
+                'age': 'minimize'
+                }
+    # target_output = args.target
+    target_output = 66
+
     # 최적화/검색 수행
     # try:
     search_func = getattr(search, f'{search_model}_search')
@@ -101,11 +147,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='모델 학습 및 최적화 스크립트')
     arg = parser.add_argument
     arg('--dataset', '--dset', '-dset', type=str, default='cement',
-        choices=['cement', 'melb'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
+        choices=['cement', 'melb', 'car'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
     arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
     arg('--model', '--model', '-model', type=str, default='lightgbm',
-        choices=['lightgbm', 'simpleNN'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
+        choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
     arg('--search_model', '--search_model', '-search_model', type=str, default='backprob',
         choices=['backprob', 'ga_deap', 'ga_pygmo', 'ga_adaptive_niching', 'k_means'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: backprob)')
     arg('--seed', '--seed', '-seed', type=int, default=42,
