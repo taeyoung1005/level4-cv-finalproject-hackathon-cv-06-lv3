@@ -153,7 +153,7 @@ if __name__ == "__main__":
     arg('--model', '--model', '-model', type=str, default='lightgbm',
         choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
     arg('--search_model', '--search_model', '-search_model', type=str, default='backprob',
-        choices=['backprob', 'ga_deap', 'ga_pygmo', 'ga_adaptive_niching'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: backprob)')
+        choices=['backprob', 'ga_deap', 'ga_pygmo', 'ga_adaptive_niching', 'k_means'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: backprob)')
     arg('--seed', '--seed', '-seed', type=int, default=42,
         help='재현성을 위한 랜덤 시드 (기본값: 42)')
     args = parser.parse_args()
