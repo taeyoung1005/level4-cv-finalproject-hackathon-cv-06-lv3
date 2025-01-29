@@ -68,3 +68,10 @@ def lightgbm_predict(model, X_test: np.ndarray) -> np.ndarray:
         y_pred = y_pred.reshape(-1, 1)
 
     return y_pred
+
+def lightgbm_save(model, path):
+    
+    model.save_model(path+'.txt')
+
+def lightgbm_load(path):
+    return lgb.Booster(model_file=path+'.txt')
