@@ -13,14 +13,14 @@ from data_processing.models import CsvModel, ProjectModel, ColumnModel
 from data_processing.serializers import CsvModelSerializer, ColumnModelSerializer
 
 
-class CsvModelDataView(APIView):
+class CsvView(APIView):
     '''
     CsvModel 파일 업로드, 조회, 수정 및 삭제 기능 제공
     '''
     parser_classes = [MultiPartParser, JSONParser, FormParser]
 
     @swagger_auto_schema(
-        operation_description="CsvModel 파일 업로드",
+        operation_description="csv 파일 업로드",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -118,25 +118,35 @@ class CsvModelDataView(APIView):
         )
 
     @swagger_auto_schema(
-        operation_description="CsvModel 파일 목록 조회",
+        operation_description="업로드된 csv 파일 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "project_id",
+                openapi.IN_QUERY,
+                description="ID of the project to which the csv files belong",
+                type=openapi.TYPE_INTEGER,
+                required=True,
+            ),
+        ],
         responses={
             200: openapi.Response(description="CsvModel files retrieved successfully"),
         },
     )
     def get(self, request, *args, **kwargs):
         '''
-        CsvModel 파일 목록 조회
+        프로젝트에 업로드된 csv 파일 목록 조회
         '''
-        CsvModel_records = CsvModel.objects.all()
-        CsvModel_record_serializer = CsvModelSerializer(
-            CsvModel_records, many=True)
+        csvs = CsvModel.objects.filter(
+            project=request.GET.get("project_id"))
+        CsvModel_serializer = CsvModelSerializer(
+            csvs, many=True)
         return Response(
-            {"CsvModel_records": CsvModel_record_serializer.data},
+            {"csvs": CsvModel_serializer.data},
             status=status.HTTP_200_OK
         )
 
     @swagger_auto_schema(
-        operation_description="CsvModel 파일 삭제",
+        operation_description="csv 파일 삭제",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -155,7 +165,7 @@ class CsvModelDataView(APIView):
     )
     def delete(self, request, *args, **kwargs):
         '''
-        CsvModel 파일 삭제
+        csv 파일 삭제
         '''
         file_id = request.data.get("file_id")
 

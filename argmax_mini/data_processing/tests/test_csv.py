@@ -7,9 +7,9 @@ import pandas as pd
 from data_processing.models import CsvModel, ProjectModel
 
 
-class CsvModelDataViewTests(APITestCase):
+class CsvViewTests(APITestCase):
     """
-    CsvModelDataView 클래스의 엔드포인트를 테스트합니다.
+    CsvView 클래스의 엔드포인트를 테스트합니다.
     """
 
     def setUp(self):

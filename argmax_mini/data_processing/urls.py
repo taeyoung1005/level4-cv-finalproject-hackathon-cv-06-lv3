@@ -7,11 +7,11 @@ app_name = 'data_processing'
 urlpatterns = [
     path('projects/', views.ProjectView.as_view(), name='projects'),
     path(
-        'csvs/', views.CsvModelDataView.as_view(),
+        'csvs/', views.CsvView.as_view(),
         name='csvs'),
-    path(
-        'histograms/', views.HistogramDataView.as_view(),
-        name='histograms'),
+    path('histograms/', views.HistogramView.as_view(), name='histograms'),
+    path('histograms/all', views.HistogramAllView.as_view(),
+         name='histograms-all'),
     path('columns/', views.ColumnView.as_view(), name='columns'),
     path('concat-columns/', views.ConcatColumnView.as_view(), name='concat-columns'),
     path('flows/', views.FlowsView.as_view(), name='flows'),

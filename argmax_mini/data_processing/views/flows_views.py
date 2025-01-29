@@ -248,11 +248,12 @@ class FlowCsvAddView(APIView):
         for column_name in concat_df.columns:
             # 컬럼 정보 저장
             if pd.api.types.is_numeric_dtype(concat_df[column_name]):
-                column_type = "numerical" 
+                column_type = "numerical"
             elif pd.api.types.is_string_dtype(concat_df[column_name]):
                 column_type = "categorical"
 
-            missing_values_ratio = round(concat_df[column_name].isnull().mean() * 100, 2)
+            missing_values_ratio = round(
+                concat_df[column_name].isnull().mean() * 100, 2)
             if missing_values_ratio > 50:
                 column_type = "unavailable"
 
@@ -272,7 +273,7 @@ class FlowCsvAddView(APIView):
             # 히스토그램 데이터 저장
             if column_type == "numerical":
                 counts, bin_edges = np.histogram(
-                    df[column_name].dropna(), bins=10)
+                    concat_df[column_name].dropna(), bins=10)
                 models.HistogramModel.objects.create(
                     column=concat_column_serializer.instance,
                     counts=json.dumps(counts.tolist()),
@@ -280,7 +281,7 @@ class FlowCsvAddView(APIView):
                 )
             elif column_type == "categorical":
                 # 카테고리별 빈도 계산
-                value_counts = df[column_name].dropna().value_counts()
+                value_counts = concat_df[column_name].dropna().value_counts()
                 category_counts = value_counts.tolist()
                 category_names = value_counts.index.tolist()
 
@@ -295,3 +296,38 @@ class FlowCsvAddView(APIView):
             {"flow_id": flow_id, "csv_ids": csv_ids},
             status=status.HTTP_200_OK
         )
+
+    @swagger_auto_schema(
+        operation_description="Flow에 추가된 csv 목록 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                'flow_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER,
+                description="ID of the Flow",
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="CSV files retrieved successfully"),
+            400: openapi.Response(description="Invalid flow ID"),
+            404: openapi.Response(description="Flow not found"),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        '''
+        Flow에 추가된 csv 목록 조회
+        '''
+        flow_id = request.GET.get("flow_id")
+
+        if not flow_id or not str(flow_id).isdigit():
+            return Response({"error": "Invalid or missing flow_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            flow = models.FlowModel.objects.get(id=flow_id)
+        except models.FlowModel.DoesNotExist:
+            return Response({"error": "Flow not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        csvs = flow.csv.all()
+        csvs_data = [{"id": csv.id, "csv_name": csv.csv.name}
+                     for csv in csvs]
+        concat_csv = flow.concat_csv.name
+
+        return Response({"csvs": csvs_data, 'concat_csv': concat_csv}, status=status.HTTP_200_OK)
