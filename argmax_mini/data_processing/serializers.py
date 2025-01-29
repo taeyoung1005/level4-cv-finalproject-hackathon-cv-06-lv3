@@ -36,3 +36,9 @@ class FlowModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.FlowModel
         fields = '__all__'
+
+
+class OptimizationModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OptimizationModel
+        fields = '__all__'

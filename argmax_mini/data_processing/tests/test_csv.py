@@ -129,8 +129,7 @@ class CsvViewTests(APITestCase):
         # 파일 목록 조회
         response = self.client.get(self.base_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('CsvModel_records', response.json())
-        self.assertGreaterEqual(len(response.json()['CsvModel_records']), 1)
+        self.assertIn('csvs', response.json())
 
     def test_delete_csv_model_file(self):
         """

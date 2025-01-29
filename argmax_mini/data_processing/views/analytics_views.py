@@ -84,11 +84,12 @@ class HistogramAllView(APIView):
         '''
 
         flow_id = request.GET.get("flow_id")
-
         if not flow_id or not flow_id.isdigit():
             return Response({"error": "No flow_id provided"}, status=400)
 
-        # 데이터베이스에서 해당 파일의 히스토그램 데이터 가져오기
+        if not FlowModel.objects.filter(id=flow_id).exists():
+            return Response({"error": "File not found"}, status=404)
+
         try:
             columns = ConcatColumnModel.objects.filter(flow=flow_id)
         except ConcatColumnModel.DoesNotExist:

@@ -16,4 +16,5 @@ urlpatterns = [
     path('concat-columns/', views.ConcatColumnView.as_view(), name='concat-columns'),
     path('flows/', views.FlowsView.as_view(), name='flows'),
     path('flows/csv-add/', views.FlowCsvAddView.as_view(), name='flow_add_csv'),
+    path('flows/concat-csv/', views.FlowConcatCsvView.as_view(), name='flow_concat_csv'),
 ]

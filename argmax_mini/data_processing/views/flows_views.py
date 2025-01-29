@@ -331,3 +331,40 @@ class FlowCsvAddView(APIView):
         concat_csv = flow.concat_csv.name
 
         return Response({"csvs": csvs_data, 'concat_csv': concat_csv}, status=status.HTTP_200_OK)
+
+
+class FlowConcatCsvView(APIView):
+    '''
+    Concat된 csv 파일 데이터 조회
+    '''
+    @swagger_auto_schema(
+        operation_description="Concat된 csv 파일 데이터 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                'flow_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER,
+                description="ID of the Flow",
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="Concatenated CSV file retrieved successfully"),
+            400: openapi.Response(description="Invalid flow ID"),
+            404: openapi.Response(description="Flow not found"),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        '''
+        Concat된 csv 파일 데이터 조회
+        '''
+        flow_id = request.GET.get("flow_id")
+
+        if not flow_id or not str(flow_id).isdigit():
+            return Response({"error": "Invalid or missing flow_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            flow = models.FlowModel.objects.get(id=flow_id)
+        except models.FlowModel.DoesNotExist:
+            return Response({"error": "Flow not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        concat_csv = pd.read_csv(flow.concat_csv).to_json()
+
+        return Response({"concat_csv": concat_csv}, status=status.HTTP_200_OK)

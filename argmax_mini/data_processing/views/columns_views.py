@@ -54,9 +54,9 @@ class ConcatColumnView(APIView):
         operation_description="concat된 csv 파일의 컬럼 속성 조회",
         manual_parameters=[
             openapi.Parameter(
-                "concat_csv_id",
+                "flow_id",
                 openapi.IN_QUERY,
-                description="ID of the uploaded Concated csv file",
+                description="Flow ID",
                 type=openapi.TYPE_INTEGER,
                 required=True,
             ),
@@ -72,12 +72,12 @@ class ConcatColumnView(APIView):
         컬럼 속성 조회
         '''
         column_type = ConcatColumnModel.COLUMN_TYPE_CHOICES
-        concat_csv_id = request.GET.get("concat_csv_id")
+        flow_id = request.GET.get("flow_id")
 
-        if not concat_csv_id or not concat_csv_id.isdigit():
-            return Response({"error": "No concat_csv_id provided"}, status=400)
+        if not flow_id or not flow_id.isdigit():
+            return Response({"error": "No flow_id provided"}, status=400)
 
-        if not ConcatColumnModel.objects.filter(id=concat_csv_id).exists():
+        if not ConcatColumnModel.objects.filter(flow=flow_id).exists():
             return Response({"error": "File not found"}, status=404)
 
         context = {}
@@ -85,7 +85,7 @@ class ConcatColumnView(APIView):
         for i in column_type:
             # QuerySet을 list로 변환
             context[i[0]] = list(ConcatColumnModel.objects.filter(
-                flow=concat_csv_id,
+                flow=flow_id,
                 column_type=i[0]).values_list('column_name', flat=True))
 
         return Response(context, status=200)
@@ -95,9 +95,9 @@ class ConcatColumnView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'concat_csv_id': openapi.Schema(
+                'flow_id': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="ID of the uploaded concated csv file",
+                    description="Flow ID"
                 ),
                 'column_name': openapi.Schema(
                     type=openapi.TYPE_STRING,
@@ -124,21 +124,21 @@ class ConcatColumnView(APIView):
         '''
         column_name = str(request.data.get("column_name"))
         property_type = str(request.data.get("property_type"))
-        concat_csv_id = str(request.data.get("concat_csv_id"))
+        flow_id = str(request.data.get("flow_id"))
 
-        if column_name == 'None' or property_type == 'None' or concat_csv_id == 'None':
+        if column_name == 'None' or property_type == 'None' or flow_id == 'None':
             return Response(
                 {"error": "Both column_name and property_type are required"},
                 status=400)
 
-        if not concat_csv_id.isdigit():
-            return Response({"error": "No concat_csv_id provided"}, status=400)
+        if not flow_id.isdigit():
+            return Response({"error": "No flow_id provided"}, status=400)
 
-        if not ConcatColumnModel.objects.filter(id=concat_csv_id).exists():
+        if not ConcatColumnModel.objects.filter(flow=flow_id).exists():
             return Response({"error": "File not found"}, status=404)
 
         column = ConcatColumnModel.objects.filter(
-            column_name=column_name, flow=concat_csv_id).first()
+            column_name=column_name, flow=flow_id).first()
 
         if not column:
             return Response({"error": "Column not found"}, status=404)

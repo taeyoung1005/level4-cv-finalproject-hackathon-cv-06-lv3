@@ -173,7 +173,7 @@ class ConcatColumnViewTests(APITestCase):
         new_property_type = "categorical"
 
         data = {
-            "concat_csv_id": self.flow.id,
+            "flow_id": self.flow.id,
             "column_name": column_name,
             "property_type": new_property_type
         }
@@ -192,7 +192,7 @@ class ConcatColumnViewTests(APITestCase):
         잘못된 요청 데이터로 컬럼 타입 업데이트를 테스트
         """
         data = {
-            "concat_csv_id": self.flow.id,
+            "flow_id": self.flow.id,
             "column_name": None,
             "property_type": None
         }
@@ -209,7 +209,7 @@ class ConcatColumnViewTests(APITestCase):
         존재하지 않는 컬럼 이름으로 요청을 보내는 경우를 테스트
         """
         data = {
-            "concat_csv_id": self.flow.id,
+            "flow_id": self.flow.id,
             "column_name": "not_found_column",
             "property_type": "numerical"
         }
@@ -218,12 +218,12 @@ class ConcatColumnViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.json()["error"], "Column not found")
 
-    def test_put_invalid_concat_csv_id(self):
+    def test_put_invalid_flow_id(self):
         """
-        유효하지 않은 concat_csv_id로 요청을 보내는 경우를 테스트
+        유효하지 않은 flow_id로 요청을 보내는 경우를 테스트
         """
         data = {
-            "concat_csv_id": 9999,
+            "flow_id": 9999,
             "column_name": self.columns[0].column_name,
             "property_type": "numerical"
         }
@@ -237,7 +237,7 @@ class ConcatColumnViewTests(APITestCase):
         컬럼 리스트를 성공적으로 가져오는지 테스트
         """
         response = self.client.get(
-            self.columns_url, {"concat_csv_id": self.flow.id})
+            self.columns_url, {"flow_id": self.flow.id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # 컬럼 타입별로 컬럼 이름 리스트 확인
@@ -245,18 +245,18 @@ class ConcatColumnViewTests(APITestCase):
         self.assertIn("categorical", response.json())
         self.assertIn("unavailable", response.json())
 
-    def test_get_column_list_invalid_concat_csv_id(self):
+    def test_get_column_list_invalid_flow_id(self):
         """
-        유효하지 않은 concat_csv_id로 컬럼 리스트를 가져오는 경우를 테스트
+        유효하지 않은 flow_id로 컬럼 리스트를 가져오는 경우를 테스트
         """
-        response = self.client.get(self.columns_url, {"concat_csv_id": 9999})
+        response = self.client.get(self.columns_url, {"flow_id": 9999})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.json()["error"], "File not found")
 
-    def test_get_column_list_no_concat_csv_id(self):
+    def test_get_column_list_no_flow_id(self):
         """
-        쿼리파라미터로 concat_csv_id가 전달되지 않은 경우를 테스트
+        쿼리파라미터로 flow_id가 전달되지 않은 경우를 테스트
         """
         response = self.client.get(self.columns_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json()["error"], "No concat_csv_id provided")
+        self.assertEqual(response.json()["error"], "No flow_id provided")
