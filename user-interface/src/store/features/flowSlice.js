@@ -256,6 +256,54 @@ const flowSlice = createSlice({
         state.flows[flowId].concat_csv_id = concatCsvId;
       }
     },
+    updatePropertyCategory: (state, action) => {
+      const { flowId, property, category } = action.payload;
+
+      console.log(action);
+
+      // ✅ flowId가 없으면 초기화
+      if (!state.properties[flowId]) {
+        state.properties[flowId] = {
+          numerical: [],
+          categorical: [],
+          unavailable: [],
+          environmental: [],
+          controllable: [],
+          target: [],
+        };
+      }
+
+      console.log(JSON.stringify(state, null, 2));
+
+      // ✅ 모든 카테고리를 안전하게 초기화
+      const allCategories = [
+        "numerical",
+        "categorical",
+        "unavailable",
+        "environmental",
+        "controllable",
+        "target",
+      ];
+      allCategories.forEach((category) => {
+        if (!state.properties[flowId][category]) {
+          state.properties[flowId][category] = [];
+        }
+      });
+
+      // ✅ 기존 선택된 속성에서 제거
+      allCategories.forEach((category) => {
+        state.properties[flowId][category] = state.properties[flowId][
+          category
+        ].filter((prop) => prop !== property);
+      });
+
+      // ✅ 새로운 카테고리에 추가 (중복 방지)
+      if (!state.properties[flowId][category].includes(property)) {
+        state.properties[flowId][category].push(property);
+      }
+
+      console.log(JSON.stringify(state, null, 2));
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -333,5 +381,9 @@ const flowSlice = createSlice({
   },
 });
 
-export const { initializeFlow, setCurrentStep } = flowSlice.actions;
+export const {
+  initializeFlow,
+  setCurrentStep,
+  updatePropertyCategory,
+} = flowSlice.actions;
 export default flowSlice.reducer;
