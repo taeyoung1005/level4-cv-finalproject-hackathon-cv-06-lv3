@@ -34,6 +34,9 @@ def detect_features(df: pd.DataFrame) -> dict:
         geospatial_cols.extend(latitude_cols)
         geospatial_cols.extend(longitude_cols)
 
+
+    # 열별 데이터 타입 정보 저장
+    dtype_info = df.dtypes.apply(lambda x: x.name).to_dict()
     
     # 결과 딕셔너리 구성
     feature_info = {
@@ -41,6 +44,7 @@ def detect_features(df: pd.DataFrame) -> dict:
         'numerical': numerical_cols,      # 지리정보형 컬럼 포함
         'datetime': datetime_cols,
         'text': text_cols,                # 텍스트 컬럼 추가
-        'geospatial': geospatial_cols     # 지리정보형 컬럼 추가
+        'geospatial': geospatial_cols,     # 지리정보형 컬럼 추가
+        'dtypes': dtype_info              # 열별 데이터 타입 정보 추가
     }
     return feature_info
