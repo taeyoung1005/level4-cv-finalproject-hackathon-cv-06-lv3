@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from data_processing.models import ConcatColumnModel, CsvModel, HistogramModel, ProjectModel, FlowModel, SearchResultModel, SurrogateMatricModel, SurrogateResultModel
+from data_processing.models import ConcatColumnModel, CsvModel, HistogramModel, ProjectModel, FlowModel, SearchResultModel, SurrogateMatricModel, SurrogateResultModel, FeatureImportanceModel, ControllableOptimizationModel, OutputOptimizationModel
 
 
 class ProjectModelAdmin(admin.ModelAdmin):
@@ -18,11 +18,49 @@ class FlowModelAdmin(admin.ModelAdmin):
         return ", ".join([csv.csv.name for csv in obj.csv.all()])
 
 
+class HistogramModelAdmin(admin.ModelAdmin):
+    list_display = ('column', 'counts', 'bin_edges')
+
+
+class ConcatColumnModelAdmin(admin.ModelAdmin):
+    list_display = ('flow', 'column_name', 'column_type',
+                    'property_type', 'missing_values_ratio')
+
+
+class SearchResultModelAdmin(admin.ModelAdmin):
+    list_display = ('flow', 'column', 'ground_truth', 'predicted')
+
+
+class SurrogateMatricModelAdmin(admin.ModelAdmin):
+    list_display = ('flow', 'column', 'r_squared', 'rmse')
+
+
+class SurrogateResultModelAdmin(admin.ModelAdmin):
+    list_display = ('flow', 'column', 'ground_truth', 'predicted', 'rank')
+
+
+class FeatureImportanceModelAdmin(admin.ModelAdmin):
+    list_display = ('flow', 'column', 'importance')
+
+
+class ControllableOptimizationModelAdmin(admin.ModelAdmin):
+    list_display = ('column', 'minimum_value',
+                    'maximum_value', 'optimize_goal')
+
+
+class OutputOptimizationModelAdmin(admin.ModelAdmin):
+    list_display = ('column', 'optimize_goal', 'target_value')
+
+
 admin.site.register(ProjectModel, ProjectModelAdmin)
 admin.site.register(CsvModel, CsvModelAdmin)
-admin.site.register(HistogramModel)
-admin.site.register(ConcatColumnModel)
+admin.site.register(HistogramModel, HistogramModelAdmin)
+admin.site.register(ConcatColumnModel, ConcatColumnModelAdmin)
 admin.site.register(FlowModel, FlowModelAdmin)
-admin.site.register(SearchResultModel)
-admin.site.register(SurrogateMatricModel)
-admin.site.register(SurrogateResultModel)
+admin.site.register(SearchResultModel, SearchResultModelAdmin)
+admin.site.register(SurrogateMatricModel, SurrogateMatricModelAdmin)
+admin.site.register(SurrogateResultModel, SurrogateResultModelAdmin)
+admin.site.register(FeatureImportanceModel, FeatureImportanceModelAdmin)
+admin.site.register(ControllableOptimizationModel,
+                    ControllableOptimizationModelAdmin)
+admin.site.register(OutputOptimizationModel, OutputOptimizationModelAdmin)
