@@ -28,6 +28,7 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     datetime_cols = feature_info['datetime']
     text_cols = feature_info['text']
     geospatial_cols = feature_info['geospatial']
+    dtype_info = feature_info['dtypes']
 
     # 2. 결측치 처리
     df = drop_high_missing_data(df, threshold=0.5)
@@ -53,10 +54,14 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
         df = remove_geospatial_columns(df, geospatial_cols)
 
     # 7. 스케일링 (동적 처리)
-    df, _ = dynamic_scaling(df, num_cols)
+    df, scaler_info = dynamic_scaling(df, num_cols)
 
     # 8. 인코딩 (동적 처리)
     df = dynamic_encode(df, feature_info)
 
     # 전처리 완료된 데이터프레임 반환
-    return df
+    return {
+        'processed_df': df,
+        'dtypes': dtype_info,
+        'scalers': scaler_info
+    }
