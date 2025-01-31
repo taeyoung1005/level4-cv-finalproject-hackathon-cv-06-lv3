@@ -10,7 +10,7 @@ class SearchResultModel(models.Model):
         ConcatColumnModel, on_delete=models.CASCADE, related_name="search_result")
     ground_truth = models.JSONField()
     predicted = models.JSONField()
-    importance = models.FloatField(blank=False, null=False)
+    # importance = models.FloatField(blank=False, null=False)
 
     def __str__(self):
         return self.search_result

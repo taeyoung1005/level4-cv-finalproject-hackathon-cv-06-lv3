@@ -38,7 +38,31 @@ class FlowModelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class OptimizationModelSerializer(serializers.ModelSerializer):
+class ControllableOptimizationModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.OptimizationModel
+        model = models.ControllableOptimizationModel
+        fields = '__all__'
+
+
+class OutputOptimizationModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OutputOptimizationModel
+        fields = '__all__'
+
+
+class SurrogateResultModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.SurrogateResultModel
+        fields = '__all__'
+
+
+class SurrogateMatricModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.SurrogateMatricModel
+        fields = '__all__'
+
+
+class FeatureImportanceModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.FeatureImportanceModel
         fields = '__all__'

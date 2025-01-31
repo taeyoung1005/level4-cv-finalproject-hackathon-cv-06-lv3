@@ -72,6 +72,7 @@ class ConcatColumnView(APIView):
         컬럼 속성 조회
         '''
         column_type = ConcatColumnModel.COLUMN_TYPE_CHOICES
+        property_type = ConcatColumnModel.PROPERTY_TYPE_CHOICES
         flow_id = request.GET.get("flow_id")
 
         if not flow_id or not flow_id.isdigit():
@@ -87,6 +88,12 @@ class ConcatColumnView(APIView):
             context[i[0]] = list(ConcatColumnModel.objects.filter(
                 flow=flow_id,
                 column_type=i[0]).values_list('column_name', flat=True))
+
+        for i in property_type:
+            # QuerySet을 list로 변환
+            context[i[0]] = list(ConcatColumnModel.objects.filter(
+                flow=flow_id,
+                property_type=i[0]).exclude(column_type="unavailable").values_list('column_name', flat=True))
 
         return Response(context, status=200)
 

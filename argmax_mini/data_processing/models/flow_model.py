@@ -11,6 +11,8 @@ class FlowModel(models.Model):
     concat_csv = models.FileField(
         upload_to='flows/', blank=True, null=True)
     flow_name = models.CharField(max_length=255, blank=False, null=False)
+    model = models.FileField(upload_to='surrogate_model/',
+                             default=None, blank=True, null=True)
 
     def __str__(self):
         return self.flow_name

@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 from data_processing import models
-from data_processing.serializers import ConcatColumnModelSerializer
+from data_processing.serializers import ConcatColumnModelSerializer, FlowModelSerializer
 
 
 class FlowsView(APIView):
@@ -54,8 +54,9 @@ class FlowsView(APIView):
             return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
 
         flows = models.FlowModel.objects.filter(project_id=project_id)
-        flows_data = [{"id": flow.id, "flow_name": flow.flow_name}
-                      for flow in flows]
+        flows_data = FlowModelSerializer(flows, many=True).data
+        # flows_data = [{"id": flow.id, "flow_name": flow.flow_name}
+        #               for flow in flows]
 
         return Response({"flows": flows_data}, status=status.HTTP_200_OK)
 

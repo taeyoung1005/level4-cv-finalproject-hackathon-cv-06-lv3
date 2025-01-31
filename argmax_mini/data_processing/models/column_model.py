@@ -15,7 +15,7 @@ class ConcatColumnModel(models.Model):
         ('unavailable', 'Unavailable')
     ]
 
-    PROPERTYPE_TYPE_CHOICES = [
+    PROPERTY_TYPE_CHOICES = [
         ('environmental', 'Environmental'),
         ('controllable', 'Controllable'),
         ('output', 'Output'),
@@ -28,7 +28,7 @@ class ConcatColumnModel(models.Model):
         max_length=13, choices=COLUMN_TYPE_CHOICES, blank=False, null=False,
         default='unavailable')
     property_type = models.CharField(
-        max_length=13, choices=PROPERTYPE_TYPE_CHOICES, blank=False,
+        max_length=13, choices=PROPERTY_TYPE_CHOICES, blank=False,
         null=False, default='environmental')
     missing_values_ratio = models.FloatField(
         blank=False, null=False, default=0)
