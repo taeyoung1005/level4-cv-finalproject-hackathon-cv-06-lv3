@@ -1,0 +1,124 @@
+# main.py
+
+import argparse
+import logging
+import time
+
+import src.datasets as datasets
+import src.search as search
+import src.surrogate as surrogate
+from src.utils import Setting, measure_time
+
+# from src.surrogate.eval_surrogate_model import eval_surrogate_model
+
+def main(args):
+    # 로깅 설정
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    
+    # 랜덤 시드 설정
+    Setting.seed_everything(args.seed)
+    
+    model_name = args.model # 사용할 서로게이트 모델 명
+    search_model = args.search_model # 사용할 서치 모델 명명
+
+    if model_name == 'simpleNN':
+        raise ValueError("simpleNN is not supported for now")
+    if search_model == 'backprob':
+        raise ValueError("backprob is not supported for now")
+    
+    # 데이터 로드 및 분할
+    load_data_func = datasets.load_and_split_data_with_control_list
+
+    X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
+
+        
+    # 데이터셋 형태 출력
+    logging.info(f"X_train.shape: {X_train.shape}")
+    logging.info(f"X_test.shape: {X_test.shape}")
+    logging.info(f"y_train.shape: {y_train.shape}")
+    logging.info(f"y_test.shape: {y_test.shape}")
+    
+    model_load_func = getattr(surrogate, f'{model_name}_load')
+    model = model_load_func(f'./prj/{args.prj_id}/surrogate_model/model')
+    print(model)
+
+
+    predict_func = getattr(surrogate, f'{model_name}_predict')
+    y_pred = predict_func(model, X_test)
+
+    
+    # 최적화/검색 수행
+    # try:
+    search_func = getattr(search, f'{search_model}_search_deploy')
+    start_time = time.time()
+    x_opt = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, args.controll_range)
+    end_time = time.time()
+    print(f"search model 소요 시간: {end_time - start_time:.4f}초")
+
+    # except AttributeError:
+    #     logging.error(f"지원되지 않는 검색 모델 '{search_model}' 입니다.")
+    #     return
+
+    # 최적화 결과 평가
+    try:
+        rmse, mae, r2 = search.eval_search_model(X_train, x_opt, X_test)
+        logging.info("R²: " + ", ".join([f"{x:.2f}" for x in r2]))
+    except Exception as e:
+        logging.error(f"최적화 결과 평가 중 오류 발생: {e}")
+        return
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='모델 학습 스크립트')
+    arg = parser.add_argument
+    # arg('--dataset', '--dset', '-dset', type=str, default='cement',
+    #     choices=['cement', 'melb', 'car'], help='사용할 데이터셋을 지정합니다 추후 제거')
+    arg('--model', '--model', '-model', type=str, default='lightgbm',
+        choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
+    arg('--search_model', '--search_model', '-search_model', type=str, default='k_means',
+        choices=['ga_adaptive_niching', 'ga_deap', 'ga_pygmo', 'k_means'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: ga_adaptive_niching)')
+    arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
+        help='데이터셋 CSV 파일 경로를 지정합니다')
+    arg('--controll_name', '--controll_name', '-controll_name', type=list, default=['cement', 'slag', 'ash', 'water', 'superplastic', 'coarseagg', 'fineagg', 'age'],
+        help='제어 변수 이름을 지정합니다')
+    #TODO scaler 적용 필요
+    arg('--controll_range', '--controll_range', '-controll_range', type=dict, default={'cement': (102.0, 540.0),
+                'slag': (0.0, 359.4),
+                'ash': (0.0, 200.1),
+                'water': (121.8, 247.0),
+                'superplastic': (0.0, 32.2),
+                'coarseagg': (801.0, 1145.0),
+                'fineagg': (594.0, 992.6),
+                'age': (1.0, 365.0)},
+        help='제어 변수 범위를 지정합니다')
+    # args.env? 
+    arg('--target', '--target', '-target', type=str, default='strength',
+        help='타겟 변수를 지정합니다')
+    arg('--importance', '--importance', '-importance', type=dict, default={'cement': 1,
+                'slag': 3,
+                'ash': 4,
+                'water': 2,
+                'superplastic': 5,
+                'coarseagg': 6,
+                'fineagg': 7,
+                'age': 8},
+        help='피쳐 별 중요도를 지정합니다')
+    arg('--optimize', '--optimize', '-optimize', type=dict, default={'cement': 'maximize',
+                'slag': 'minimize',
+                'ash': 'maximize',
+                'water': 'maximize',
+                'superplastic': 'minimize',
+                'coarseagg': 'minimize',
+                'fineagg': 'minimize',
+                'age': 'minimize'},
+        help='피쳐 별 최적화 방향을 지정합니다')
+    # arg('--model', '--model', '-model', type=str, default='lightgbm',
+    #     choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
+    arg('--prj_id', '--prj_id', '-prj_id', type=int, default=42,
+        help='프로젝트 아이디를 지정합니다')
+    arg('--seed', '--seed', '-seed', type=int, default=42,
+        help='재현성을 위한 랜덤 시드 (기본값: 42)')
+    args = parser.parse_args()
+
+    # TODO: omegaconf 적용
+
+    main(args)
