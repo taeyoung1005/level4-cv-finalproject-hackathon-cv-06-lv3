@@ -45,8 +45,8 @@ export const addProjectAsync = createAsyncThunk(
 
       return {
         projectId: newProject.project_id, // ✅ Redux에서 projectId로 저장
-        name: newProject.name,
-        description: newProject.description,
+        name: name,
+        description: description,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -96,7 +96,6 @@ export const deleteProjectAsync = createAsyncThunk(
 // -------------------- CSV (Dataset) API Thunks --------------------
 //
 
-// ✅ 프로젝트별 CSV 파일 조회
 // ✅ 프로젝트별 CSV 파일 조회
 export const fetchCsvFilesByProject = createAsyncThunk(
   "datasets/fetchCsvFilesByProject",

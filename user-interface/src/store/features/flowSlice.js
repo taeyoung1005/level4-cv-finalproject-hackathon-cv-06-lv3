@@ -219,14 +219,57 @@ export const fetchFlowHistograms = createAsyncThunk(
   }
 );
 
+// ✅ 새로운 카테고리 정보 PUT 요청 (Next Step 버튼 클릭 시 실행)
+export const savePropertyCategories = createAsyncThunk(
+  "flows/savePropertyCategories",
+  async ({ flowId, update }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/concat-columns/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(update),
+      });
+
+      if (!response.ok) throw new Error("Failed to update property categories");
+
+      return { flowId, update };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// ✅ 우선순위 저장 API 호출
+export const savePriorities = createAsyncThunk(
+  "flows/savePriorities",
+  async ({ flowId, priorities }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/priorities/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flow_id: flowId, priorities }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save priorities");
+
+      return { flowId, priorities };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 //
 // -------------------- Redux Slice --------------------
 //
 
 const initialState = {
   flows: {}, // Flow별 상태 관리 (flowId 기반 저장)
+  priorities: {},
+  optimizationData: {},
   histograms: {},
   properties: {}, // ✅ concat_csv_id를 키로 하는 properties 저장 공간 추가
+  newCategories: {},
   status: "idle",
   error: null,
 };
@@ -256,53 +299,49 @@ const flowSlice = createSlice({
         state.flows[flowId].concat_csv_id = concatCsvId;
       }
     },
-    updatePropertyCategory: (state, action) => {
+    initializeCategories: (state, action) => {
+      const { flowId, properties } = action.payload;
+
+      if (!state.properties[flowId]) {
+        state.properties[flowId] = properties; // ✅ 기존 properties 저장
+      }
+
+      if (!state.newCategories[flowId]) {
+        state.newCategories[flowId] = {}; // ✅ 새로운 category 저장 공간 초기화
+      }
+    },
+
+    updateCategory: (state, action) => {
       const { flowId, property, category } = action.payload;
 
-      console.log(action);
-
-      // ✅ flowId가 없으면 초기화
-      if (!state.properties[flowId]) {
-        state.properties[flowId] = {
-          numerical: [],
-          categorical: [],
-          unavailable: [],
-          environmental: [],
-          controllable: [],
-          target: [],
-        };
+      if (!state.newCategories[flowId]) {
+        state.newCategories[flowId] = {};
       }
 
-      console.log(JSON.stringify(state, null, 2));
-
-      // ✅ 모든 카테고리를 안전하게 초기화
-      const allCategories = [
-        "numerical",
-        "categorical",
-        "unavailable",
-        "environmental",
-        "controllable",
-        "target",
-      ];
-      allCategories.forEach((category) => {
-        if (!state.properties[flowId][category]) {
-          state.properties[flowId][category] = [];
-        }
-      });
-
-      // ✅ 기존 선택된 속성에서 제거
-      allCategories.forEach((category) => {
-        state.properties[flowId][category] = state.properties[flowId][
-          category
-        ].filter((prop) => prop !== property);
-      });
-
-      // ✅ 새로운 카테고리에 추가 (중복 방지)
-      if (!state.properties[flowId][category].includes(property)) {
-        state.properties[flowId][category].push(property);
+      // ✅ property에 대한 새로운 category 정보 추가
+      state.newCategories[flowId][property] = category;
+    },
+    updateOptimizationData: (state, action) => {
+      const { flowId, property, newData, type } = action.payload;
+      if (!state.optimizationData[flowId]) {
+        state.optimizationData[flowId] = {};
       }
+      state.optimizationData[flowId][property] = {
+        ...state.optimizationData[flowId][property],
+        ...newData,
+        type,
+      };
+    },
+    updatePriorities: (state, action) => {
+      const { flowId, priorities } = action.payload;
+      state.priorities[flowId] = priorities;
+    },
+    initializePriorities: (state, action) => {
+      const { flowId } = action.payload;
 
-      console.log(JSON.stringify(state, null, 2));
+      if (!state.priorities[flowId] && state.optimizationData[flowId]) {
+        state.priorities[flowId] = Object.keys(state.optimizationData[flowId]);
+      }
     },
   },
   extraReducers: (builder) => {
@@ -377,6 +416,19 @@ const flowSlice = createSlice({
       .addCase(fetchFlowHistograms.rejected, (state, action) => {
         console.error("❌ Failed to fetch histograms:", action.payload);
         state.error = action.payload;
+      })
+      .addCase(savePropertyCategories.fulfilled, (state, action) => {
+        console.log(
+          "✅ Property categories successfully updated:",
+          action.payload
+        );
+      })
+      .addCase(savePropertyCategories.rejected, (state, action) => {
+        console.error(
+          "❌ Failed to update property categories:",
+          action.payload
+        );
+        state.error = action.payload;
       });
   },
 });
@@ -384,6 +436,10 @@ const flowSlice = createSlice({
 export const {
   initializeFlow,
   setCurrentStep,
-  updatePropertyCategory,
+  initializeCategories,
+  updateCategory,
+  updateOptimizationData,
+  updatePriorities,
+  initializePriorities,
 } = flowSlice.actions;
 export default flowSlice.reducer;

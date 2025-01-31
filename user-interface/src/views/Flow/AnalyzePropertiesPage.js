@@ -267,12 +267,13 @@ const AnalyzePropertiesPage = () => {
                         },
                       },
                       chart: {
-                        height: 250,
                         toolbar: {
                           show: false,
                         },
                       },
                     }}
+                    width="70%"
+                    height="450px"
                   />
                 </Box>
               ))}

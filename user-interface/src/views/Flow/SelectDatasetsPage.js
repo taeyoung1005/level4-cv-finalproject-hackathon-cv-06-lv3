@@ -46,6 +46,7 @@ const SelectDatasetsPage = () => {
       try {
         await dispatch(fetchCsvFilesByProject(projectId));
         const res = await dispatch(fetchFlowDatasets(flowId)).unwrap();
+        await dispatch(fetchFlowProperties(flowId));
         if (isMounted) {
           setSelectedDatasets(res.datasets?.map((d) => d.csvId) || []);
         }
@@ -80,13 +81,7 @@ const SelectDatasetsPage = () => {
     (state) => state.projects.datasets[projectId] || []
   );
 
-  useEffect(() => {
-    const concatCsvId = flow.flow_id || 3; // ✅ concat_csv_id가 없으면 기본값 3 사용
-    dispatch(fetchFlowProperties(concatCsvId));
-  }, [dispatch, flow.flow_id]);
-
   const handleNextStep = () => {
-    handleApplySelection();
     history.push(`/projects/${projectId}/flows/${flowId}/analyze-properties`);
   };
 
@@ -153,8 +148,9 @@ const SelectDatasetsPage = () => {
   };
 
   // ✅ Flow에 선택된 데이터셋 저장
-  const handleApplySelection = () => {
-    dispatch(addCsvToFlow({ flowId, csvIds: selectedDatasets }));
+  const handleApplySelection = async () => {
+    await dispatch(addCsvToFlow({ flowId, csvIds: selectedDatasets }));
+    await dispatch(fetchFlowProperties(flowId));
   };
 
   if (!flow) {
