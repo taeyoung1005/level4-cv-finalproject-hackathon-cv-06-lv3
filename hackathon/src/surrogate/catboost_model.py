@@ -78,3 +78,30 @@ def catboost_predict(model, X_test: np.ndarray) -> np.ndarray:
         y_pred = y_pred.reshape(-1, 1)
 
     return y_pred
+
+def catboost_save(model, path):
+    """
+    CatBoost 모델을 지정된 경로에 저장합니다.
+
+    Args:
+        model (CatBoostRegressor): 저장할 CatBoost 모델 객체
+        path (str): 모델을 저장할 파일 경로
+
+    Returns:
+        None
+    """
+    model.save_model(path, format='cbm')
+
+def catboost_load(path):
+    """
+    지정된 경로에서 CatBoost 모델을 로드합니다.
+
+    Args:
+        path (str): 로드할 모델 파일 경로
+
+    Returns:
+        CatBoostRegressor: 로드된 CatBoost 모델 객체
+    """
+    model = CatBoostRegressor()
+    model.load_model(path)
+    return model
