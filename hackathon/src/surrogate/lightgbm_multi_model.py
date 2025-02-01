@@ -1,4 +1,6 @@
+import joblib
 import numpy as np
+
 from lightgbm import LGBMRegressor
 from sklearn.multioutput import MultiOutputRegressor
 
@@ -55,3 +57,22 @@ def lightgbm_multi_predict(model, X_test: np.ndarray) -> np.ndarray:
         np.ndarray: 예측된 출력 값
     """
     return model.predict(X_test)
+
+def lightgbm_multi_save(model, path):
+    """
+    모델 객체를 지정된 경로(.pkl 확장자 포함)로 저장합니다.
+
+    :param model: 저장할 모델 객체
+    :param path: 모델을 저장할 파일 경로 (확장자 제외)
+    """
+    joblib.dump(model, path + '.pkl')
+
+
+def lightgbm_multi_load(path):
+    """
+    지정된 경로(.pkl 확장자 포함)에서 모델 객체를 로드합니다.
+
+    :param path: 모델을 로드할 파일 경로 (확장자 제외)
+    :return: 로드된 모델 객체
+    """
+    return joblib.load(path + '.pkl')
