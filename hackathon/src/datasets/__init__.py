@@ -2,6 +2,7 @@ from .dataset import cement_data
 from .dataset import melb_data
 from .dataset import car_data
 from .dataset import load_and_split_data
+from .dataset import load_and_split_data_with_x_col_list
 from .lightgbm_dataloader import lightgbm_load_data
 from .simpleNN_dataloader import simpleNN_load_data
 from .tabpfn_dataloader import tabpfn_load_data
