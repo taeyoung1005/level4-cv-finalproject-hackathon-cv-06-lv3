@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from data_processing.models import ConcatColumnModel, CsvModel, HistogramModel, ProjectModel, FlowModel, SearchResultModel, SurrogateMatricModel, SurrogateResultModel, FeatureImportanceModel, ControllableOptimizationModel, OutputOptimizationModel
+from data_processing.models import ConcatColumnModel, CsvModel, HistogramModel, ProjectModel, FlowModel, SearchResultModel, SurrogateMatricModel, SurrogateResultModel, FeatureImportanceModel, OptimizationModel
 
 
 class ProjectModelAdmin(admin.ModelAdmin):
@@ -43,13 +43,9 @@ class FeatureImportanceModelAdmin(admin.ModelAdmin):
     list_display = ('flow', 'column', 'importance')
 
 
-class ControllableOptimizationModelAdmin(admin.ModelAdmin):
+class OptimizationModelAdmin(admin.ModelAdmin):
     list_display = ('column', 'minimum_value',
                     'maximum_value', 'optimize_goal')
-
-
-class OutputOptimizationModelAdmin(admin.ModelAdmin):
-    list_display = ('column', 'optimize_goal', 'maximum_value', 'optimize_goal')
 
 
 admin.site.register(ProjectModel, ProjectModelAdmin)
@@ -61,6 +57,5 @@ admin.site.register(SearchResultModel, SearchResultModelAdmin)
 admin.site.register(SurrogateMatricModel, SurrogateMatricModelAdmin)
 admin.site.register(SurrogateResultModel, SurrogateResultModelAdmin)
 admin.site.register(FeatureImportanceModel, FeatureImportanceModelAdmin)
-admin.site.register(ControllableOptimizationModel,
-                    ControllableOptimizationModelAdmin)
-admin.site.register(OutputOptimizationModel, OutputOptimizationModelAdmin)
+admin.site.register(OptimizationModel,
+                    OptimizationModelAdmin)

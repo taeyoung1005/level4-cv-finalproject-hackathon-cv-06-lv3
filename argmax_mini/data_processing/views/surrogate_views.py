@@ -116,4 +116,3 @@ class FeatureImportanceView(APIView):
             flow=flow_id)
 
         return Response({"surrogate_feature_importance": FeatureImportanceModelSerializer(surrogate_feature_importance, many=True).data}, status=200)
-

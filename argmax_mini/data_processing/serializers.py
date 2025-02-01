@@ -38,15 +38,9 @@ class FlowModelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ControllableOptimizationModelSerializer(serializers.ModelSerializer):
+class OptimizationModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.ControllableOptimizationModel
-        fields = '__all__'
-
-
-class OutputOptimizationModelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.OutputOptimizationModel
+        model = models.OptimizationModel
         fields = '__all__'
 
 
@@ -73,7 +67,7 @@ class SearchResultModelSerializer(serializers.ModelSerializer):
         concat_column = models.ConcatColumnModel.objects.filter(id=value)
         if not concat_column.exists():
             raise serializers.ValidationError("해당 컬럼이 존재하지 않습니다.")
-        
+
         if concat_column.column_type == 'unavailable' or concat_column.property_type == 'environmental':
             raise serializers.ValidationError("해당 컬럼은 사용할 수 없습니다.")
         return value

@@ -23,10 +23,10 @@ urlpatterns = [
     path('flows/concat-csv/', views.FlowConcatCsvView.as_view(),
          name='flow_concat_csv'),
 
-    path('optimize/controllable/', views.ControllableOptimizeView.as_view(),
-         name='optimize-controllable'),
-    path('optimize/output/', views.OutputOptimizeView.as_view(),
-         name='optimize-output'),
+    path('optimization/goals/', views.OptimizationView.as_view(),
+         name='optimization-goals'),
+    path('optimization/orders/', views.OptimizationOrderView.as_view(),
+         name='optimization-orders'),
 
     path('surrogate/matric/', views.SurrogateMatricView.as_view(),
          name='surrogate-matric'),

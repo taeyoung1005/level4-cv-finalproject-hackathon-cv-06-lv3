@@ -3,4 +3,4 @@ from .test_column import ColumnViewTests, ConcatColumnViewTests
 from .test_csv import CsvViewTests
 from .test_flow import FlowsViewTests, FlowCsvAddViewTests
 from .test_project import ProjectViewTests
-from .test_optimize import ControllableOptimizeViewTests
+from .test_optimize import OptimizationViewTests, OptimizationOrderViewTests
