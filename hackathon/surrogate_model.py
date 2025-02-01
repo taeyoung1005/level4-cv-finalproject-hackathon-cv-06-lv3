@@ -30,11 +30,11 @@ def main(args):
     X_train, X_test, y_train, y_test = load_data_func(args.data_path, args.target)
 
     # 모델별 데이터 로드
-    try:
-        load_data_loader_func = getattr(datasets, f'{model_name}_load_data')
-    except AttributeError:
-        logging.error(f"지원되지 않는 모델 '{model_name}' 입니다.")
-        return
+    # try:
+    load_data_loader_func = getattr(datasets, f'{model_name}_load_data')
+    # except AttributeError:
+    #     logging.error(f"지원되지 않는 모델 '{model_name}' 입니다.")
+    #     return
 
     train_loader, val_loader = load_data_loader_func(X_train, X_test, y_train, y_test)
     
@@ -45,24 +45,34 @@ def main(args):
     logging.info(f"y_test.shape: {y_test.shape}")
     
     # 모델 학습
-    try:
+    # try:
+    if len(args.target) > 1:
+        train_func = getattr(surrogate, f'{model_name}_multi_train')
+    else:
         train_func = getattr(surrogate, f'{model_name}_train')
-        # model = measure_time(train_func, train_loader, val_loader)
-        model = train_func(train_loader, val_loader)
-    except AttributeError:
-        logging.error(f"지원되지 않는 모델 '{model_name}'의 학습 함수입니다.")
-        return
+    # model = measure_time(train_func, train_loader, val_loader)
+    model = train_func(train_loader, val_loader)
+    # except AttributeError:
+    #     logging.error(f"지원되지 않는 모델 '{model_name}'의 학습 함수입니다.")
+    #     return
     
-    predict_func = getattr(surrogate, f'{model_name}_predict')
+    if len(args.target) > 1:
+        predict_func = getattr(surrogate, f'{model_name}_multi_predict')
+    else:
+        predict_func = getattr(surrogate, f'{model_name}_predict')
     y_pred = predict_func(model, X_test)
+
+    print(y_pred.shape)
+    print(y_test.shape)
 
     rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
 
-    df_eval = pd.DataFrame({'rmse': [rmse], 'mae': [mae], 'r2': [r2]})
+    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2})
+    print(df_eval)
 
     print(y_test.shape, y_pred.shape)
     print(abs(y_test - y_pred).shape)
-    df_rank = pd.DataFrame({'y_test': y_test.squeeze(), 'y_pred': y_pred.squeeze(),'diff': abs(y_test - y_pred).squeeze()}) # y_pred, y_test rank ! 
+    df_rank = pd.DataFrame({'y_test': y_test[:,0].squeeze(), 'y_pred': y_pred[:,0].squeeze(),'diff': abs(y_test[:,0] - y_pred[:,0]).squeeze()}) # y_pred, y_test rank ! 
     df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
 
 
@@ -83,7 +93,7 @@ if __name__ == "__main__":
     arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
     arg('--model', '--model', '-model', type=str, default='lightgbm',
-        choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
+        choices=['lightgbm', 'catboost', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
     arg('--prj_id', '--prj_id', '-prj_id', type=int, default=42,
         help='프로젝트 아이디를 지정합니다')
     arg('--seed', '--seed', '-seed', type=int, default=42,

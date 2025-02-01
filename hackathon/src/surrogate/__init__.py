@@ -15,3 +15,4 @@ from .catboost_multi_model import (
     catboost_multi_train,
     catboost_multi_predict,
 )
+from .tabpfn_multi_model import tabpfn_multi_train, tabpfn_multi_predict

@@ -1,6 +1,27 @@
 import numpy as np
 from catboost import CatBoostRegressor
+from sklearn.metrics import mean_squared_error
+import optuna
 
+def get_objective(X_train, y_train, X_test, y_test):
+    def objective(trial):
+        # data, target = load_breast_cancer(return_X_y=True)
+        # train_x, valid_x, train_y, valid_y = train_test_split(data, target, test_size=0.3)
+        
+        param = {
+            "objective": trial.suggest_categorical("objective", ["MultiRMSE"]),
+            "colsample_bylevel": trial.suggest_float("colsample_bylevel", 0.01, 0.1),
+            "depth": trial.suggest_int("depth", 1, 12),
+        }
+
+        gbm = CatBoostRegressor(**param)
+
+        gbm.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=0, early_stopping_rounds=100)
+
+        preds = gbm.predict(X_test)
+        accuracy = mean_squared_error(y_test, preds)
+        return accuracy
+    return objective
 
 def catboost_multi_train(
     train_data: tuple, val_data: tuple, params: dict = None
@@ -19,14 +40,18 @@ def catboost_multi_train(
     X_train, y_train = train_data
     X_test, y_test = val_data
 
-    model = CatBoostRegressor(
-        iterations=2000,  # 최대 반복 횟수 (트리 개수)
-        depth=7,  # 트리 깊이
-        learning_rate=0.05,  # 학습률
-        loss_function="MultiRMSE",  # 다중 출력 회귀를 위한 손실 함수
-        random_seed=42,  # 랜덤 시드 설정 (재현성 확보)
-        verbose=200,  # 학습 진행 상황 출력 간격
-    )
+    objective = get_objective(X_train, y_train, X_test, y_test)
+    study = optuna.create_study(direction="minimize")
+    study.optimize(objective, n_trials=100)
+    print(study.best_trial)
+    print(study.best_params)
+    print(study.best_value)
+    
+    model = CatBoostRegressor(**study.best_params)
+    #     loss_function="MultiRMSE",  # 다중 출력 회귀를 위한 손실 함수
+    #     random_seed=42,  # 랜덤 시드 설정 (재현성 확보)
+    #     verbose=200,  # 학습 진행 상황 출력 간격
+    # )
     model.fit(X_train, y_train)  # 모델 학습 수행
 
     return model
