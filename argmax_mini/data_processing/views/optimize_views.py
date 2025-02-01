@@ -36,7 +36,8 @@ class OptimizationView(APIView):
                 ),
                 'optimize_goal': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="Optimization goal (1. No optimization, 2. Maximize, 3. Minimize, 4. Fit to the range)",
+                    description="Optimization goal (1. No optimization, 2. Maximize, 3. Minimize, 4. Fit to the range, 5. Fit to the properties)",
+                    default=1,
                 ),
             },
         ),
@@ -52,7 +53,6 @@ class OptimizationView(APIView):
         column_name = request.data.get("column_name")
         minimum_value = request.data.get("minimum_value")
         maximum_value = request.data.get("maximum_value")
-        # 1. Maximize, 2. Minimize, 3. Fit to the range
         optimize_goal = request.data.get("optimize_goal")
 
         if not flow_id:
@@ -70,13 +70,11 @@ class OptimizationView(APIView):
         if not ConcatColumnModel.objects.filter(flow=flow_id, column_name=column_name).exists():
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Retrieve the column; .first() will return None if not found.
         column = ConcatColumnModel.objects.filter(
             flow=flow_id, column_name=column_name).first()
         if not column:
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Instead of using update_or_create, use a try/except block to update or create manually.
         try:
             optimization = OptimizationModel.objects.get(
                 column=column)
@@ -87,7 +85,6 @@ class OptimizationView(APIView):
             optimization.save()
             created = False
         except OptimizationModel.DoesNotExist:
-            # Create a new record if none exists.
             optimization = OptimizationModel.objects.create(
                 column=column,
                 minimum_value=minimum_value,
@@ -177,6 +174,7 @@ class OptimizationOrderView(APIView):
                 'optimize_order': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
                     description="Optimization order",
+                    default=1,
                 ),
             },
         ),
@@ -204,22 +202,18 @@ class OptimizationOrderView(APIView):
         if not ConcatColumnModel.objects.filter(flow=flow_id, column_name=column_name).exists():
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Retrieve the column; .first() will return None if not found.
         column = ConcatColumnModel.objects.filter(
             flow=flow_id, column_name=column_name).first()
         if not column:
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Instead of using update_or_create, use a try/except block to update or create manually.
         try:
             optimization = OptimizationModel.objects.get(
                 column=column)
-            # Update existing record.
             optimization.optimize_order = optimize_order
             optimization.save()
             created = False
         except OptimizationModel.DoesNotExist:
-            # Create a new record if none exists.
             optimization = OptimizationModel.objects.create(
                 column=column,
                 optimize_order=optimize_order,

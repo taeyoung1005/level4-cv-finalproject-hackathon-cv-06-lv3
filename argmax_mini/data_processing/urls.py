@@ -12,7 +12,7 @@ urlpatterns = [
         name='csvs'),
 
     path('histograms/', views.HistogramView.as_view(), name='histograms'),
-    path('histograms/all', views.HistogramAllView.as_view(),
+    path('histograms/all/', views.HistogramAllView.as_view(),
          name='histograms-all'),
 
     path('columns/', views.ColumnView.as_view(), name='columns'),
