@@ -81,12 +81,12 @@ class SurrogateResultView(APIView):
         return Response({"surrogate_result": SurrogateResultModelSerializer(surrogate_result, many=True).data}, status=200)
 
 
-class SurrogateFeatureImportanceView(APIView):
+class FeatureImportanceView(APIView):
     '''
-    Surrogate Model Feature Importance 조회
+    Feature Importance 조회
     '''
     @swagger_auto_schema(
-        operation_description="Surrogate Model Feature Importance 조회",
+        operation_description="Feature Importance 조회",
         manual_parameters=[
             openapi.Parameter(
                 'flow_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER,
@@ -94,14 +94,14 @@ class SurrogateFeatureImportanceView(APIView):
             ),
         ],
         responses={
-            200: openapi.Response(description="Surrogate Model Feature Importance retrieved successfully"),
+            200: openapi.Response(description="Feature Importance retrieved successfully"),
             400: openapi.Response(description="Invalid flow ID"),
             404: openapi.Response(description="File not found"),
         },
     )
     def get(self, request, *args, **kwargs):
         '''
-        Surrogate Model Feature Importance 조회
+        Feature Importance 조회
         '''
 
         flow_id = request.GET.get("flow_id")

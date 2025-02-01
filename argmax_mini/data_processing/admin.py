@@ -49,7 +49,7 @@ class ControllableOptimizationModelAdmin(admin.ModelAdmin):
 
 
 class OutputOptimizationModelAdmin(admin.ModelAdmin):
-    list_display = ('column', 'optimize_goal', 'target_value')
+    list_display = ('column', 'optimize_goal', 'maximum_value', 'optimize_goal')
 
 
 admin.site.register(ProjectModel, ProjectModelAdmin)

@@ -143,8 +143,9 @@ class OutputOptimizeViewTests(TestCase):
         self.valid_data = {
             "flow_id": self.flow.id,
             "column_name": "test_column",
-            "optimize_goal": 1,
-            "target_value": 100
+            "minimum_value": 0,
+            "maximum_value": 100,
+            "optimize_goal": 1
         }
 
     # POST 메소드 테스트
@@ -164,7 +165,8 @@ class OutputOptimizeViewTests(TestCase):
         OutputOptimizationModel.objects.create(
             column=self.column,
             optimize_goal=2,
-            target_value=50
+            minimum_value=0,
+            maximum_value=50
         )
 
         response = self.client.post(
@@ -179,7 +181,7 @@ class OutputOptimizeViewTests(TestCase):
 
     def test_post_missing_required_field(self):
         """필수 필드 누락 테스트"""
-        for field in ['flow_id', 'column_name', 'optimize_goal', 'target_value']:
+        for field in ['flow_id', 'column_name', 'optimize_goal', 'minimum_value', 'maximum_value']:
             data = self.valid_data.copy()
             del data[field]
             response = self.client.post(self.base_url, data, format='json')
@@ -200,7 +202,8 @@ class OutputOptimizeViewTests(TestCase):
         OutputOptimizationModel.objects.create(
             column=self.column,
             optimize_goal=1,
-            target_value=100
+            minimum_value=0,
+            maximum_value=100
         )
         response = self.client.get(self.base_url, {
                                    'flow_id': self.flow.id, 'column_name': 'test_column'}, format='json')

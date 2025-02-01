@@ -36,7 +36,7 @@ class ControllableOptimizeView(APIView):
                 ),
                 'optimize_goal': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="Optimization goal (1. Maximize, 2. Minimize, 3. Fit to the range)",
+                    description="Optimization goal (1. No optimization, 2. Maximize, 3. Minimize, 4. Fit to the range)",
                 ),
             },
         ),
@@ -70,20 +70,31 @@ class ControllableOptimizeView(APIView):
         if not ConcatColumnModel.objects.filter(flow=flow_id, column_name=column_name).exists():
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        try:
-            column = ConcatColumnModel.objects.filter(
-                flow=flow_id, column_name=column_name).first()
-        except ConcatColumnModel.DoesNotExist:
+        # Retrieve the column; .first() will return None if not found.
+        column = ConcatColumnModel.objects.filter(
+            flow=flow_id, column_name=column_name).first()
+        if not column:
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        optimization, created = ControllableOptimizationModel.objects.update_or_create(
-            column=column,
-            defaults={
-                "minimum_value": minimum_value,
-                "maximum_value": maximum_value,
-                "optimize_goal": optimize_goal
-            }
-        )
+        # Instead of using update_or_create, use a try/except block to update or create manually.
+        try:
+            optimization = ControllableOptimizationModel.objects.get(
+                column=column)
+            # Update existing record.
+            optimization.minimum_value = minimum_value
+            optimization.maximum_value = maximum_value
+            optimization.optimize_goal = optimize_goal
+            optimization.save()
+            created = False
+        except ControllableOptimizationModel.DoesNotExist:
+            # Create a new record if none exists.
+            optimization = ControllableOptimizationModel.objects.create(
+                column=column,
+                minimum_value=minimum_value,
+                maximum_value=maximum_value,
+                optimize_goal=optimize_goal
+            )
+            created = True
 
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
 
@@ -165,7 +176,7 @@ class OutputOptimizeView(APIView):
                 ),
                 'optimize_goal': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="Optimization goal (1. Maximize, 2. Minimize, 3. Fit to the properties)",
+                    description="Optimization goal (1. Maximize, 2. Minimize, 3. Fit to the range, 4. Fit to the properties)",
                 ),
                 'target_value': openapi.Schema(
                     type=openapi.TYPE_NUMBER,
@@ -207,13 +218,21 @@ class OutputOptimizeView(APIView):
         except ConcatColumnModel.DoesNotExist:
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        optimization, created = OutputOptimizationModel.objects.update_or_create(
-            column=column,
-            defaults={
-                "optimize_goal": optimize_goal,
-                "target_value": target_value
-            }
-        )
+        try:
+            # 이미 존재하는 경우, 객체를 가져와서 필드 업데이트 후 저장합니다.
+            optimization = OutputOptimizationModel.objects.get(column=column)
+            optimization.optimize_goal = optimize_goal
+            optimization.target_value = target_value
+            optimization.save()
+            created = False
+        except OutputOptimizationModel.DoesNotExist:
+            # 객체가 존재하지 않으면 새로 생성합니다.
+            optimization = OutputOptimizationModel.objects.create(
+                column=column,
+                optimize_goal=optimize_goal,
+                target_value=target_value
+            )
+            created = True
 
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
 

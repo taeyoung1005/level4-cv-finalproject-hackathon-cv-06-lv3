@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from data_processing.models import SearchResultModel
+from data_processing.models import SearchResultModel, ConcatColumnModel
+from data_processing.serializers import SearchResultModelSerializer
 
 
 class SearchResultView(APIView):
@@ -27,35 +28,35 @@ class SearchResultView(APIView):
         },
     )
     def get(self, request, *args, **kwargs):
-        '''
+        """
         Search Result 조회
-        '''
+        """
 
         flow_id = request.GET.get("flow_id")
-
         if not flow_id or not flow_id.isdigit():
             return Response({"error": "No flow_id provided"}, status=400)
 
-        if not SearchResultModel.objects.filter(flow=flow_id).exists():
+        search_results = SearchResultModel.objects.filter(flow=flow_id)
+        if not search_results.exists():
             return Response({"error": "File not found"}, status=404)
 
-        search_result = SearchResultModel.objects.filter(
-            flow=flow_id).values_list('search_result', flat=True)
+        serialized_results = SearchResultModelSerializer(
+            search_results, many=True).data
 
-        return Response({"search_result": list(search_result)}, status=200)
+        column_ids = {item["column"] for item in serialized_results}
 
+        columns = ConcatColumnModel.objects.filter(id__in=column_ids)
+        column_mapping = {column.id: column for column in columns}
 
-def insert_search_result(flow_id, column_id, ground_truth, predicted, importance):
-    '''
-    Search Result 추가
-    '''
+        enhanced_results = []
+        for item in serialized_results:
+            column = column_mapping.get(item["column"])
+            enhanced_results.append({
+                "column_name": column.column_name if column else None,
+                "column_type": column.column_type if column else None,
+                "property_type": column.property_type if column else None,
+                "ground_truth": item["ground_truth"],
+                "predicted": item["predicted"],
+            })
 
-    search_result = SearchResultModel.objects.create(
-        flow=flow_id,
-        column=column_id,
-        ground_truth=ground_truth,
-        predicted=predicted,
-        importance=importance
-    )
-
-    return search_result
+        return Response({"search_result": enhanced_results}, status=200)
