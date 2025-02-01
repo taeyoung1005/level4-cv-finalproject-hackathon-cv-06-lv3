@@ -178,9 +178,13 @@ class OutputOptimizeView(APIView):
                     type=openapi.TYPE_INTEGER,
                     description="Optimization goal (1. Maximize, 2. Minimize, 3. Fit to the range, 4. Fit to the properties)",
                 ),
-                'target_value': openapi.Schema(
+                'minimum_value': openapi.Schema(
                     type=openapi.TYPE_NUMBER,
-                    description="Target value for the optimization goal",
+                    description="Minimum value of the optimization goal",
+                ),
+                'maximum_value': openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="Maximum value of the optimization goal",
                 ),
             },
         ),
@@ -195,7 +199,8 @@ class OutputOptimizeView(APIView):
         flow_id = request.data.get("flow_id")
         column_name = request.data.get("column_name")
         optimize_goal = request.data.get("optimize_goal")
-        target_value = request.data.get("target_value")
+        minimum_value = request.data.get("minimum_value")
+        maximum_value = request.data.get("maximum_value")
 
         if not flow_id:
             return Response({"error": "No flow_id provided"}, status=status.HTTP_400_BAD_REQUEST)
@@ -206,8 +211,8 @@ class OutputOptimizeView(APIView):
         if not optimize_goal:
             return Response({"error": "No optimize_goal provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not target_value:
-            return Response({"error": "No target_value provided"}, status=status.HTTP_400_BAD_REQUEST)
+        if minimum_value is None or maximum_value is None:
+            return Response({"error": "No minimum_value or maximum_value provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not ConcatColumnModel.objects.filter(flow=flow_id, column_name=column_name).exists():
             return Response({"error": "Column not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -222,7 +227,8 @@ class OutputOptimizeView(APIView):
             # 이미 존재하는 경우, 객체를 가져와서 필드 업데이트 후 저장합니다.
             optimization = OutputOptimizationModel.objects.get(column=column)
             optimization.optimize_goal = optimize_goal
-            optimization.target_value = target_value
+            optimization.minimum_value = minimum_value
+            optimization.maximum_value = maximum_value
             optimization.save()
             created = False
         except OutputOptimizationModel.DoesNotExist:
@@ -230,7 +236,8 @@ class OutputOptimizeView(APIView):
             optimization = OutputOptimizationModel.objects.create(
                 column=column,
                 optimize_goal=optimize_goal,
-                target_value=target_value
+                minimum_value=minimum_value,
+                maximum_value=maximum_value
             )
             created = True
 
