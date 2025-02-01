@@ -1,203 +1,204 @@
 import random
-import torch
-from tqdm import tqdm
 import numpy as np
 import pandas as pd
+import torch
 from deap import base, creator, tools
+from tqdm import tqdm
+
 
 def adaptive_niche_size(gen, max_gen, initial_sigma, min_sigma, decay_constant=5.0):
     """
-    진화 단계에 따라 적응적으로 니치 크기를 조정하는 함수
-    - gen: 현재 세대
-    - max_gen: 최대 세대 수
-    - initial_sigma: 초기 니치 크기
-    - min_sigma: 최소 니치 크기
-    - decay_constant: 감소율 상수
+    세대에 따라 적응적으로 niche size를 조정하는 함수.
+
+    Parameters:
+        gen (int): 현재 세대 (generation).
+        max_gen (int): 전체 세대 수 (maximum number of generations).
+        initial_sigma (float): 초기 niche size 값.
+        min_sigma (float): 최소 niche size 값 (sigma가 이 값 이하로 감소하지 않음).
+        decay_constant (float): niche size 감소 속도를 조절하는 상수 (기본값: 5.0).
+
+    Returns:
+        (float) 현재 세대에 해당하는 niche size 값.
     """
-    sigma = initial_sigma * np.exp(-decay_constant * gen / max_gen) # gen/max_gen : 현재 세대 비율(정규화한 값)
-    return max(sigma, min_sigma)  # 최소 니치 크기 보장
+
+    # 지수적 감소를 적용하여 niche size 계산
+    sigma = initial_sigma * np.exp(-decay_constant * gen / max_gen)
+
+    # 최소 niche size보다 작아지지 않도록 제한
+    return max(sigma, min_sigma)
+
 
 def fitness_sharing(population, sigma, alpha):
     """
-    적응적 니치 크기를 적용한 적합도 공유 함수
-    목적 : 개체들이 특정 니치에 너무 몰리지 않도록 적합도를 조정
-    - population: 현재 개체군
-    - sigma: 니치 크기
-    - alpha: 거리의 중요도 조정 파라미터
+    적용된 적합도 공유(Fitness Sharing) 방법을 사용하여 개체들의 적합도를 조정합니다.
+
+    Parameters:
+        population (list): 개체 리스트 (각 개체는 .fitness.values 속성을 가져야 함)
+        sigma (float): 공유 거리 임계값 (개체 간 거리 비교 기준)
+        alpha (float): 공유 강도 계수
     """
-    # 개체군을 numpy 배열로 변환
+    # 개체 리스트를 하나의 배열로 병합
     population_array = np.concatenate(population, axis=0)
 
-    # 개체 간 거리 계산 (모든 개체 쌍의 거리)
+    # 모든 개체 간의 유클리드 거리 행렬 계산
     distances = np.linalg.norm(
         population_array[:, np.newaxis, :] - population_array[np.newaxis, :, :], axis=2
     )
 
-    # 공유 함수 값 계산 : dist < sigma일 때만 적합도를 공유하도록 설계
-    sh_values = np.where(
-        distances < sigma, 1 - (distances / sigma) ** alpha, 0
-    )
+    # 공유 함수 적용: 거리가 sigma 미만인 경우 공유 값을 계산, 그렇지 않으면 0
+    sh_values = np.where(distances < sigma, 1 - (distances / sigma) ** alpha, 0)
 
-    # 다른 개체들과 적합도를 나누는 정도를 나타냄
-    sharing_factors = np.sum(sh_values, axis=1)  # 각 개체별 sharing factor 계산
+    # 각 개체별 공유 계수 계산
+    sharing_factors = np.sum(sh_values, axis=1)
 
-    # 적합도 조정
+    # 개체들의 적합도를 공유 계수로 나누어 조정
     for ind, sharing_factor in zip(population, sharing_factors):
-        if sharing_factor > 0.0:  # 근처에 다른 개체가 있는 경우
-            adjusted_sharing_factor = max(sharing_factor, 1e-6)  # 최소값 설정
+        if sharing_factor > 0.0:
+            adjusted_sharing_factor = max(
+                sharing_factor, 1e-6
+            )  # 0으로 나누는 문제 방지
             ind.fitness.values = (ind.fitness.values[0] / adjusted_sharing_factor,)
-        
 
-def ga_adaptive_niching_search(model, pred_func, X_train, X_test, y_test, max_gen=100, initial_sigma=2.5, min_sigma=0.5, decay_constant=2.0):
+
+def ga_adaptive_niching_search(
+    model,
+    pred_func,
+    X_train,
+    X_test,
+    y_test,
+    max_gen=100,
+    initial_sigma=2.5,
+    min_sigma=0.5,
+    decay_constant=2.0,
+):
     """
-    - model: 예측에 사용되는 딥러닝 모델 또는 함수
-    - pred_func: 입력(X_test)에 대해 model의 예측값을 반환하는 함수
-    - X_train: 입력값의 학습 데이터
-    - X_test: 최적화를 수행할 테스트 데이터
-    - y_test: 테스트 데이터에 대한 ground truth
-    - max_gen: GA의 최대 세대 수 (디폴트값: 100)
-    - initial_sigma: 초기 니치 크기 (디폴트값: 2.0)
-    - min_sigma: 최소 니치 크기 (디폴트값: 0.5)
-    - decay_constant: 니치 크기 감소율 상수 (디폴트값: 5.0)
+    유전자 알고리즘 기반의 적응형 니칭 검색을 수행하는 함수.
+
+    Args:
+        model: 예측을 수행할 모델.
+        pred_func: 예측 함수.
+        X_train (np.array): 훈련 데이터.
+        X_test (np.array): 테스트 데이터.
+        y_test (np.array): 테스트 데이터의 정답값.
+        max_gen (int): 최대 세대 수 (default: 100).
+        initial_sigma (float): 초기 시그마 값 (default: 2.5).
+        min_sigma (float): 최소 시그마 값 (default: 0.5).
+        decay_constant (float): 시그마 감소 계수 (default: 2.0).
+
+    Returns:
+        np.array: 최적의 예측값 배열.
     """
+
     test = X_test
     gt_ys = y_test
     n_features = X_train.shape[1]
 
+    # 훈련 데이터의 최소, 최대값 계산
     x_min = np.min(X_train, axis=0)
     x_max = np.max(X_train, axis=0)
 
     res = []
     for idx, gt_y in tqdm(enumerate(gt_ys), total=len(gt_ys)):
-        
-        # 적합도 함수 정의
+
         def fitness(population):
+            """개체군의 적합도를 평가하는 함수"""
             population = np.concatenate(population, axis=0)
             y_pred = pred_func(model=model, X_test=population)
-            fit_fun = -np.square(y_pred - gt_y)
+            fit_fun = -np.square(
+                y_pred - gt_y
+            )  # 오차의 음수 값 사용 (최대화 문제이므로)
             return fit_fun
-        
-        # GA 기본 설정
-        # - 주의: DEAP에서 creator를 재정의할 때는 한 번만 해야 함.
-        #   예시에서는 매 루프마다 호출하기 때문에, 아래처럼 try/except 처리하거나
-        #   혹은 if "FitnessMax" not in creator.__dict__ 처럼 조건 걸어도 됨.
+
+        # DEAP creator를 재정의 (기존 정의 삭제 후 재생성)
         try:
             del creator.FitnessMax
             del creator.Individual
         except:
             pass
 
-        # GA 기본 설정
-        creator.create('FitnessMax', base.Fitness, weights=(1.0,)) # 적합도 최대화 문제를 정의
-        creator.create('Individual', list, fitness=creator.FitnessMax) # 개체 클래스 정의
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create("Individual", list, fitness=creator.FitnessMax)
         toolbox = base.Toolbox()
-        
+
         def generate_individual():
+            """개체 생성 함수: 평균과 표준편차를 활용한 무작위 샘플링"""
             mean = (x_max + x_min) / 2
             std_dev = (x_max - x_min) / 6
             return np.random.randn(n_features) * std_dev + mean
-    
-        toolbox.register('attr_float', generate_individual)
-        toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_float, n=1) # 유전자를 모아 개체 생성
-        toolbox.register('population', tools.initRepeat, list, toolbox.individual) # 개체를 모아 개체군을 생성
 
-        # GA 연산 등록
-        toolbox.register('evaluate', fitness) # 적합도 평가함수로 fitness 사용
-        toolbox.register('select', tools.selTournament, tournsize=2)  
-        toolbox.register('mate', tools.cxBlend, alpha=0.7) # crossover : 개체 간 교배(cxBlend)로 새로운 개체 생성
-        toolbox.register('mutate', tools.mutGaussian, mu=0, sigma=0.3, indpb=0.6) # mutation : 개체의 일부 유전자를 가우시안 노이즈로 변형
+        # DEAP Toolbox 초기화
+        toolbox.register("attr_float", generate_individual)
+        toolbox.register(
+            "individual", tools.initRepeat, creator.Individual, toolbox.attr_float, n=1
+        )
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("evaluate", fitness)
+        toolbox.register("select", tools.selTournament, tournsize=2)
+        toolbox.register("mate", tools.cxBlend, alpha=0.7)
+        toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.3, indpb=0.6)
 
         pop_size = 300
         population = toolbox.population(n=pop_size)
 
-         # 초기 개체군 fitness 계산
+        # 초기 개체의 적합도 평가
         invalid_inds = [ind for ind in population if not ind.fitness.valid]
         fitness_scores = toolbox.evaluate(invalid_inds)
         for ind, fit in zip(invalid_inds, fitness_scores):
             ind.fitness.values = (fit,)
 
-        # GA 루프
+        # 진화 과정
         for gen in range(max_gen):
-
-            # fitness_scores = toolbox.evaluate(population)
-            # # print('fitness_scores', fitness_scores)
-            # for ind, fit in zip(population, fitness_scores):
-            #     ind.fitness.values = (fit,)
-            
             if len(population) == 1:
                 break
-            
-            # 다음 세대 생성
-            parents = toolbox.select(population, k=len(population))
 
-            # offspring = tools.selBest(parents, k=len(population))
-            # offspring = list(map(toolbox.clone, offspring))
+            # 부모 선택 및 자손 생성
+            parents = toolbox.select(population, k=len(population))
             offspring = list(map(toolbox.clone, parents))
 
-            # mate
-            # for i in range(1, len(offspring), 2):
-            #     if random.random() < 0.7:
-            #         toolbox.mate(offspring[i - 1], offspring[i])
-            
-             # crossover
+            # 교배 연산
             for child1, child2 in zip(offspring[::2], offspring[1::2]):
                 if random.random() < 0.3:
                     toolbox.mate(child1, child2)
                     del child1.fitness.values
                     del child2.fitness.values
 
-
-            # mutation
+            # 변이 연산
             for child in offspring:
                 if random.random() < 0.5:
                     toolbox.mutate(child)
                     del child.fitness.values
 
-            # for ind in offspring:
-            #     # del ind.fitness.values
-            #     if not ind.fitness.valid:
-            #         fitness_scores = toolbox.evaluate([ind])
-            #         ind.fitness.values = (fitness_scores[0],)
+            # 값 범위 제한
+            offspring = [
+                creator.Individual(np.clip(np.array(ind), x_min, x_max))
+                for ind in offspring
+            ]
 
-            offspring = [creator.Individual(np.clip(np.array(ind), x_min, x_max)) for ind in offspring]
-
-             # offspring 중 적합도 미평가 개체 평가
+            # 적합도 재계산
             invalid_offspring = [ind for ind in offspring if not ind.fitness.valid]
             fit_vals = toolbox.evaluate(invalid_offspring)
             for ind, fv in zip(invalid_offspring, fit_vals):
                 ind.fitness.values = (fv,)
 
-            # 부모 + 자식 합침
+            # 부모 + 자손 합쳐서 새로운 세대 선정
             combined = population + offspring
-
-            # 다음 세대 선발: combined 중에서 pop_size만큼 select
             next_population = toolbox.select(combined, k=pop_size)
 
-            # 니치 크기 조정
-            sigma = adaptive_niche_size(gen, max_gen, initial_sigma, min_sigma, decay_constant)
-            # fitness_sharing(offspring, sigma, alpha=1.0)
+            # 적응형 니칭 크기 계산
+            sigma = adaptive_niche_size(
+                gen, max_gen, initial_sigma, min_sigma, decay_constant
+            )
+
+            # 피트니스 공유 적용
             fitness_sharing(next_population, sigma, alpha=1.0)
 
-            # population[:] = offspring
             population[:] = next_population
-            
 
-        # 최적 결과 반환
+        # 최적 개체 선택
         best_individual = tools.selBest(population, k=1)[0]
         best_individual = best_individual[0]
-        x_pred = np.array(best_individual)
-        x_pred = x_pred.reshape(1, 8)
-
-        # pop_size개수만큼 최적 결과 반환
-        # all_individual = tools.selBest(population, k=len(population))
-        # all_individual = np.array(all_individual)
-        # squeezed_all_individual = all_individual.squeeze(axis=1)  # axis=1은 1인 차원을 제거
-        # gt_x = test[idx]
-        # expanded_gt_x = np.tile(gt_x, (pop_size, 1))
-        # differences = squeezed_all_individual - expanded_gt_x
-        # distances = np.linalg.norm(differences, axis=1)
-        # res_idx = np.argmin(distances)
-        # x_pred = all_individual[res_idx]
+        x_pred = np.array(best_individual).reshape(1, 8)
 
         res.append(x_pred)
+
     return np.concatenate(res, axis=0)
