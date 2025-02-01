@@ -108,8 +108,6 @@ export const fetchCsvFilesByProject = createAsyncThunk(
 
       const datasets = await response.json(); // ✅ API 응답 객체
 
-      console.log("🔹 원본 API 응답:", datasets);
-
       if (!datasets.csvs || !Array.isArray(datasets.csvs)) {
         throw new Error("Invalid data format: Expected csvs array");
       }
@@ -122,8 +120,6 @@ export const fetchCsvFilesByProject = createAsyncThunk(
           ...rest,
         })
       );
-
-      console.log("✅ 변환된 CSV 데이터:", formattedDatasets);
 
       return { projectId, datasets: formattedDatasets };
     } catch (error) {

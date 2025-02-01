@@ -37,6 +37,11 @@ const ConfigurePropertiesPage = () => {
       }
   );
 
+  const reduxState = useSelector((state) => state);
+  useEffect(() => {
+    console.log("ConfigureProperties Redux state:", reduxState);
+  }, [reduxState]);
+
   // ✅ 새로운 environmental, controllable, output 카테고리 저장
   const newCategories = useSelector(
     (state) => state.flows.newCategories?.[flowId] || {}
@@ -101,24 +106,21 @@ const ConfigurePropertiesPage = () => {
 
     const sourceId = source.droppableId;
     const destId = destination.droppableId;
-
     let movedItem = null;
 
-    // ✅ 왼쪽 카드에서 이동할 경우 (numerical, categorical, unavailable → 오른쪽)
+    // 왼쪽 영역(datasetProperties)에서 드래그한 경우
     if (datasetProperties[sourceId]) {
       const newSourceList = [...datasetProperties[sourceId]];
       movedItem = newSourceList.splice(source.index, 1)[0];
-
       setDatasetProperties((prev) => ({
         ...prev,
         [sourceId]: newSourceList,
       }));
     }
-    // ✅ 오른쪽 카드 간 이동 (environmental ↔ controllable ↔ output)
+    // 오른쪽 영역(categorizedProperties)에서 드래그한 경우
     else if (categorizedProperties[sourceId]) {
       const newSourceList = [...categorizedProperties[sourceId]];
       movedItem = newSourceList.splice(source.index, 1)[0];
-
       setCategorizedProperties((prev) => ({
         ...prev,
         [sourceId]: newSourceList,
@@ -127,14 +129,26 @@ const ConfigurePropertiesPage = () => {
 
     if (!movedItem) return;
 
-    // ✅ Redux 상태 업데이트 (이동된 property의 카테고리 변경)
-    dispatch(updateCategory({ flowId, property: movedItem, category: destId }));
-
-    // ✅ 새로운 카테고리로 이동
-    setCategorizedProperties((prev) => ({
-      ...prev,
-      [destId]: [...prev[destId], movedItem],
-    }));
+    // 드랍 대상이 오른쪽 영역(categorizedProperties)인 경우
+    if (destId in categorizedProperties) {
+      setCategorizedProperties((prev) => ({
+        ...prev,
+        [destId]: [...prev[destId], movedItem],
+      }));
+      // Redux 상태 업데이트: property의 category를 destId로 변경
+      dispatch(
+        updateCategory({ flowId, property: movedItem, category: destId })
+      );
+    }
+    // 드랍 대상이 왼쪽 영역(datasetProperties)인 경우
+    else if (destId in datasetProperties) {
+      setDatasetProperties((prev) => ({
+        ...prev,
+        [destId]: [...prev[destId], movedItem],
+      }));
+      // 필요하다면 Redux 상태 업데이트도 수행
+      // 예를 들어, 기존 카테고리로 돌아가도록 처리할 수도 있음.
+    }
   };
 
   /**
@@ -155,6 +169,21 @@ const ConfigurePropertiesPage = () => {
     });
 
     history.push(`/projects/${projectId}/flows/${flowId}/set-goals`);
+  };
+
+  const getOriginalCategory = (prop) => {
+    if (properties.numerical.includes(prop)) return "numerical";
+    if (properties.categorical.includes(prop)) return "categorical";
+    if (properties.unavailable.includes(prop)) return "unavailable";
+    return "unknown";
+  };
+
+  // 각 원래 카테고리별 색상 매핑
+  const propertyColors = {
+    numerical: "blue.500",
+    categorical: "green.500",
+    unavailable: "red.500",
+    unknown: "gray.500",
   };
 
   return (
@@ -203,7 +232,14 @@ const ConfigurePropertiesPage = () => {
                         {category.toUpperCase()}
                       </Text>
                       {datasetProperties[category]?.map((prop, index) => (
-                        <Draggable key={prop} draggableId={prop} index={index}>
+                        <Draggable
+                          key={prop}
+                          draggableId={prop}
+                          index={index}
+                          isDragDisabled={
+                            getOriginalCategory(prop) === "unavailable"
+                          }
+                        >
                           {(provided, snapshot) => {
                             const child = (
                               <Box
@@ -211,7 +247,7 @@ const ConfigurePropertiesPage = () => {
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
                                 p={3}
-                                bg="blue.500"
+                                bg={propertyColors[getOriginalCategory(prop)]}
                                 borderRadius="md"
                                 color="white"
                                 fontWeight="bold"
@@ -287,7 +323,7 @@ const ConfigurePropertiesPage = () => {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   p={3}
-                                  bg="green.500"
+                                  bg={propertyColors[getOriginalCategory(prop)]}
                                   borderRadius="md"
                                   color="white"
                                   fontWeight="bold"

@@ -38,6 +38,12 @@ const SelectDatasetsPage = () => {
   // ✅ 선택된 데이터셋을 로컬 상태에서 관리
   const [selectedDatasets, setSelectedDatasets] = useState([]);
 
+  const reduxState = useSelector((state) => state);
+
+  useEffect(() => {
+    console.log("SelectDatasetsPage Redux state:", reduxState);
+  }, [reduxState]);
+
   // ✅ Flow와 프로젝트의 CSV 데이터셋 불러오기
   useEffect(() => {
     let isMounted = true; // ✅ 컴포넌트 마운트 여부 확인

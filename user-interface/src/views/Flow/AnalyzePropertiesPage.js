@@ -48,8 +48,15 @@ const AnalyzePropertiesPage = () => {
       }
   );
 
+  const reduxState = useSelector((state) => state);
+  useEffect(() => {
+    console.log("AnalyzePropertiesPage Redux state:", reduxState);
+  }, [reduxState]);
+
   // ✅ 선택된 데이터셋
-  const selectedDatasets = projectDatasets.map((data) => data.csvId);
+  const selectedDatasets = useSelector(
+    (state) => state.flows.flows[flowId]?.csv
+  );
 
   // ✅ 차트 데이터 상태
   const [chartData, setChartData] = useState([]);

@@ -17,7 +17,6 @@ export const fetchFlowsByProject = createAsyncThunk(
       if (!response.ok) throw new Error("Failed to fetch flows");
 
       const data = await response.json();
-      console.log("🔹 API 응답:", data);
 
       if (!Array.isArray(data.flows)) {
         throw new Error("Invalid response format: flows is not an array");
@@ -30,8 +29,6 @@ export const fetchFlowsByProject = createAsyncThunk(
           { ...flow, flowId: flow.id, projectId },
         ])
       );
-
-      console.log("✅ 변환된 Flow 데이터:", formattedFlows);
       return { projectId, flows: formattedFlows };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -123,7 +120,6 @@ export const fetchFlowDatasets = createAsyncThunk(
       if (!response.ok) throw new Error("Failed to fetch flow datasets");
 
       const data = await response.json();
-      console.log("🔹 Flow Datasets API Response:", data);
 
       // 🔍 응답 검증
       if (!data.csvs || !Array.isArray(data.csvs)) {
@@ -146,8 +142,6 @@ export const fetchFlowDatasets = createAsyncThunk(
           fileName: csv_name,
         };
       });
-
-      console.log("✅ Transformed Flow Datasets:", formattedDatasets);
 
       return { flowId, datasets: formattedDatasets };
     } catch (error) {
@@ -188,9 +182,8 @@ export const fetchFlowProperties = createAsyncThunk(
       if (!response.ok) throw new Error("Failed to fetch properties");
 
       const data = await response.json();
-      console.log("✅ Properties API Response:", data);
 
-      return { flowId, properties: data };
+      return { flowId, data };
     } catch (error) {
       console.error("❌ Error fetching properties:", error);
       return rejectWithValue(error.message);
@@ -209,7 +202,6 @@ export const fetchFlowHistograms = createAsyncThunk(
       if (!response.ok) throw new Error("Failed to fetch histograms");
 
       const data = await response.json();
-      console.log("✅ Histograms API Response:", data);
 
       return { flowId, histograms: data.histograms };
     } catch (error) {
@@ -239,6 +231,81 @@ export const savePropertyCategories = createAsyncThunk(
   }
 );
 
+export const fetchOptimizationData = createAsyncThunk(
+  "flows/fetchOptimizationData",
+  async ({ flowId, property, type }, thunkAPI) => {
+    // type에 따라 endpoint 선택
+    const endpoint = type === "controllable" ? "controllable" : "output";
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/optimize/${endpoint}/?flow_id=${flowId}&column_name=${property}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to get optimization data");
+        console.log(`init optimization data for ${property}`);
+        const data = {
+          minimum_value: "",
+          maximum_value: "",
+          goal: type === "controllable" ? "No Optimization" : "Fit to Property",
+        };
+        return { flowId, property, type, data };
+      }
+      const data = await response.json();
+      // data 예시: { min: 10, max: 100, goal: "No Optimization" } 혹은 goal이 없으면 기본값으로 대체
+      return { flowId, property, type, data };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
+export const postOptimizationData = createAsyncThunk(
+  "flows/postOptimizationData",
+  async (
+    { flowId, property, type, goal, minimum_value, maximum_value },
+    thunkAPI
+  ) => {
+    const baseUrl = `${API_BASE_URL}/optimize`;
+    let endpoint = "";
+    let payload = {};
+
+    if (type === "controllable") {
+      endpoint = "controllable";
+      payload = {
+        flow_id: flowId,
+        column_name: property,
+        minimum_value: minimum_value,
+        maximum_value: maximum_value,
+        optimize_goal: goal,
+      };
+    } else if (type === "output") {
+      endpoint = "output";
+      payload = {
+        flow_id: flowId,
+        column_name: property,
+        optimize_goal: goal,
+        minimum_value: minimum_value,
+        maximum_value: maximum_value,
+      };
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/${endpoint}/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(`POST failed: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return { flowId, property, type, data };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
 // ✅ 우선순위 저장 API 호출
 export const savePriorities = createAsyncThunk(
   "flows/savePriorities",
@@ -259,12 +326,94 @@ export const savePriorities = createAsyncThunk(
   }
 );
 
+// 1. Feature Importance를 가져오는 thunk
+export const fetchSurrogateFeatureImportance = createAsyncThunk(
+  "flows/fetchSurrogateFeatureImportance",
+  async (flowId, thunkAPI) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/surrogate/feature-importance/?flow_id=${flowId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch surrogate feature importance");
+      }
+      const data = await response.json();
+      // data.surrogate_feature_importance는 배열 형태로 반환됨.
+      return { flowId, data: data.surrogate_feature_importance };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
+// 2. Matric(혹은 Metrics)를 가져오는 thunk
+export const fetchSurrogateMatric = createAsyncThunk(
+  "flows/fetchSurrogateMatric",
+  async (flowId, thunkAPI) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/surrogate/matric/?flow_id=${flowId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch surrogate matric");
+      }
+      const data = await response.json();
+      // data.surrogate_matric는 배열 형태
+      return { flowId, data: data.surrogate_matric };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
+// 3. Surrogate Result를 가져오는 thunk
+export const fetchSurrogateResult = createAsyncThunk(
+  "flows/fetchSurrogateResult",
+  async (flowId, thunkAPI) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/surrogate/result/?flow_id=${flowId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch surrogate result");
+      }
+      const data = await response.json();
+      // data.surrogate_result는 배열 형태
+      return { flowId, data: data.surrogate_result };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
+// 검색 결과 API 호출 thunk
+export const fetchSearchResult = createAsyncThunk(
+  "flows/fetchSearchResult",
+  async (flowId, { rejectWithValue }) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/search/result/?flow_id=${flowId}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch search result");
+      const data = await response.json();
+      // 반환된 data에서 search_result 배열 추출
+      return { flowId, data: data.search_result };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 //
 // -------------------- Redux Slice --------------------
 //
 
 const initialState = {
   flows: {}, // Flow별 상태 관리 (flowId 기반 저장)
+  searchResult: {}, // ← 여기에 검색 결과 저장 (flowId별)
+  surrogateFeatureImportance: {},
+  surrogateMatric: {},
+  surrogateResult: {},
   priorities: {},
   optimizationData: {},
   histograms: {},
@@ -351,7 +500,7 @@ const flowSlice = createSlice({
         state.flows = { ...state.flows, ...flows };
       })
       .addCase(fetchFlowsByProject.rejected, (state, action) => {
-        console.error("❌ Flow 데이터 요청 실패:", action.payload);
+        console.error("❌ Failed to fetch flows in project", action.payload);
         state.error = action.payload;
       })
       .addCase(addFlowAsync.fulfilled, (state, action) => {
@@ -373,9 +522,7 @@ const flowSlice = createSlice({
         if (!state.flows[flowId]) {
           state.flows[flowId] = { datasets: [] };
         }
-        console.log(datasets);
         state.flows[flowId].datasets = datasets.map((p) => p.csvId);
-        console.log(state.flows[flowId].datasets);
       })
       .addCase(fetchFlowDatasets.rejected, (state, action) => {
         console.error("❌ Failed to fetch flow datasets:", action.payload);
@@ -396,8 +543,6 @@ const flowSlice = createSlice({
         // 중복되지 않은 새로운 csvId만 추가
         const newDatasets = csvIds.filter((id) => !existingIds.includes(id));
 
-        console.log("newDatasets (추가할 CSV ID):", newDatasets);
-
         // 최종적으로 csvId 배열을 유지
         state.flows[flowId].datasets = [...existingIds, ...newDatasets];
       })
@@ -406,8 +551,27 @@ const flowSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(fetchFlowProperties.fulfilled, (state, action) => {
-        const { flowId, properties } = action.payload;
-        state.properties[flowId] = properties; // ✅ properties 저장
+        const { flowId, data } = action.payload;
+        console.log(data);
+        // API에서 받아온 dataset properties
+        state.properties[flowId] = {
+          numerical: data.numerical,
+          categorical: data.categorical,
+          unavailable: data.unavailable,
+        };
+        // API에서 받아온 새로운 카테고리 정보를 newCategories에 저장
+        const categories = {};
+        data.environmental.forEach(
+          (prop) => (categories[prop] = "environmental")
+        );
+        data.controllable.forEach(
+          (prop) => (categories[prop] = "controllable")
+        );
+        data.output.forEach((prop) => (categories[prop] = "output"));
+        state.newCategories[flowId] = categories;
+      })
+      .addCase(fetchFlowProperties.rejected, (state, action) => {
+        console.error("Flow properties 받아오기 실패:", action.payload);
       })
       .addCase(fetchFlowHistograms.fulfilled, (state, action) => {
         const { flowId, histograms } = action.payload;
@@ -429,6 +593,88 @@ const flowSlice = createSlice({
           action.payload
         );
         state.error = action.payload;
+      })
+      .addCase(fetchOptimizationData.fulfilled, (state, action) => {
+        const { flowId, property, type, data } = action.payload;
+        if (!state.optimizationData[flowId]) {
+          state.optimizationData[flowId] = {};
+        }
+
+        const defaultGoal =
+          type === "controllable" ? "No Optimization" : "Fit to Property";
+
+        // 매핑 객체 정의
+        const goalMapping =
+          type === "controllable"
+            ? {
+                1: "No Optimization",
+                2: "Maximize",
+                3: "Minimize",
+                4: "Fit to Range",
+              }
+            : {
+                1: "Maximize",
+                2: "Minimize",
+                3: "Fit to Range",
+                4: "Fit to Property",
+              };
+
+        // data.goal 값이 숫자이면 매핑 객체로, 아니면 문자열이면 그대로 사용, 없으면 defaultGoal
+        const goalStr =
+          typeof data.optimize_goal === "number"
+            ? goalMapping[data.optimize_goal] || defaultGoal
+            : typeof data.optimize_goal === "string"
+            ? data.optimize_goal
+            : defaultGoal;
+
+        state.optimizationData[flowId][property] = {
+          minimum_value:
+            data.minimum_value !== undefined ? data.minimum_value : "",
+          maximum_value:
+            data.maximum_value !== undefined ? data.maximum_value : "",
+          goal: goalStr,
+          type: type,
+        };
+
+        console.log(state.optimizationData[flowId][property]);
+      })
+      .addCase(postOptimizationData.fulfilled, (state, action) => {
+        // API POST 성공 시 추가적인 처리가 필요하다면 여기서 구현
+        console.log("POST Optimization Data 성공:", action.payload);
+      })
+      .addCase(postOptimizationData.rejected, (state, action) => {
+        console.error("POST Optimization Data 실패:", action.payload);
+      })
+      .addCase(fetchSurrogateFeatureImportance.fulfilled, (state, action) => {
+        const { flowId, data } = action.payload;
+        state.surrogateFeatureImportance[flowId] = data;
+      })
+      .addCase(fetchSurrogateFeatureImportance.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(fetchSurrogateMatric.fulfilled, (state, action) => {
+        const { flowId, data } = action.payload;
+        state.surrogateMatric[flowId] = data;
+      })
+      .addCase(fetchSurrogateMatric.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(fetchSurrogateResult.fulfilled, (state, action) => {
+        const { flowId, data } = action.payload;
+        state.surrogateResult[flowId] = data;
+      })
+      .addCase(fetchSurrogateResult.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(fetchSearchResult.fulfilled, (state, action) => {
+        const { flowId, data } = action.payload;
+        // flowId별로 검색 결과 저장
+        state.searchResult[flowId] = data;
+        // 필요에 따라 loading 플래그를 false로 전환 (만약 따로 관리 중이면)
+      })
+      .addCase(fetchSearchResult.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
+        // 에러 처리 및 loading 상태 false 전환
       });
   },
 });

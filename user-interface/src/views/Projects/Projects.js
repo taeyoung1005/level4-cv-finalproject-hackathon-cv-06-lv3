@@ -44,11 +44,6 @@ export default function Projects() {
   } = useDisclosure();
   const [currentProject, setCurrentProject] = useState(null);
 
-  // ✅ Redux 상태 로그 출력
-  useEffect(() => {
-    console.log("🟢 Redux 상태:", { projects, status, error });
-  }, [projects, status, error]);
-
   // ✅ 프로젝트 목록 불러오기 (최초 실행)
   useEffect(() => {
     if (status === "idle") {
