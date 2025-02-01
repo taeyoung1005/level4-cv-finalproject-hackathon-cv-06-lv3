@@ -116,7 +116,7 @@ def k_means_selection(population, k):
     # print(len(selected))
     return selected
 
-def k_means_search(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds):
+def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds):
     """
     # all_var_names : target 변수 제외 모든 변수 이름 [numpy X와 같은 순서]
     # control_var_names : control 변수 이름 
@@ -133,12 +133,12 @@ def k_means_search(model, pred_func, X_train, X_test, y_test,all_var_names, cont
     control_index_to_pop_idx = {v: i+1 for i, v in enumerate(control_index)}
 
     # control중 importance 순서    
-    sorted_control_index_by_importance = sorted([i for i in control_index if vars[i] in importance.keys()], key=lambda x: importance[vars[x]])
+    sorted_control_index_by_importance = sorted([i for i in control_index if all_var_names[i] in importance.keys()], key=lambda x: importance[all_var_names[x]])
     # poppulation 열 index를 중요도 순서로 정렬 
     sorted_pop_idx_by_importance = [control_index_to_pop_idx[i] for i in sorted_control_index_by_importance] 
 
     # optimize를 vars 순서로 정렬 
-    sorted_optimize_dict_by_vars_idx = {vars[k]: optmize_dict[vars[k]] for k in [i for i in control_index if vars[i] in importance.keys()]}
+    sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
 
     #TODO bounds 적용 
     x_min,x_max = np.min(X_train, axis=0), np.max(X_train, axis=0)
@@ -166,7 +166,7 @@ def k_means_search(model, pred_func, X_train, X_test, y_test,all_var_names, cont
     toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
     res = []
-    for idx, gt_y in tqdm(enumerate(y_test)):
+    for idx, (gt_x, gt_y) in tqdm(enumerate(zip(X_test, y_test))):
 
         def fitness(population):
             
@@ -209,7 +209,7 @@ def k_means_search(model, pred_func, X_train, X_test, y_test,all_var_names, cont
             invalid_ind = [ind for ind in population if not ind.fitness.valid]
             fitness_scores = toolbox.evaluate(invalid_ind)
             for ind, fit in zip(invalid_ind, fitness_scores):
-                ind.fitness.values = (fit,)
+                ind.fitness.values = tuple(fit)
             population = k_means_selection(population, k=len(population)//3)
             # print(len(population))
 

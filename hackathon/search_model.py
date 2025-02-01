@@ -27,7 +27,7 @@ def main(args):
         raise ValueError("backprob is not supported for now")
     
     # 데이터 로드 및 분할
-    load_data_func = datasets.load_and_split_data_with_control_list
+    load_data_func = datasets.load_and_split_data_with_x_col_list
 
     X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
 
@@ -44,7 +44,9 @@ def main(args):
 
 
     predict_func = getattr(surrogate, f'{model_name}_predict')
-    y_pred = predict_func(model, X_test)
+    # y_pred = predict_func(model, X_test)
+
+    # 사용자 요청 
 
     
     # 최적화/검색 수행
@@ -94,22 +96,24 @@ if __name__ == "__main__":
     arg('--target', '--target', '-target', type=str, default='strength',
         help='타겟 변수를 지정합니다')
     arg('--importance', '--importance', '-importance', type=dict, default={'cement': 1,
-                'slag': 3,
-                'ash': 4,
+                # 'slag': 3,
+                # 'ash': 4,
                 'water': 2,
-                'superplastic': 5,
-                'coarseagg': 6,
-                'fineagg': 7,
-                'age': 8},
+                # 'superplastic': 5,
+                # 'coarseagg': 6,
+                # 'fineagg': 7,
+                # 'age': 8
+                },
         help='피쳐 별 중요도를 지정합니다')
     arg('--optimize', '--optimize', '-optimize', type=dict, default={'cement': 'maximize',
-                'slag': 'minimize',
-                'ash': 'maximize',
+                # 'slag': 'minimize',
+                # 'ash': 'maximize',
                 'water': 'maximize',
-                'superplastic': 'minimize',
-                'coarseagg': 'minimize',
-                'fineagg': 'minimize',
-                'age': 'minimize'},
+                # 'superplastic': 'minimize',
+                # 'coarseagg': 'minimize',
+                # 'fineagg': 'minimize',
+                # 'age': 'minimize'
+                },
         help='피쳐 별 최적화 방향을 지정합니다')
     # arg('--model', '--model', '-model', type=str, default='lightgbm',
     #     choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
@@ -117,8 +121,8 @@ if __name__ == "__main__":
         help='프로젝트 아이디를 지정합니다')
     arg('--seed', '--seed', '-seed', type=int, default=42,
         help='재현성을 위한 랜덤 시드 (기본값: 42)')
+    arg('--user_request', '--user_request', '-user_request', type=float, default=0.0,
+        help='사용자 요청 값을 지정합니다')
     args = parser.parse_args()
-
-    # TODO: omegaconf 적용
 
     main(args)

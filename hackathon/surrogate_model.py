@@ -78,7 +78,7 @@ if __name__ == "__main__":
     arg = parser.add_argument
     # arg('--dataset', '--dset', '-dset', type=str, default='cement',
     #     choices=['cement', 'melb', 'car'], help='사용할 데이터셋을 지정합니다 추후 제거')
-    arg('--target', '--target', '-target', type=str, default='strength',
+    arg('--target', '--target', '-target', type=list, default=['strength'],
         help='타겟 변수를 지정합니다')
     arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
