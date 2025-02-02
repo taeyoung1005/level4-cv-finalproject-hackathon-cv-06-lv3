@@ -43,11 +43,13 @@ const SetPrioritiesPage = () => {
     dispatch(fetchFlowProperties(flowId));
   }, [dispatch, flowId]);
 
-  // properties 업데이트 시 각 property에 대해 최적화 데이터 fetch
+  // properties 업데이트 시 controllable, output 속성에 대해서만 최적화 데이터 fetch
   useEffect(() => {
     Object.keys(properties).forEach((property) => {
-      const type = properties[property]; // "controllable", "output", etc.
-      dispatch(fetchOptimizationData({ flowId, property, type }));
+      const type = properties[property]; // 예: "controllable", "output", 등
+      if (type === "controllable" || type === "output") {
+        dispatch(fetchOptimizationData({ flowId, property, type }));
+      }
     });
   }, [dispatch, flowId, properties]);
 

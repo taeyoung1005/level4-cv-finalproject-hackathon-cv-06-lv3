@@ -151,30 +151,24 @@ const SetGoalsPage = () => {
   };
 
   useEffect(() => {
-    // controllable property 처리
-    if (controllableProperties.length > 0) {
-      const property = controllableProperties[currentControllableIndex];
-      // optimizationData 초기화 (값이 없을 경우에만)
+    // controllable property 전체에 대해 처리
+    controllableProperties.forEach((property) => {
       initializeOptimizationDataForProperty(property, "controllable");
-      // 차트 데이터는 항상 업데이트
       updateChartDataForProperty(property);
-    }
+    });
 
-    // output property 처리
-    if (outputProperties.length > 0) {
-      const property = outputProperties[currentOutputIndex];
+    // output property 전체에 대해 처리
+    outputProperties.forEach((property) => {
       initializeOptimizationDataForProperty(property, "output");
       updateChartDataForProperty(property);
-    }
+    });
   }, [
     histograms,
     JSON.stringify(controllableProperties),
-    currentControllableIndex,
     JSON.stringify(outputProperties),
-    currentOutputIndex,
     dispatch,
     flowId,
-    optimizationData, // optimizationData가 변경되어도 차트 업데이트가 반영되도록 함.
+    optimizationData, // optimizationData가 변경되어도 업데이트 되도록
   ]);
 
   // 문자열 goal을 숫자로 매핑하는 헬퍼 함수
