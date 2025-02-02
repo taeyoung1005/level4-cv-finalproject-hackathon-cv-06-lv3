@@ -90,7 +90,7 @@ def catboost_save(model, path):
     Returns:
         None
     """
-    model.save_model(path, format='cbm')
+    model.save_model(path+'.cbm', format='cbm')
 
 def catboost_load(path):
     """
@@ -103,5 +103,5 @@ def catboost_load(path):
         CatBoostRegressor: 로드된 CatBoost 모델 객체
     """
     model = CatBoostRegressor()
-    model.load_model(path)
+    model.load_model(path+'.cbm')
     return model
