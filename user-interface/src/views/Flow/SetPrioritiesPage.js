@@ -1,3 +1,5 @@
+// SetPrioritiesPage.jsx
+
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
@@ -24,46 +26,41 @@ import CardHeader from "components/Card/CardHeader.js";
 import {
   fetchFlowProperties,
   updatePriorities,
+  initializePriorities,
+  fetchOptimizationData,
 } from "store/features/flowSlice";
-import { initializePriorities } from "store/features/flowSlice";
-import { fetchOptimizationData } from "store/features/flowSlice";
+import { postOptimizationOrder } from "store/features/flowSlice";
 
 const SetPrioritiesPage = () => {
-  const { flowId } = useParams();
+  const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
 
-  // Redux: newCategories (property -> category)
   const properties = useSelector(
     (state) => state.flows.newCategories[flowId] || {}
   );
 
-  // 컴포넌트 마운트 시 한 번만 Flow Properties fetch
   useEffect(() => {
     dispatch(fetchFlowProperties(flowId));
   }, [dispatch, flowId]);
 
-  // properties 업데이트 시 controllable, output 속성에 대해서만 최적화 데이터 fetch
+  // controllable, output 속성에 대해서만 optimization data fetch
   useEffect(() => {
     Object.keys(properties).forEach((property) => {
-      const type = properties[property]; // 예: "controllable", "output", 등
+      const type = properties[property];
       if (type === "controllable" || type === "output") {
         dispatch(fetchOptimizationData({ flowId, property, type }));
       }
     });
   }, [dispatch, flowId, properties]);
 
-  // Redux: optimizationData
   const optimizationData = useSelector(
     (state) => state.flows.optimizationData[flowId] || {}
   );
-
-  // Redux: storedPriorities
   const storedPriorities = useSelector(
     (state) => state.flows.priorities[flowId] || []
   );
 
-  // useMemo: controllableProperties와 outputProperties (안정화)
   const controllableProperties = useMemo(() => {
     return Object.entries(properties)
       .filter(([_, cat]) => cat === "controllable")
@@ -76,17 +73,14 @@ const SetPrioritiesPage = () => {
       .map(([prop]) => prop);
   }, [properties]);
 
-  // Local state: 우선순위 배열. 초기값은 빈 배열.
   const [priorities, setPriorities] = useState([]);
 
-  // 만약 Redux의 storedPriorities가 있다면 local state에 반영
   useEffect(() => {
     if (storedPriorities.length > 0) {
       setPriorities(storedPriorities);
     }
   }, [storedPriorities]);
 
-  // 우선순위 초기화: 만약 local priorities가 비어있고, optimizationData가 준비되었으면 default 우선순위를 설정
   const initializedRef = useRef(false);
   useEffect(() => {
     if (
@@ -108,12 +102,10 @@ const SetPrioritiesPage = () => {
     outputProperties,
   ]);
 
-  // Redux 우선순위 초기화 액션은 한 번만 실행
   useEffect(() => {
     dispatch(initializePriorities({ flowId }));
   }, [dispatch, flowId]);
 
-  // Drag & Drop 이벤트 핸들러
   const onDragEnd = (result) => {
     if (!result.destination) return;
     const newPriorities = Array.from(priorities);
@@ -123,16 +115,22 @@ const SetPrioritiesPage = () => {
     dispatch(updatePriorities({ flowId, priorities: newPriorities }));
   };
 
+  // 기존의 handleSavePriorities 함수는 그대로 유지하거나, 여기서 포함 가능
   const handleSavePriorities = () => {
     dispatch(updatePriorities({ flowId, priorities }));
   };
 
-  const handleNextStep = () => {
-    handleSavePriorities();
-    history.push(`/projects/flows/${flowId}/check-performance`);
+  // Next 버튼 클릭 시 우선순위 데이터를 API에 POST 후 다음 페이지로 이동
+  const handleNextStep = async () => {
+    try {
+      await dispatch(postOptimizationOrder({ flowId, priorities })).unwrap();
+      history.push(`/projects/${projectId}/flows/${flowId}/check-performance`);
+    } catch (error) {
+      console.error("Failed to post optimization orders:", error);
+      // 에러 처리 로직 추가 가능 (예: toast 메시지 등)
+    }
   };
 
-  // Helper: 목표(goal)에 따라 카드 배경색 결정
   const getGoalColor = (goal) => {
     switch (goal) {
       case "No Optimization":
@@ -152,7 +150,6 @@ const SetPrioritiesPage = () => {
 
   return (
     <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
-      {/* 상단 네비게이션 */}
       <Flex justifyContent="space-between" alignItems="center" mb={6}>
         <Button leftIcon={<ArrowBackIcon />} onClick={() => history.goBack()}>
           Back
@@ -168,17 +165,13 @@ const SetPrioritiesPage = () => {
           Next
         </Button>
       </Flex>
-
-      {/* 탭 구성: Overview & Set Priorities */}
       <Tabs variant="enclosed" colorScheme="blue">
         <TabList>
           <Tab>Overview</Tab>
           <Tab>Set Priorities</Tab>
         </TabList>
         <TabPanels>
-          {/* Overview 탭 */}
           <TabPanel>
-            {/* 전체 Overview 컨테이너 */}
             <Card bg="gray.800" p={4} borderRadius="md">
               <VStack spacing={3} align="stretch">
                 {Object.keys(optimizationData).length > 0 ? (
@@ -210,8 +203,6 @@ const SetPrioritiesPage = () => {
               </VStack>
             </Card>
           </TabPanel>
-
-          {/* Set Priorities 탭 */}
           <TabPanel>
             <Card>
               <CardHeader>

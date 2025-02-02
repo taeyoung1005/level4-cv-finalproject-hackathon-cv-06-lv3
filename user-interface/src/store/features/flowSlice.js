@@ -290,19 +290,33 @@ export const postOptimizationData = createAsyncThunk(
 );
 
 // ✅ 우선순위 저장 API 호출
-export const savePriorities = createAsyncThunk(
-  "flows/savePriorities",
+export const postOptimizationOrder = createAsyncThunk(
+  "flows/postOptimizationOrder",
   async ({ flowId, priorities }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/priorities/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ flow_id: flowId, priorities }),
-      });
-
-      if (!response.ok) throw new Error("Failed to save priorities");
-
-      return { flowId, priorities };
+      const responses = await Promise.all(
+        priorities.map((column_name, index) =>
+          fetch(`${API_BASE_URL}/optimization/orders/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              flow_id: flowId,
+              column_name,
+              optimize_order: index + 1, // 1부터 시작하는 순서
+            }),
+          }).then(async (response) => {
+            if (!response.ok) {
+              // 응답이 ok가 아닐 경우 에러 메시지 추출
+              const errorData = await response.json();
+              throw new Error(errorData.message || "Fetch error");
+            }
+            return response.json();
+          })
+        )
+      );
+      return responses;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -627,6 +641,12 @@ const flowSlice = createSlice({
       })
       .addCase(postOptimizationData.rejected, (state, action) => {
         console.error("POST Optimization Data 실패:", action.payload);
+      })
+      .addCase(postOptimizationOrder.fulfilled, (state, action) => {
+        // 성공 시 추가 처리 (필요 시)
+      })
+      .addCase(postOptimizationOrder.rejected, (state, action) => {
+        // 에러 처리 (필요 시)
       })
       .addCase(fetchSurrogateFeatureImportance.fulfilled, (state, action) => {
         const { flowId, data } = action.payload;
