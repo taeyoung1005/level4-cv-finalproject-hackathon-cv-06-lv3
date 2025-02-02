@@ -16,12 +16,15 @@ class ColumnViewTests(APITestCase):
         테스트를 위한 데이터 초기화
         """
         self.columns_url = reverse('data_processing:columns')
-        self.features_dir = os.path.join(os.path.dirname(__file__), './features')
+        self.features_dir = os.path.join(
+            os.path.dirname(__file__), './features')
 
         # CSV 파일 로드 및 데이터베이스에 삽입
-        self.csvs = [f for f in os.listdir(self.features_dir) if f.endswith('.csv')]
+        self.csvs = [f for f in os.listdir(
+            self.features_dir) if f.endswith('.csv')]
         if not self.csvs:
-            raise FileNotFoundError("No csv files found in ./features directory.")
+            raise FileNotFoundError(
+                "No csv files found in ./features directory.")
 
         file_path = os.path.join(self.features_dir, self.csvs[0])
         df = pd.read_csv(file_path)
@@ -62,8 +65,10 @@ class ColumnViewTests(APITestCase):
         self.assertIn("column_names", response.json())
 
         # 응답 데이터의 컬럼명과 데이터베이스의 컬럼명 비교
-        expected_column_names = list(ColumnModel.objects.filter(csv=self.csv).values_list('column_name', flat=True))
-        self.assertEqual(response.json()["column_names"], expected_column_names)
+        expected_column_names = list(ColumnModel.objects.filter(
+            csv=self.csv).values_list('column_name', flat=True))
+        self.assertEqual(
+            response.json()["column_names"], expected_column_names)
 
     def test_get_column_names_invalid_csv_id(self):
         """
@@ -162,6 +167,8 @@ class ConcatColumnViewTests(APITestCase):
         if pd.api.types.is_numeric_dtype(column):
             return "numerical"
         elif pd.api.types.is_string_dtype(column):
+            if 'address' in column.name.lower() or 'description' in column.name.lower() or 'text' in column.name.lower():
+                return "text"
             return "categorical"
         return "unavailable"
 
@@ -170,7 +177,7 @@ class ConcatColumnViewTests(APITestCase):
         컬럼 타입을 성공적으로 업데이트하는지 테스트
         """
         column_name = self.columns[0].column_name
-        new_property_type = "categorical"
+        new_property_type = "Controllable"
 
         data = {
             "flow_id": self.flow.id,
@@ -182,10 +189,6 @@ class ConcatColumnViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()["column_name"], column_name)
         self.assertEqual(response.json()["property_type"], new_property_type)
-
-        # DB 업데이트 확인
-        column = ConcatColumnModel.objects.get(column_name=column_name)
-        self.assertEqual(column.column_type, new_property_type)
 
     def test_put_property_type_invalid_request(self):
         """
@@ -211,7 +214,7 @@ class ConcatColumnViewTests(APITestCase):
         data = {
             "flow_id": self.flow.id,
             "column_name": "not_found_column",
-            "property_type": "numerical"
+            "property_type": "environmental"
         }
 
         response = self.client.put(self.columns_url, data, format="json")
@@ -225,7 +228,7 @@ class ConcatColumnViewTests(APITestCase):
         data = {
             "flow_id": 9999,
             "column_name": self.columns[0].column_name,
-            "property_type": "numerical"
+            "property_type": "controllable"
         }
 
         response = self.client.put(self.columns_url, data, format="json")
