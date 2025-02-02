@@ -235,10 +235,9 @@ export const fetchOptimizationData = createAsyncThunk(
   "flows/fetchOptimizationData",
   async ({ flowId, property, type }, thunkAPI) => {
     // type에 따라 endpoint 선택
-    const endpoint = type === "controllable" ? "controllable" : "output";
     try {
       const response = await fetch(
-        `${API_BASE_URL}/optimize/${endpoint}/?flow_id=${flowId}&column_name=${property}`
+        `${API_BASE_URL}/optimization/goals/?flow_id=${flowId}&column_name=${property}`
       );
       if (!response.ok) {
         throw new Error("Failed to get optimization data");
@@ -265,32 +264,16 @@ export const postOptimizationData = createAsyncThunk(
     { flowId, property, type, goal, minimum_value, maximum_value },
     thunkAPI
   ) => {
-    const baseUrl = `${API_BASE_URL}/optimize`;
-    let endpoint = "";
-    let payload = {};
-
-    if (type === "controllable") {
-      endpoint = "controllable";
-      payload = {
-        flow_id: flowId,
-        column_name: property,
-        minimum_value: minimum_value,
-        maximum_value: maximum_value,
-        optimize_goal: goal,
-      };
-    } else if (type === "output") {
-      endpoint = "output";
-      payload = {
-        flow_id: flowId,
-        column_name: property,
-        optimize_goal: goal,
-        minimum_value: minimum_value,
-        maximum_value: maximum_value,
-      };
-    }
+    let payload = {
+      flow_id: flowId,
+      column_name: property,
+      optimize_goal: goal,
+      minimum_value: minimum_value,
+      maximum_value: maximum_value,
+    };
 
     try {
-      const response = await fetch(`${baseUrl}/${endpoint}/`, {
+      const response = await fetch(`${API_BASE_URL}/optimization/goals/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
