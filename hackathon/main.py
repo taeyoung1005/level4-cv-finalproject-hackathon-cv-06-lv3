@@ -147,12 +147,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='모델 학습 및 최적화 스크립트')
     arg = parser.add_argument
     arg('--dataset', '--dset', '-dset', type=str, default='cement',
-        choices=['cement', 'melb', 'car'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
+        choices=['cement', 'melb', 'car', 'ecommerce'], help='사용할 데이터셋을 지정합니다 (기본값: cement)')
     arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
     arg('--model', '--model', '-model', type=str, default='lightgbm',
         choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
-    arg('--search_model', '--search_model', '-search_model', type=str, default='backprob',
+    arg('--search_model', '--search_model', '-search_model', type=str, default='ga_deap',
         choices=['backprob', 'ga_deap', 'ga_pygmo', 'ga_adaptive_niching', 'k_means'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: backprob)')
     arg('--seed', '--seed', '-seed', type=int, default=42,
         help='재현성을 위한 랜덤 시드 (기본값: 42)')

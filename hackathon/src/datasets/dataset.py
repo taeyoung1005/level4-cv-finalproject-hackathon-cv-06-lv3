@@ -102,3 +102,15 @@ def car_data(file_path: str):
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     """
     return load_and_split_data(file_path, target="Annual_revenue")
+
+def ecommerce_data(file_path: str):
+    """
+    Ecommerce 데이터셋을 로드하고 분할합니다.
+
+    Args:
+        file_path (str): Ecommerce Parquet 파일 경로.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    """
+    return load_and_split_data(file_path, target="revenue")
