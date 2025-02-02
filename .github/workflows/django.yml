@@ -25,5 +25,5 @@ jobs:
         pip install -r requirements.txt
     - name: Run Tests
       run: |
-        cd argmax_mini
+        cd hackathon/argmax_mini
         python manage.py test

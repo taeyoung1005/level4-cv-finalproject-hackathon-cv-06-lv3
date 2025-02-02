@@ -252,7 +252,9 @@ class FlowCsvAddView(APIView):
                 column_type = "numerical"
             elif pd.api.types.is_string_dtype(concat_df[column_name]):
                 column_type = "categorical"
-
+                if 'address' in column_name.lower() or 'description' in column_name.lower() or 'text' == column_name.lower():
+                    column_type = "text"
+            
             missing_values_ratio = round(
                 concat_df[column_name].isnull().mean() * 100, 2)
             if missing_values_ratio > 50:

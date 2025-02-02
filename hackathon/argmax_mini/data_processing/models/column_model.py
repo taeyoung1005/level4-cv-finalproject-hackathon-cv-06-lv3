@@ -12,6 +12,7 @@ class ConcatColumnModel(models.Model):
     COLUMN_TYPE_CHOICES = [
         ("numerical", "Numerical"),
         ("categorical", "Categorical"),
+        ('text', 'Text'),
         ('unavailable', 'Unavailable')
     ]
 
