@@ -13,7 +13,7 @@ from src.utils import Setting, measure_time
 import pandas as pd
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
-def main(args):
+def main(args, scalers=None):
     # 로깅 설정
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
@@ -26,9 +26,15 @@ def main(args):
         raise ValueError("simpleNN is not supported for now")
     
     # 데이터 로드 및 분할
-    load_data_func = datasets.load_and_split_data
-    X_train, X_test, y_train, y_test = load_data_func(args.data_path, args.target)
-
+    load_data_func = datasets.load_and_split_data_with_x_col_list
+    X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
+    
+    if model_name == 'tabpfn':
+        if X_train.shape[0] > 3000:
+            X_train = X_train[:3000]
+            y_train = y_train[:3000]
+            print("X_train.shape: ", X_train.shape)
+            print("X_test.shape: ", X_test.shape)
     # 모델별 데이터 로드
     # try:
     load_data_loader_func = getattr(datasets, f'{model_name}_load_data')
@@ -36,6 +42,7 @@ def main(args):
     #     logging.error(f"지원되지 않는 모델 '{model_name}' 입니다.")
     #     return
 
+    # TODO sampling and catboost trial 조절 
     train_loader, val_loader = load_data_loader_func(X_train, X_test, y_train, y_test)
     
     # 데이터셋 형태 출력
@@ -44,6 +51,7 @@ def main(args):
     logging.info(f"y_train.shape: {y_train.shape}")
     logging.info(f"y_test.shape: {y_test.shape}")
     
+
     # 모델 학습
     # try:
     if len(args.target) > 1:
@@ -56,6 +64,7 @@ def main(args):
     #     logging.error(f"지원되지 않는 모델 '{model_name}'의 학습 함수입니다.")
     #     return
     
+
     if len(args.target) > 1:
         predict_func = getattr(surrogate, f'{model_name}_multi_predict')
     else:
@@ -70,6 +79,11 @@ def main(args):
     df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2})
     print(df_eval)
 
+    if scalers:
+        y_test = scalers[args.target[0]].inverse_transform(y_test)
+        y_pred = scalers[args.target[0]].inverse_transform(y_pred)
+
+    #TODO only for single target -> multi target ranking?
     print(y_test.shape, y_pred.shape)
     print(abs(y_test - y_pred).shape)
     df_rank = pd.DataFrame({'y_test': y_test[:,0].squeeze(), 'y_pred': y_pred[:,0].squeeze(),'diff': abs(y_test[:,0] - y_pred[:,0]).squeeze()}) # y_pred, y_test rank ! 
@@ -78,6 +92,10 @@ def main(args):
 
     os.makedirs(f'./prj/{args.prj_id}/surrogate_model', exist_ok=True)
     df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model.csv', index=False)
+
+    if model_name == 'catboost':
+        df_importance = pd.DataFrame({'feature': x_col_list, 'importance': model.get_feature_importance()/model.get_feature_importance().sum()})
+        df_importance.to_csv(f'./prj/{args.prj_id}/surrogate_model/importance.csv', index=False)
 
     save_model_func = getattr(surrogate, f'{model_name}_save')
     save_model_func(model, f'./prj/{args.prj_id}/surrogate_model/model')
