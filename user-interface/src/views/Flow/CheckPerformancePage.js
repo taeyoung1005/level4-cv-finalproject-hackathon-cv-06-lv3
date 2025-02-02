@@ -4,16 +4,22 @@ import { useParams, useHistory } from "react-router-dom";
 import {
   Box,
   Flex,
-  Text,
-  Button,
   Grid,
+  IconButton,
   Divider,
+  Text,
   Tabs,
   TabList,
   TabPanels,
   Tab,
   TabPanel,
-  VStack,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  StatGroup,
+  CircularProgress,
+  CircularProgressLabel,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card";
 import CardBody from "components/Card/CardBody";
@@ -49,236 +55,448 @@ const SurrogatePerformancePage = () => {
     dispatch(fetchSurrogateResult(flowId));
   }, [dispatch, flowId]);
 
-  // Best and Worst cases computed from surrogateResult.
-  // 가정: lower rank 값이 더 좋은 경우
+  const rSquared = surrogateMatric[0].r_squared;
+
+  const metricsCard = (
+    <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
+      {/* R-squared 카드 */}
+      <Card h="100%" minH="350px">
+        <CardHeader pb={2}>
+          <Text fontSize="xl" fontWeight="bold">
+            R-squared
+          </Text>
+        </CardHeader>
+        <Divider borderColor="gray.600" />
+        <CardBody>
+          <Flex
+            direction="column"
+            alignItems="center"
+            justify="center"
+            flex="1"
+          >
+            <CircularProgress
+              max="1"
+              min="-1"
+              value={Number(rSquared.toFixed(3))}
+              size={
+                window.innerWidth >= 1024
+                  ? 200
+                  : window.innerWidth >= 768
+                  ? 170
+                  : 200
+              }
+              thickness={9}
+              color="rgba(5,205,153,0.4)"
+              mt={"20"}
+            >
+              <CircularProgressLabel>
+                <Flex direction="column" justify="center" align="center">
+                  <Text color="gray.400" fontSize="sm">
+                    R-Squared
+                  </Text>
+                  <Text
+                    color="#fff"
+                    fontSize={{ md: "36px", lg: "50px" }}
+                    fontWeight="bold"
+                    mb="4px"
+                  >
+                    {rSquared.toFixed(3)}
+                  </Text>
+                </Flex>
+              </CircularProgressLabel>
+            </CircularProgress>
+            {/* 정보 카드 */}
+            <Box
+              position="absolute"
+              bottom="40px"
+              left="50%"
+              transform="translateX(-50%)"
+              mt={4}
+              w="80%"
+            >
+              <Card borderRadius="md" boxShadow="sm" p={2}>
+                <Text fontSize="sm" color="gray.500" textAlign="center">
+                  Higher is better
+                </Text>
+              </Card>
+            </Box>
+          </Flex>
+        </CardBody>
+      </Card>
+
+      {/* RMSE 카드 */}
+      <Card h="100%" minH="350px">
+        <CardHeader pb={2}>
+          <Text fontSize="xl" fontWeight="bold">
+            RMSE
+          </Text>
+        </CardHeader>
+        <Divider borderColor="gray.600" />
+        <CardBody>
+          <Flex
+            direction="column"
+            alignItems="center"
+            justify="center"
+            flex="1"
+          >
+            <Box textAlign="center" py={8}>
+              <StatGroup justifyContent="center" mt="110">
+                <Stat>
+                  <StatNumber fontSize={{ md: "36px", lg: "50px" }}>
+                    {surrogateMatric[0].rmse}
+                  </StatNumber>
+                </Stat>
+              </StatGroup>
+            </Box>
+            {/* 정보 카드 */}
+            <Box
+              position="absolute"
+              bottom="40px"
+              left="50%"
+              transform="translateX(-50%)"
+              mt={4}
+              w="80%"
+            >
+              <Card borderRadius="md" boxShadow="sm" p={2}>
+                <Text fontSize="sm" color="gray.500" textAlign="center">
+                  Lower is better
+                </Text>
+              </Card>
+            </Box>
+          </Flex>
+        </CardBody>
+      </Card>
+    </Grid>
+  );
+
+  // Feature Importance: 정렬 후 수평 바 차트 (백분율 표시)
+  const sortedImportance = useMemo(() => {
+    return [...featureImportance].sort((a, b) => b.importance - a.importance);
+  }, [featureImportance]);
+
+  const importanceSeries = useMemo(() => {
+    return [
+      {
+        name: "Importance (%)",
+        data: sortedImportance.map((fi) =>
+          Number((fi.importance * 100).toFixed(2))
+        ),
+      },
+    ];
+  }, [sortedImportance]);
+
+  const importanceOptions = useMemo(() => {
+    return {
+      chart: { type: "bar", toolbar: { show: false } },
+      plotOptions: {
+        bar: {
+          borderRadius: 8,
+          columnWidth: "12px",
+        },
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      grid: {
+        show: false,
+      },
+      fill: {
+        colors: "#fff",
+      },
+      xaxis: {
+        title: { text: "Importance (%)", style: { color: "#fff" } },
+        labels: {
+          show: false,
+          style: {
+            colors: "#fff",
+            fontSize: "12px",
+          },
+        },
+        axisBorder: {
+          show: false,
+        },
+        axisTicks: {
+          show: false,
+        },
+      },
+      yaxis: {
+        show: true,
+        color: "#fff",
+        categories: sortedImportance.map((fi) => fi.column),
+        labels: {
+          show: true,
+          style: {
+            colors: "#fff",
+            fontSize: "12px",
+            fontFamily: "Plus Jakarta Display",
+          },
+        },
+      },
+      tooltip: {
+        theme: "dark",
+        y: { formatter: (val) => `${val}%` },
+        style: {
+          fontSize: "14px",
+          fontFamily: "Plus Jakarta Display",
+        },
+        onDatasetHover: {
+          style: {
+            fontSize: "14px",
+            fontFamily: "Plus Jakarta Display",
+          },
+        },
+      },
+      responsive: [
+        {
+          breakpoint: 768,
+          options: {
+            plotOptions: {
+              bar: {
+                borderRadius: 0,
+              },
+            },
+          },
+        },
+      ],
+      // 바 색상는 그대로 사용
+    };
+  }, [sortedImportance]);
+
+  const importanceCard = (
+    <Card h="100%" minH="350px">
+      <CardHeader pb={2}>
+        <Text fontSize="xl" fontWeight="bold">
+          Feature Importance
+        </Text>
+      </CardHeader>
+      <Divider borderColor="gray.600" />
+      <Box w="100%" h="100%" mt={2}>
+        {sortedImportance.length > 0 ? (
+          <Chart
+            options={importanceOptions}
+            series={importanceSeries}
+            type="bar"
+            height="100%"
+          />
+        ) : (
+          <Text>No feature importance data available</Text>
+        )}
+      </Box>
+    </Card>
+  );
+
+  /*** 두 번째 탭: Best & Worst Cases (Line Chart) ***/
+  // 정렬: rank 기준 (낮을수록 좋은 것으로 가정)
   const sortedResults = useMemo(() => {
     return surrogateResult.slice().sort((a, b) => a.rank - b.rank);
   }, [surrogateResult]);
 
-  const bestCases = useMemo(() => {
-    return sortedResults.slice(0, 5);
-  }, [sortedResults]);
+  const bestCases = useMemo(() => sortedResults.slice(0, 5), [sortedResults]);
+  const worstCases = useMemo(() => sortedResults.slice(-5), [sortedResults]);
 
-  const worstCases = useMemo(() => {
-    return sortedResults.slice(-5);
-  }, [sortedResults]);
-
-  // ApexChart configuration for Feature Importance (Bar Chart)
-  const featureImportanceOptions = useMemo(() => {
+  // 각 케이스에 대해 "Ground Truth"와 "Predicted"를 선 차트로 표현
+  const bestCasesLineData = useMemo(() => {
     return {
-      chart: { type: "bar", toolbar: { show: false } },
-      plotOptions: {
-        bar: { distributed: true, horizontal: false },
+      // x축 레이블 제거
+      categories: [],
+      series: [
+        {
+          name: "Ground Truth",
+          data: bestCases.map((res) => res.ground_truth),
+        },
+        { name: "Predicted", data: bestCases.map((res) => res.predicted) },
+      ],
+    };
+  }, [bestCases]);
+
+  const worstCasesLineData = useMemo(() => {
+    return {
+      categories: [],
+      series: [
+        {
+          name: "Ground Truth",
+          data: worstCases.map((res) => res.ground_truth),
+        },
+        { name: "Predicted", data: worstCases.map((res) => res.predicted) },
+      ],
+    };
+  }, [worstCases]);
+
+  // 라인 차트 옵션 수정: x축 레이블 제거, 데이터 라벨 색상 변경
+  const lineChartOptions = useMemo(() => {
+    return {
+      chart: { type: "line", toolbar: { show: false } },
+      dataLabels: {
+        enabled: false,
       },
+      stroke: { curve: "smooth" },
       xaxis: {
-        categories: featureImportance.map((fi) => fi.column),
+        labels: { colors: "#c8cfca", fontSize: "12px" },
+        axisBorder: { show: false },
+      },
+      yaxis: {
         labels: {
+          formatter: (val) => val.toFixed(3),
           style: {
-            colors: featureImportance.map(() => "#fff"),
+            colors: "#c8cfca",
             fontSize: "12px",
           },
         },
       },
-      yaxis: { labels: { style: { colors: "#fff", fontSize: "12px" } } },
-      colors: featureImportance.map(() => "#4A90E2"),
-      dataLabels: { enabled: false },
-      tooltip: { theme: "dark" },
-    };
-  }, [featureImportance]);
-
-  const featureImportanceSeries = useMemo(() => {
-    return [
-      {
-        name: "Importance",
-        data: featureImportance.map((fi) => fi.importance),
+      tooltip: {
+        theme: "dark",
+        style: {
+          fontSize: "14px",
+          fontFamily: "Plus Jakarta Display",
+        },
       },
-    ];
-  }, [featureImportance]);
+      colors: ["#2CD9FF", "#582CFF"],
+      grid: {
+        padding: {
+          right: 200,
+        },
+      },
+      axisBorder: {
+        show: false,
+      },
+      axisTicks: {
+        show: false,
+      },
+      fill: {
+        type: "gradient",
+        gradient: {
+          shade: "dark",
+          type: "vertical",
+          shadeIntensity: 0,
+          gradientToColors: undefined, // optional, if not defined - uses the shades of same color in series
+          inverseColors: true,
+          opacityFrom: 0.9,
+          opacityTo: 0.6,
+          stops: [],
+        },
+        colors: ["#2CD9FF", "#582CFF"],
+      },
+      grid: {
+        strokeDashArray: 5,
+        borderColor: "#56577A",
+      },
+    };
+  }, []);
 
-  // Helper: 카드 배경색 결정 based on optimization goal
-  // (예시 매핑: No Optimization: gray, Maximize: green, Minimize: red, Fit to Range: orange, Fit to Property: purple)
-  const getGoalColor = (goal) => {
-    switch (goal) {
-      case "No Optimization":
-        return "gray.600";
-      case "Maximize":
-        return "green.500";
-      case "Minimize":
-        return "red.500";
-      case "Fit to Range":
-        return "orange.500";
-      case "Fit to Property":
-        return "purple.500";
-      default:
-        return "gray.600";
-    }
-  };
+  const bestCasesCard = (
+    <Card minH="300px" mb={4}>
+      <CardHeader pb={2}>
+        <Text fontSize="xl" fontWeight="bold">
+          Best Cases
+        </Text>
+      </CardHeader>
+      <Divider borderColor="gray.600" />
 
-  // UI 구성
+      <Box w="100%" minH={{ sm: "500px" }}>
+        {bestCases.length > 0 ? (
+          <Chart
+            options={lineChartOptions}
+            series={bestCasesLineData.series}
+            type="line"
+            height="100%"
+          />
+        ) : (
+          <Text>No best cases available</Text>
+        )}
+      </Box>
+    </Card>
+  );
+
+  const worstCasesCard = (
+    <Card minH="300px" mb={4}>
+      <CardHeader pb={2}>
+        <Text fontSize="xl" fontWeight="bold">
+          Worst Cases
+        </Text>
+      </CardHeader>
+      <Divider borderColor="gray.600" />
+      <Box w="100%" minH={{ sm: "500px" }}>
+        {worstCases.length > 0 ? (
+          <Chart
+            options={lineChartOptions}
+            series={worstCasesLineData.series}
+            type="line"
+            width="100%"
+            height="100%"
+          />
+        ) : (
+          <Text>No worst cases available</Text>
+        )}
+      </Box>
+    </Card>
+  );
+
   return (
-    <Flex direction="column" p={6} bg="gray.900" minH="100vh" color="white">
-      {/* 헤더 */}
-      <Card bg="gray.800" p={4} borderRadius="md" mb={6} boxShadow="md">
-        <CardHeader>
-          <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold">
+    <Flex
+      flexDirection="column"
+      pt={{ base: "120px", md: "75px" }}
+      px={4}
+      maxH="100vh"
+      color="white"
+    >
+      {/* 헤더 영역 */}
+      <Flex justifyContent="space-between" alignItems="center" mb={6}>
+        <IconButton
+          icon={<ArrowBackIcon />}
+          onClick={() => history.goBack()}
+          colorScheme="blue"
+        />
+        <Box textAlign="center">
+          <Text fontSize="2xl" fontWeight="bold">
             Surrogate Model Performance
           </Text>
-        </CardHeader>
-      </Card>
-
-      {/* 탭 영역 */}
-      <Tabs variant="enclosed" colorScheme="blue">
-        <TabList>
-          <Tab>Feature Importance</Tab>
-          <Tab>Metrics & Results</Tab>
-        </TabList>
-        <TabPanels>
-          {/* Feature Importance 탭 */}
-          <TabPanel>
-            <Card bg="gray.800" p={4} borderRadius="md" boxShadow="md">
-              <CardHeader>
-                <Text fontSize="xl" fontWeight="bold">
-                  Feature Importance
-                </Text>
-              </CardHeader>
-              <Divider borderColor="gray.600" my={2} />
-              <CardBody>
-                {featureImportance.length > 0 ? (
-                  <Chart
-                    options={featureImportanceOptions}
-                    series={featureImportanceSeries}
-                    type="bar"
-                    height="400"
-                  />
-                ) : (
-                  <Text>No feature importance data available</Text>
-                )}
-              </CardBody>
-            </Card>
-          </TabPanel>
-
-          {/* Metrics & Results 탭 */}
-          <TabPanel>
-            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
-              {/* Surrogate Metrics Card */}
-              <Card bg="gray.800" p={4} borderRadius="md" boxShadow="md">
-                <CardHeader>
-                  <Text fontSize="xl" fontWeight="bold">
-                    Surrogate Metrics
-                  </Text>
-                </CardHeader>
-                <Divider borderColor="gray.600" my={2} />
-                <CardBody>
-                  {surrogateMatric.length > 0 ? (
-                    // surrogateMatric is assumed to be an array with one element
-                    <>
-                      <Text fontSize="lg">
-                        R-squared: {surrogateMatric[0].r_squared}
-                      </Text>
-                      <Text fontSize="lg">RMSE: {surrogateMatric[0].rmse}</Text>
-                    </>
-                  ) : (
-                    <Text>No metrics available</Text>
-                  )}
-                </CardBody>
-              </Card>
-
-              {/* Surrogate Results Card */}
-              <Card bg="gray.800" p={4} borderRadius="md" boxShadow="md">
-                <CardHeader>
-                  <Text fontSize="xl" fontWeight="bold">
-                    Surrogate Results
-                  </Text>
-                </CardHeader>
-                <Divider borderColor="gray.600" my={2} />
-                <CardBody>
-                  <Grid
-                    templateColumns={{ base: "1fr", md: "1fr 1fr" }}
-                    gap={4}
-                  >
-                    {/* Best Cases */}
-                    <Card bg="gray.700" p={3} borderRadius="md" boxShadow="sm">
-                      <CardHeader>
-                        <Text fontSize="lg" fontWeight="bold">
-                          Best Cases
-                        </Text>
-                      </CardHeader>
-                      <Divider borderColor="gray.600" my={1} />
-                      <CardBody>
-                        {bestCases.length > 0 ? (
-                          bestCases.map((res) => (
-                            <Box
-                              key={res.id}
-                              p={2}
-                              borderBottom="1px solid gray"
-                              mb={1}
-                            >
-                              <Text fontSize="sm">
-                                GT: {res.ground_truth} | Predicted:{" "}
-                                {res.predicted}
-                              </Text>
-                              <Text fontSize="xs" color="gray.400">
-                                Rank: {res.rank}
-                              </Text>
-                            </Box>
-                          ))
-                        ) : (
-                          <Text>No best cases available</Text>
-                        )}
-                      </CardBody>
-                    </Card>
-                    {/* Worst Cases */}
-                    <Card bg="gray.700" p={3} borderRadius="md" boxShadow="sm">
-                      <CardHeader>
-                        <Text fontSize="lg" fontWeight="bold">
-                          Worst Cases
-                        </Text>
-                      </CardHeader>
-                      <Divider borderColor="gray.600" my={1} />
-                      <CardBody>
-                        {worstCases.length > 0 ? (
-                          worstCases.map((res) => (
-                            <Box
-                              key={res.id}
-                              p={2}
-                              borderBottom="1px solid gray"
-                              mb={1}
-                            >
-                              <Text fontSize="sm">
-                                GT: {res.ground_truth} | Predicted:{" "}
-                                {res.predicted}
-                              </Text>
-                              <Text fontSize="xs" color="gray.400">
-                                Rank: {res.rank}
-                              </Text>
-                            </Box>
-                          ))
-                        ) : (
-                          <Text>No worst cases available</Text>
-                        )}
-                      </CardBody>
-                    </Card>
-                  </Grid>
-                </CardBody>
-              </Card>
-            </Grid>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-
-      {/* 하단 버튼 영역 */}
-      <Flex justify="center" mt={6}>
-        <Button
-          colorScheme="blue"
+          <Text fontSize="sm" color="gray.400">
+            Check metrics, feature importance, and prediction cases.
+          </Text>
+        </Box>
+        <IconButton
+          icon={<ArrowForwardIcon />}
           onClick={() =>
             history.push(
               `/projects/${projectId}/flows/${flowId}/optimization-results`
             )
           }
-        >
-          View Detailed Optimization Results
-        </Button>
+          colorScheme="blue"
+        />
       </Flex>
+
+      {/* 탭 영역 */}
+      <Tabs variant="enclosed" colorScheme="blue">
+        <TabList>
+          <Tab>Metrics & Feature Importance</Tab>
+          <Tab>Prediction Cases</Tab>
+        </TabList>
+        <TabPanels>
+          {/* 첫 번째 탭 */}
+          <TabPanel>
+            <Grid
+              templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+              h="calc(80vh - 150px)"
+              gap={6}
+            >
+              {metricsCard}
+              {importanceCard}
+            </Grid>
+          </TabPanel>
+
+          {/* 두 번째 탭 */}
+          <TabPanel>
+            <Grid
+              templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+              h="calc(80vh - 150px)"
+              gap={6}
+            >
+              {bestCasesCard}
+              {worstCasesCard}
+            </Grid>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </Flex>
   );
 };
