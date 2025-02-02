@@ -3,4 +3,3 @@
 *.pt
 __pycache__/
 *.parquet
-*.csv
