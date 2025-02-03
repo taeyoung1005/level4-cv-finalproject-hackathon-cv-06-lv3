@@ -63,6 +63,18 @@ def main(args, scalers=None):
     X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50)
 
 
+    def inverse_transform_x(x):
+        for j in range(len(x)):
+            x[j] = scalers[x_col_list[j]].inverse_transform(x[j].reshape(-1,1))[0]
+        return list(x)
+
+    def inverse_transform_y(y):
+        for j in range(len(y)):
+            y[j] = scalers[args.target[j]].inverse_transform(y[j].reshape(-1,1))[0]
+        return list(y)
+
+        
+
     # 데이터셋 형태 출력
     logging.info(f"X_train.shape: {X_train.shape}")
     logging.info(f"X_test.shape: {X_test.shape}")
@@ -84,7 +96,7 @@ def main(args, scalers=None):
     # try:
     search_func = getattr(search, f'{search_model}_search_deploy')
     start_time = time.time()
-    x_opt = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, controll_range, scalers)
+    opt_df = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, controll_range, scalers)
     end_time = time.time()
     print(f"search model 소요 시간: {end_time - start_time:.4f}초")
 
@@ -100,7 +112,16 @@ def main(args, scalers=None):
     #     logging.error(f"최적화 결과 평가 중 오류 발생: {e}")
     #     return
 
-    return x_opt
+    pred_y = predict_func(model, np.stack(opt_df['pred_x'].to_numpy()))
+
+    print(pred_y.shape)
+    opt_df['pred_y'] = inverse_transform_y(pred_y)
+    # opt_df['pred_y'] = opt_df['pred_y'].apply(inverse_transform_y)
+    opt_df['test_y'] = opt_df['test_y'].apply(inverse_transform_y)
+    opt_df['pred_x'] = opt_df['pred_x'].apply(inverse_transform_x)
+    opt_df['test_x'] = opt_df['test_x'].apply(inverse_transform_x)
+
+    return opt_df
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='모델 학습 스크립트')

@@ -116,7 +116,7 @@ def k_means_selection(population, k):
     # print(len(selected))
     return selected
 
-def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds):
+def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds, scalers):
     """
     # all_var_names : target 변수 제외 모든 변수 이름 [numpy X와 같은 순서]
     # control_var_names : control 변수 이름 
@@ -141,8 +141,14 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
     sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
 
     #TODO bounds 적용 
-    x_min,x_max = np.min(X_train, axis=0), np.max(X_train, axis=0)
-    
+    if bounds:
+        x_min = np.array([value[0] for key, value in bounds.items()]).squeeze()
+        x_max = np.array([value[1] for key, value in bounds.items()]).squeeze()
+    else:
+        x_min,x_max = np.min(X_train, axis=0), np.max(X_train, axis=0)
+
+    print("x_min : ",x_min)
+    print("x_max : ",x_max)
     n_features = X_train.shape[1]
     weights = tuple(1.0 if opt == 'maximize' else -1.0 for opt in sorted_optimize_dict_by_vars_idx.values())
     creator.create('FitnessMax', base.Fitness, weights=(1.0,) + weights) # model pred + control optim
@@ -154,7 +160,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
     #     std_dev = (x_max - x_min) / 6  # 99.7% 확률로 x_min과 x_max 사이에 생성 std 3! 
     #     return np.random.randn(n_features) * std_dev + mean
 
-    #TODO min max optimize 고려 해서 초기값 생성 
+    # TODO min max optimize 고려 해서 초기값 생성 
     def generate_individual():
         return np.random.uniform(x_min[control_index], x_max[control_index])
 
@@ -165,7 +171,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
     toolbox.register('individual', tools.initIterate, creator.Individual, toolbox.attr_float)
     toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
-    res = []
+    res = {"pred_x":[], "test_x":[], "test_y":[]}
     for idx, (gt_x, gt_y) in tqdm(enumerate(zip(X_test, y_test))):
 
         def fitness(population):
@@ -193,7 +199,9 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
 
         toolbox.register('select', tools.selTournament)
 
-        population = toolbox.population(n=4000)
+        #TODO 생성시 minmax 고려 
+        population = toolbox.population(n=100)
+        # print(population[0].shape)
         ETA_CX = 2.0
         sigma_list = [(ub - lb)/(6.0) for (lb,ub) in zip(x_min, x_max)]
         toolbox.register('mate', tools.cxSimulatedBinary, eta=ETA_CX)
@@ -214,18 +222,23 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
             # print(len(population))
 
         population = [ind for ind in population if ind.fitness.values[0] > -0.01]
-        if idx == 0:
-            df = pd.DataFrame(population)
-            df['fitness'] = np.array([ind.fitness.values[0] for ind in population])
-            df.to_csv(f'k_means_search_{idx}.csv')
-        
+        # if idx == 0:
+        #     df = pd.DataFrame(population)
+        #     df['fitness'] = np.array([ind.fitness.values[0] for ind in population])
+        #     df.to_csv(f'k_means_search_{idx}.csv')
+        population = tools.selBest(population, k=1)
         gt_x = X_test[idx]
-        expanded_gt_x = np.tile(gt_x, (len(population), 1))
-        differences = population - expanded_gt_x
-        distances = np.linalg.norm(differences, axis=1)
-        res_idx = np.argmin(distances)
-        x_pred = population[res_idx]
-        res.append(x_pred)
+        # expanded_gt_x = np.tile(gt_x, (len(population), 1))
+        # differences = population - expanded_gt_x
+        # distances = np.linalg.norm(differences, axis=1)
+        # res_idx = np.argmin(distances)
+        # x_pred = population[res_idx]
+        res["pred_x"].append(np.array(population[0], dtype=float))
+        # res["pred_y"].append(population[0].fitness.values[0].reshape(-1))
+        res["test_x"].append(gt_x)
+        res["test_y"].append(gt_y.reshape(-1,1))
 
-    print(np.stack(res).shape)
-    return np.stack(res)
+
+
+    
+    return pd.DataFrame(res)
