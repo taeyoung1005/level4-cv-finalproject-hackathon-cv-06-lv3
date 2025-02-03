@@ -110,13 +110,13 @@ def k_means_selection(population, k):
         selected.extend(
             lexicographic_selection(
                 cluster_population, 
-                k=selection_size, 
-            )
+                k=selection_size
+              )
         )
     # print(len(selected))
     return selected
 
-def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds, scalers):
+def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds, scalers, user_request_target):
     """
     # all_var_names : target 변수 제외 모든 변수 이름 [numpy X와 같은 순서]
     # control_var_names : control 변수 이름 
@@ -139,6 +139,17 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
 
     # optimize를 vars 순서로 정렬 
     sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
+
+
+    scale_factor_x = np.std(X_train, axis=0)
+    rounding_digits_x = np.clip(np.ceil(-np.log10(scale_factor_x/100)), 2, 10).astype(int)[sorted_control_index_by_importance]
+    
+    scale_factor_y = np.std(y_test, axis=0)
+    rounding_digits_y = np.clip(np.ceil(-np.log10(scale_factor_y/100)), 2, 10).astype(int)
+
+    rounding_digits = np.concatenate([rounding_digits_y,rounding_digits_x], axis=0)
+
+    vectorized_round = np.vectorize(round)
 
     #TODO bounds 적용 
     if bounds:
@@ -182,12 +193,16 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
             y_pred = pred_func(model=model, X_test=input_data)
 
             fit_res = []
-            fit_res.append(-(y_pred - gt_y)**2)
+            # print(user_request_target)
+            # fit_res.append(-(y_pred - gt_y)**2)
+            # print(-(y_pred - user_request_target)**2)
+            # print(y_pred)
+            fit_res.append(-(y_pred - user_request_target)**2)
             
             for i in sorted_pop_idx_by_importance:
                     fit_res.append(population[:,i-1:i])
             fit_res = np.concatenate(fit_res, axis=1)
-
+            fit_res = vectorized_round(fit_res, rounding_digits)
             return fit_res
 
         toolbox.register('evaluate', fitness)
@@ -200,7 +215,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         toolbox.register('select', tools.selTournament)
 
         #TODO 생성시 minmax 고려 
-        population = toolbox.population(n=100)
+        population = toolbox.population(n=1000)
         # print(population[0].shape)
         ETA_CX = 2.0
         sigma_list = [(ub - lb)/(6.0) for (lb,ub) in zip(x_min, x_max)]
@@ -221,7 +236,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
             population = k_means_selection(population, k=len(population)//3)
             # print(len(population))
 
-        population = [ind for ind in population if ind.fitness.values[0] > -0.01]
+        # population = [ind for ind in population if ind.fitness.values[0] > -0.01]
         # if idx == 0:
         #     df = pd.DataFrame(population)
         #     df['fitness'] = np.array([ind.fitness.values[0] for ind in population])
