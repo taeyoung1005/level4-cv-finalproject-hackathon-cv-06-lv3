@@ -115,7 +115,8 @@ def main(args, scalers=None):
     pred_y = predict_func(model, np.stack(opt_df['pred_x'].to_numpy()))
 
     print(pred_y.shape)
-    opt_df['pred_y'] = inverse_transform_y(pred_y)
+    opt_df['pred_y'] = np.array(list(map(inverse_transform_y,pred_y.reshape(-1,1))))
+    # opt_df['pred_y'] = inverse_transform_y(pred_y)
     # opt_df['pred_y'] = opt_df['pred_y'].apply(inverse_transform_y)
     opt_df['test_y'] = opt_df['test_y'].apply(inverse_transform_y)
     opt_df['pred_x'] = opt_df['pred_x'].apply(inverse_transform_x)
