@@ -96,7 +96,10 @@ def main(args, scalers=None):
     # try:
     search_func = getattr(search, f'{search_model}_search_deploy')
     start_time = time.time()
-    opt_df = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, controll_range, scalers)
+    opt_df = search_func(model, predict_func, X_train, X_test, y_test\
+                         ,x_col_list, args.controll_name, args.optimize\
+                            , args.importance, controll_range, scalers\
+                                , y_user_request)
     end_time = time.time()
     print(f"search model 소요 시간: {end_time - start_time:.4f}초")
 
