@@ -91,6 +91,7 @@ def catboost_save(model, path):
         None
     """
     model.save_model(path+'.cbm', format='cbm')
+    return path+'.cbm'
 
 def catboost_load(path):
     """

@@ -47,9 +47,13 @@ def tabpfn_predict(model, X_test: np.ndarray) -> np.ndarray:
 
     return y_pred
 
+
 def tabpfn_save(model, path):
     with open(path + '.pkl', 'wb') as f:
         pickle.dump(model, f)
+
+    return path + '.pkl'
+
 
 def tabpfn_load(path):
     with open(path + '.pkl', 'rb') as f:

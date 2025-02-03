@@ -1,4 +1,6 @@
+import os
 import argparse
+
 import numpy as np
 import pandas as pd
 from django.core.files.base import ContentFile
@@ -13,6 +15,14 @@ from data_processing.models import FlowModel, ConcatColumnModel
 
 from hackathon.src.dynamic_pipeline import preprocess_dynamic
 from hackathon import surrogate_model
+
+
+def flow_progress(flow, progress):
+    '''
+    flow의 progress 업데이트
+    '''
+    flow.progress = progress
+    flow.save()
 
 
 class PreprocessingView(APIView):
@@ -60,19 +70,40 @@ class PreprocessingView(APIView):
 
         concat_df = pd.read_csv(flow.concat_csv)
 
+        flow_progress(flow, 'Preprocessing started')
+
         df, df_scaled, dtype_info, scaler_info = preprocess_dynamic(
             concat_df, cat_cols, num_cols, text_cols)
 
         flow.preprocessed_csv.save(
             f'{flow.flow_name}_preprocessed.csv', ContentFile(df.to_csv(index=False)))
 
+        flow_progress(flow, 'Preprocessing completed')
+
+        output_columns = ConcatColumnModel.objects.filter(
+            flow=flow, property_type='output').values_list('column_name', flat=True)
+
+        flow_progress(flow, 'Model training started')
+
         args = argparse.Namespace(
-            target = ['strength'],
-            data_path=flow.preprocessed_csv,
+            target=output_columns,
+            data_path=flow.preprocessed_csv.path,
             model='tabpfn',
             flow_id=flow_id,
             seed=40
         )
-        surrogate_model.main(args, scaler_info)
+        print(args)
+        df_rank, df_eval, df_importance, model_path = surrogate_model.main(
+            args, scaler_info)
+        flow_progress(flow, 'Model training completed')
+
+        flow.model.save(
+            f"{model_path.split('/')[-1]}", ContentFile(model_path))
+
+        os.remove(model_path)
+
+        print(f'{df_rank=}')
+        print(f'{df_eval=}')
+        print(f'{df_importance=}')
 
         return Response({"message": "Preprocessing completed successfully"}, status=200)
