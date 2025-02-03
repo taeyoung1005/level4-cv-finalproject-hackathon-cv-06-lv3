@@ -550,7 +550,6 @@ const flowSlice = createSlice({
       })
       .addCase(fetchFlowProperties.fulfilled, (state, action) => {
         const { flowId, data } = action.payload;
-        console.log(data);
         // API에서 받아온 dataset properties
         state.properties[flowId] = {
           numerical: data.numerical,
@@ -634,8 +633,6 @@ const flowSlice = createSlice({
           type: type,
           order: data.optimize_order,
         };
-
-        console.log(state.optimizationData[flowId][property]);
       })
       .addCase(postOptimizationData.fulfilled, (state, action) => {
         // API POST 성공 시 추가적인 처리가 필요하다면 여기서 구현
