@@ -60,7 +60,7 @@ def main(args, scalers=None):
     else:
         raise ValueError("scalers is not provided")
     
-    X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50)
+    X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=5)
 
 
     def inverse_transform_x(x):
@@ -96,7 +96,10 @@ def main(args, scalers=None):
     # try:
     search_func = getattr(search, f'{search_model}_search_deploy')
     start_time = time.time()
-    opt_df = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, controll_range, scalers)
+    opt_df = search_func(model, predict_func, X_train, X_test, y_test\
+                         ,x_col_list, args.controll_name, args.optimize\
+                            , args.importance, controll_range, scalers\
+                                , y_user_request)
     end_time = time.time()
     print(f"search model 소요 시간: {end_time - start_time:.4f}초")
 
