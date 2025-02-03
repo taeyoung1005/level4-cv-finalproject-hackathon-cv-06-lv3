@@ -1,5 +1,3 @@
-// SetPrioritiesPage.jsx
-
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
@@ -10,19 +8,17 @@ import {
   Text,
   Button,
   Divider,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  VStack,
+  IconButton,
   Badge,
+  AspectRatio,
+  Grid,
+  CircularProgress,
 } from "@chakra-ui/react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { ArrowForwardIcon, ArrowBackIcon } from "@chakra-ui/icons";
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader.js";
+import Card from "components/Card/Card";
+import CardBody from "components/Card/CardBody";
+import CardHeader from "components/Card/CardHeader";
 import {
   fetchFlowProperties,
   updatePriorities,
@@ -36,15 +32,17 @@ const SetPrioritiesPage = () => {
   const dispatch = useDispatch();
   const history = useHistory();
 
+  // Redux: newCategories (property -> category)
   const properties = useSelector(
     (state) => state.flows.newCategories[flowId] || {}
   );
 
+  // Fetch flow properties on mount
   useEffect(() => {
     dispatch(fetchFlowProperties(flowId));
   }, [dispatch, flowId]);
 
-  // controllable, output 속성에 대해서만 optimization data fetch
+  // controllable, output 속성에 대해서만 optimizationData fetch
   useEffect(() => {
     Object.keys(properties).forEach((property) => {
       const type = properties[property];
@@ -61,6 +59,7 @@ const SetPrioritiesPage = () => {
     (state) => state.flows.priorities[flowId] || []
   );
 
+  // controllable과 output property 분리
   const controllableProperties = useMemo(() => {
     return Object.entries(properties)
       .filter(([_, cat]) => cat === "controllable")
@@ -74,6 +73,7 @@ const SetPrioritiesPage = () => {
   }, [properties]);
 
   const [priorities, setPriorities] = useState([]);
+  const [isPreparing, setIsPreparing] = useState(false); // 모델 생성 준비 상태
 
   useEffect(() => {
     if (storedPriorities.length > 0) {
@@ -83,24 +83,25 @@ const SetPrioritiesPage = () => {
 
   const initializedRef = useRef(false);
   useEffect(() => {
-    if (
-      !initializedRef.current &&
-      priorities.length === 0 &&
-      Object.keys(optimizationData).length > 0
-    ) {
-      const defaultPriorities = [
-        ...controllableProperties,
-        ...outputProperties,
-      ];
-      setPriorities(defaultPriorities);
-      initializedRef.current = true;
+    if (!initializedRef.current && Object.keys(optimizationData).length > 0) {
+      // optimizationData에 있는 각 property의 order 값 기준으로 정렬 (order 값이 없으면 기본값 0으로 처리)
+      const sortedPriorities = Object.keys(optimizationData).sort((a, b) => {
+        const orderA = optimizationData[a].order || 0;
+        const orderB = optimizationData[b].order || 0;
+        return orderA - orderB;
+      });
+      if (sortedPriorities.length > 0) {
+        setPriorities(sortedPriorities);
+      } else {
+        const defaultPriorities = [
+          ...controllableProperties,
+          ...outputProperties,
+        ];
+        setPriorities(defaultPriorities);
+      }
+      initializedRef.current = false;
     }
-  }, [
-    optimizationData,
-    priorities.length,
-    controllableProperties,
-    outputProperties,
-  ]);
+  }, [optimizationData, controllableProperties, outputProperties]);
 
   useEffect(() => {
     dispatch(initializePriorities({ flowId }));
@@ -115,179 +116,184 @@ const SetPrioritiesPage = () => {
     dispatch(updatePriorities({ flowId, priorities: newPriorities }));
   };
 
-  // 기존의 handleSavePriorities 함수는 그대로 유지하거나, 여기서 포함 가능
-  const handleSavePriorities = () => {
-    dispatch(updatePriorities({ flowId, priorities }));
-  };
-
-  // Next 버튼 클릭 시 우선순위 데이터를 API에 POST 후 다음 페이지로 이동
-  const handleNextStep = async () => {
-    try {
-      await dispatch(postOptimizationOrder({ flowId, priorities })).unwrap();
-      history.push(`/projects/${projectId}/flows/${flowId}/check-performance`);
-    } catch (error) {
-      console.error("Failed to post optimization orders:", error);
-      // 에러 처리 로직 추가 가능 (예: toast 메시지 등)
-    }
-  };
-
+  // 각 goal에 따른 색상 결정 함수 - 어두운 배경에 맞춰 색상을 조금 더 진하게 조정
   const getGoalColor = (goal) => {
     switch (goal) {
       case "No Optimization":
-        return "gray.600";
+        return "gray.200";
       case "Maximize":
-        return "green.500";
+        return "green.200";
       case "Minimize":
-        return "red.500";
+        return "red.200";
       case "Fit to Range":
-        return "orange.500";
+        return "orange.200";
       case "Fit to Property":
-        return "purple.500";
+        return "purple.200";
       default:
-        return "gray.600";
+        return "gray.200";
     }
   };
 
+  const handleNextStep = async () => {
+    try {
+      setIsPreparing(true);
+      await dispatch(postOptimizationOrder({ flowId, priorities })).unwrap();
+      // 정보 메시지를 2초 정도 보여준 후 다음 페이지로 이동
+      setTimeout(() => {
+        history.push(
+          `/projects/${projectId}/flows/${flowId}/check-performance`
+        );
+      }, 5000);
+    } catch (error) {
+      console.error("Failed to post optimization orders:", error);
+      setIsPreparing(false);
+    }
+  };
+
+  // 드래그 가능한 카드 렌더링 함수 (정사각형 형태, 일렬 배치)
+  const renderDraggableCard = (prop, index) => {
+    const data = optimizationData[prop] || {};
+    const textColor = getGoalColor(data.goal);
+    return (
+      <Draggable key={prop} draggableId={prop} index={index}>
+        {(provided, snapshot) => {
+          const child = (
+            <Card
+              ref={provided.innerRef}
+              {...provided.draggableProps}
+              {...provided.dragHandleProps}
+              bg={
+                snapshot.isDragging
+                  ? "gray.900"
+                  : "linear-gradient(126.97deg, #060C29 35.26%, rgba(4, 12, 48, 0.5) 70.2%)"
+              }
+              p={2}
+              maxH="200"
+            >
+              <AspectRatio ratio={1} w="100%">
+                <Flex
+                  direction="column"
+                  h="100%"
+                  justify="center"
+                  align="center"
+                  maxH="200"
+                >
+                  <CardHeader p={1}>
+                    <Flex align="center">
+                      <Badge mr={2} colorScheme="teal">
+                        {index + 1}
+                      </Badge>
+                      <Text fontSize="sm" fontWeight="bold" color="white">
+                        {prop}
+                      </Text>
+                    </Flex>
+                  </CardHeader>
+
+                  <CardBody p={1} mt={4}>
+                    <Flex direction="column">
+                      <Text fontSize="xs" color="white">
+                        Range:{" "}
+                        {data.minimum_value !== " "
+                          ? data.minimum_value
+                          : "NaN"}{" "}
+                        -{" "}
+                        {data.maximum_value !== " "
+                          ? data.maximum_value
+                          : "NaN"}
+                      </Text>
+                      <Text fontSize="xs" color={textColor}>
+                        {data.goal || "-"}
+                      </Text>
+                    </Flex>
+                  </CardBody>
+                </Flex>
+              </AspectRatio>
+            </Card>
+          );
+          return snapshot.isDragging
+            ? createPortal(child, document.body)
+            : child;
+        }}
+      </Draggable>
+    );
+  };
+
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
+    <Flex
+      flexDirection="column"
+      pt={{ base: "120px", md: "75px" }}
+      px={6}
+      color="white"
+    >
+      {/* 헤더 영역 */}
       <Flex justifyContent="space-between" alignItems="center" mb={6}>
-        <Button leftIcon={<ArrowBackIcon />} onClick={() => history.goBack()}>
-          Back
-        </Button>
-        <Text fontSize="2xl" fontWeight="bold" color="white">
-          Set Priorities
-        </Text>
-        <Button
-          rightIcon={<ArrowForwardIcon />}
+        <IconButton
+          icon={<ArrowBackIcon />}
+          onClick={() => history.goBack()}
           colorScheme="blue"
+        />
+        <Box textAlign="center">
+          <Text fontSize="2xl" fontWeight="bold" color="white">
+            Set Priorities
+          </Text>
+          <Text fontSize="sm" color="gray.400">
+            Drag and drop property cards to configure your optimization goals
+            and priorities for model preparation.
+          </Text>
+        </Box>
+        <IconButton
+          icon={<ArrowForwardIcon />}
           onClick={handleNextStep}
-        >
-          Next
-        </Button>
+          colorScheme="blue"
+        />
       </Flex>
-      <Tabs variant="enclosed" colorScheme="blue">
-        <TabList>
-          <Tab>Overview</Tab>
-          <Tab>Set Priorities</Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel>
-            <Card bg="gray.800" p={4} borderRadius="md">
-              <VStack spacing={3} align="stretch">
-                {Object.keys(optimizationData).length > 0 ? (
-                  Object.keys(optimizationData).map((prop) => {
-                    const data = optimizationData[prop];
-                    const bgColor = getGoalColor(data.goal);
-                    return (
-                      <Card key={prop} bg={bgColor} p={2} borderRadius="md">
-                        <CardHeader p={1}>
-                          <Text fontSize="sm" fontWeight="bold" color="white">
-                            {prop}
-                          </Text>
-                        </CardHeader>
-                        <Divider borderColor="whiteAlpha.600" />
-                        <CardBody p={1}>
-                          <Text fontSize="xs" color="white">
-                            Range: {data.minimum_value} ~ {data.maximum_value}
-                          </Text>
-                          <Text fontSize="xs" color="white">
-                            Optimization Goal: {data.goal}
-                          </Text>
-                        </CardBody>
-                      </Card>
-                    );
-                  })
-                ) : (
-                  <Text color="gray.400">No optimization data available</Text>
-                )}
-              </VStack>
-            </Card>
-          </TabPanel>
-          <TabPanel>
-            <Card>
-              <CardHeader>
-                <Text fontSize="lg" fontWeight="bold" color="white">
-                  Prioritize Optimization Goals
+
+      {/* 드래그 가능한 카드들을 감싸는 큰 영역 (수평 스크롤) */}
+      <Box mb={6} py={50}>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="priorities" direction="horizontal">
+            {(provided) => (
+              <Flex
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                gap={4}
+                justify="center"
+              >
+                {priorities.map((prop, index) => (
+                  <Box key={prop} w="150px">
+                    {renderDraggableCard(prop, index)}
+                  </Box>
+                ))}
+                {provided.placeholder}
+              </Flex>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </Box>
+
+      {isPreparing && (
+        <Flex justifyContent="center" alignItems="center" mb={6}>
+          <Card
+            mt={4}
+            bg="linear-gradient(90deg, #171923, #2D3748, #4A5568, #718096)"
+            textAlign="center"
+            w="50%"
+          >
+            <Flex align="center" justify="center" gap={3}>
+              <Box>
+                <CircularProgress isIndeterminate size="30px" color="red.200" />
+                <Text fontSize="sm" mt={3} color="red.200">
+                  Please wait a moment.
                 </Text>
-              </CardHeader>
-              <Divider borderColor="gray.600" />
-              <CardBody>
-                <DragDropContext onDragEnd={onDragEnd}>
-                  <Droppable droppableId="priorities">
-                    {(provided) => (
-                      <Box
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        p={3}
-                      >
-                        <VStack spacing={3} align="stretch">
-                          {priorities.map((prop, index) => {
-                            const data = optimizationData[prop] || {};
-                            const bgColor = getGoalColor(data.goal);
-                            return (
-                              <Draggable
-                                key={prop}
-                                draggableId={prop}
-                                index={index}
-                              >
-                                {(provided, snapshot) => {
-                                  const child = (
-                                    <Card
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      {...provided.dragHandleProps}
-                                      bg={
-                                        snapshot.isDragging
-                                          ? "blue.600"
-                                          : bgColor
-                                      }
-                                      p={2}
-                                      borderRadius="md"
-                                    >
-                                      <CardHeader p={1}>
-                                        <Flex align="center">
-                                          <Badge mr={2} colorScheme="teal">
-                                            {index + 1}
-                                          </Badge>
-                                          <Text
-                                            fontSize="sm"
-                                            fontWeight="bold"
-                                            color="white"
-                                          >
-                                            {prop}
-                                          </Text>
-                                        </Flex>
-                                      </CardHeader>
-                                      <CardBody p={1}>
-                                        <Text fontSize="xs" color="white">
-                                          Goal: {data.goal || "-"}
-                                        </Text>
-                                      </CardBody>
-                                    </Card>
-                                  );
-                                  return snapshot.isDragging
-                                    ? createPortal(child, document.body)
-                                    : child;
-                                }}
-                              </Draggable>
-                            );
-                          })}
-                        </VStack>
-                        {provided.placeholder}
-                      </Box>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              </CardBody>
-            </Card>
-            <Flex justifyContent="center" mt={6}>
-              <Button colorScheme="green" onClick={handleSavePriorities}>
-                Save Priorities
-              </Button>
+                <Text fontSize="sm" color="red.200">
+                  Preparing the model based on your configured goals and
+                  priorities.
+                </Text>
+              </Box>
             </Flex>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+          </Card>
+        </Flex>
+      )}
     </Flex>
   );
 };

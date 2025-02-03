@@ -206,7 +206,13 @@ const OptimizationResultsPage = () => {
                 {optData ? optData.order || "-" : "-"}
               </Text>
             </Box>
-            <Card borderRadius="md" p={2} boxShadow="sm" w="140px">
+            <Card
+              bg="transparent"
+              borderRadius="md"
+              p={2}
+              boxShadow="sm"
+              w="140px"
+            >
               <Text fontSize="sm" color="gray.200" textAlign="center">
                 {optData ? optData.goal || "-" : "Loading..."}
               </Text>
