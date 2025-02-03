@@ -55,8 +55,6 @@ const SurrogatePerformancePage = () => {
     dispatch(fetchSurrogateResult(flowId));
   }, [dispatch, flowId]);
 
-  const rSquared = surrogateMatric[0].r_squared;
-
   const metricsCard = (
     <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
       {/* R-squared 카드 */}
@@ -66,7 +64,7 @@ const SurrogatePerformancePage = () => {
             R-squared
           </Text>
         </CardHeader>
-        <Divider borderColor="gray.600" />
+
         <CardBody>
           <Flex
             direction="column"
@@ -74,37 +72,39 @@ const SurrogatePerformancePage = () => {
             justify="center"
             flex="1"
           >
-            <CircularProgress
-              max="1"
-              min="-1"
-              value={Number(rSquared.toFixed(3))}
-              size={
-                window.innerWidth >= 1024
-                  ? 200
-                  : window.innerWidth >= 768
-                  ? 170
-                  : 200
-              }
-              thickness={9}
-              color="rgba(5,205,153,0.4)"
-              mt={"20"}
-            >
-              <CircularProgressLabel>
-                <Flex direction="column" justify="center" align="center">
-                  <Text color="gray.400" fontSize="sm">
-                    R-Squared
-                  </Text>
-                  <Text
-                    color="#fff"
-                    fontSize={{ md: "36px", lg: "50px" }}
-                    fontWeight="bold"
-                    mb="4px"
-                  >
-                    {rSquared.toFixed(3)}
-                  </Text>
-                </Flex>
-              </CircularProgressLabel>
-            </CircularProgress>
+            <Card alignItems="center" justify="center" bg="tranparent" mt="85">
+              <CircularProgress
+                max="1"
+                min="-1"
+                value={Number(surrogateMatric[0]?.r_squared.toFixed(3))}
+                size={
+                  window.innerWidth >= 1024
+                    ? 200
+                    : window.innerWidth >= 768
+                    ? 170
+                    : 200
+                }
+                thickness={9}
+                color="rgba(5,205,153,0.4)"
+              >
+                <CircularProgressLabel>
+                  <Flex direction="column" justify="center" align="center">
+                    <Text color="gray.400" fontSize="sm" fontFamily={"roboto"}>
+                      R-Squared
+                    </Text>
+                    <Text
+                      color="#fff"
+                      fontSize={{ md: "36px", lg: "50px" }}
+                      fontFamily={"roboto"}
+                      fontWeight="bold"
+                      mb="4px"
+                    >
+                      {surrogateMatric[0]?.r_squared.toFixed(3)}
+                    </Text>
+                  </Flex>
+                </CircularProgressLabel>
+              </CircularProgress>
+            </Card>
             {/* 정보 카드 */}
             <Box
               position="absolute"
@@ -114,8 +114,13 @@ const SurrogatePerformancePage = () => {
               mt={4}
               w="80%"
             >
-              <Card borderRadius="md" boxShadow="sm" p={2}>
-                <Text fontSize="sm" color="gray.500" textAlign="center">
+              <Card
+                borderRadius="md"
+                boxShadow="sm"
+                p={2}
+                bg="rgba(5,205,153,0.4)"
+              >
+                <Text fontSize="sm" color="#fff" textAlign="center">
                   Higher is better
                 </Text>
               </Card>
@@ -131,7 +136,7 @@ const SurrogatePerformancePage = () => {
             RMSE
           </Text>
         </CardHeader>
-        <Divider borderColor="gray.600" />
+
         <CardBody>
           <Flex
             direction="column"
@@ -139,14 +144,19 @@ const SurrogatePerformancePage = () => {
             justify="center"
             flex="1"
           >
-            <Box textAlign="center" py={8}>
-              <StatGroup justifyContent="center" mt="110">
-                <Stat>
-                  <StatNumber fontSize={{ md: "36px", lg: "50px" }}>
-                    {surrogateMatric[0].rmse}
-                  </StatNumber>
-                </Stat>
-              </StatGroup>
+            <Box textAlign="center" py={8} mt="120" borderRadius="md">
+              <Card bg="transparent">
+                <StatGroup justifyContent="center">
+                  <Stat>
+                    <StatNumber
+                      fontSize={{ md: "36px", lg: "50px" }}
+                      fontFamily={"roboto"}
+                    >
+                      {surrogateMatric[0]?.rmse.toFixed(4)}
+                    </StatNumber>
+                  </Stat>
+                </StatGroup>
+              </Card>
             </Box>
             {/* 정보 카드 */}
             <Box
@@ -167,6 +177,106 @@ const SurrogatePerformancePage = () => {
         </CardBody>
       </Card>
     </Grid>
+  );
+
+  const metricsCombinedCard = (
+    <Card mb={4} h="100%" minH="400px">
+      <CardHeader pb={2}>
+        <Text fontSize="xl" fontWeight="bold">
+          Metrics
+        </Text>
+      </CardHeader>
+      <CardBody>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          gap={10}
+          w="100%"
+        >
+          {/* RMSE 섹션 */}
+          <Flex direction="column" align="center" mt="2">
+            <Card borderRadius="md" w="150%" align="center">
+              <StatGroup justifyContent="center">
+                <Stat>
+                  <StatLabel>
+                    <Text color="gray.400" fontSize="sm" fontFamily="roboto">
+                      RMSE
+                    </Text>
+                  </StatLabel>
+
+                  <StatNumber
+                    fontSize={{ md: "36px", lg: "42px" }}
+                    fontFamily="roboto"
+                  >
+                    {surrogateMatric[0]?.rmse.toFixed(4)}
+                  </StatNumber>
+                </Stat>
+              </StatGroup>
+            </Card>
+            <Box mt={7} w="190%">
+              <Card
+                borderRadius="md"
+                boxShadow="sm"
+                p={2}
+                bg="rgba(20, 20, 232, 0.2)"
+              >
+                <Text fontSize="sm" color="#fff" textAlign="center">
+                  Lower is better
+                </Text>
+              </Card>
+            </Box>
+          </Flex>
+
+          {/* R-squared 섹션 */}
+          <Flex direction="column" align="center">
+            <CircularProgress
+              max="1"
+              min="-1"
+              value={Number(surrogateMatric[0]?.r_squared.toFixed(3))}
+              size={
+                window.innerWidth >= 1024
+                  ? 200
+                  : window.innerWidth >= 768
+                  ? 170
+                  : 200
+              }
+              thickness={9}
+              color="rgba(5,205,153,0.4)"
+            >
+              <CircularProgressLabel>
+                <Flex direction="column" justify="center" align="center">
+                  <Text color="gray.400" fontSize="sm" fontFamily="roboto">
+                    R-Squared
+                  </Text>
+                  <Text
+                    color="#fff"
+                    fontSize={{ md: "36px", lg: "50px" }}
+                    fontFamily="roboto"
+                    fontWeight="bold"
+                    mb="4px"
+                  >
+                    {surrogateMatric[0]?.r_squared.toFixed(3)}
+                  </Text>
+                </Flex>
+              </CircularProgressLabel>
+            </CircularProgress>
+            <Box mt={5} w="160%">
+              <Card
+                borderRadius="md"
+                boxShadow="sm"
+                p={2}
+                bg="rgba(5,205,153,0.2)"
+              >
+                <Text fontSize="sm" color="#fff" textAlign="center">
+                  Higher is better
+                </Text>
+              </Card>
+            </Box>
+          </Flex>
+        </Flex>
+      </CardBody>
+    </Card>
   );
 
   // Feature Importance: 정렬 후 수평 바 차트 (백분율 표시)
@@ -269,7 +379,6 @@ const SurrogatePerformancePage = () => {
           Feature Importance
         </Text>
       </CardHeader>
-      <Divider borderColor="gray.600" />
       <Box w="100%" h="100%" mt={2}>
         {sortedImportance.length > 0 ? (
           <Chart
@@ -338,7 +447,7 @@ const SurrogatePerformancePage = () => {
         labels: {
           formatter: (val) => val.toFixed(3),
           style: {
-            colors: "#c8cfca",
+            colors: "#fff",
             fontSize: "12px",
           },
         },
@@ -348,6 +457,12 @@ const SurrogatePerformancePage = () => {
         style: {
           fontSize: "14px",
           fontFamily: "Plus Jakarta Display",
+        },
+      },
+      legend: {
+        show: true,
+        labels: {
+          colors: "#fff", // 원하는 색상 코드 지정
         },
       },
       colors: ["#2CD9FF", "#582CFF"],
@@ -365,16 +480,15 @@ const SurrogatePerformancePage = () => {
       fill: {
         type: "gradient",
         gradient: {
-          shade: "dark",
+          shade: "light",
           type: "vertical",
-          shadeIntensity: 0,
-          gradientToColors: undefined, // optional, if not defined - uses the shades of same color in series
-          inverseColors: true,
-          opacityFrom: 0.9,
-          opacityTo: 0.6,
-          stops: [],
+          shadeIntensity: 0.5,
+          gradientToColors: ["#2CD9FF", "#582CFF"], // optional, if not defined - uses the shades of same color in series
+          inverseColors: false,
+          opacityFrom: 0.5,
+          opacityTo: 0.1,
+          stops: [0, 90, 100],
         },
-        colors: ["#2CD9FF", "#582CFF"],
       },
       grid: {
         strokeDashArray: 5,
@@ -390,14 +504,13 @@ const SurrogatePerformancePage = () => {
           Best Cases
         </Text>
       </CardHeader>
-      <Divider borderColor="gray.600" />
 
       <Box w="100%" minH={{ sm: "500px" }}>
         {bestCases.length > 0 ? (
           <Chart
             options={lineChartOptions}
             series={bestCasesLineData.series}
-            type="line"
+            type="area"
             height="100%"
           />
         ) : (
@@ -414,13 +527,13 @@ const SurrogatePerformancePage = () => {
           Worst Cases
         </Text>
       </CardHeader>
-      <Divider borderColor="gray.600" />
+
       <Box w="100%" minH={{ sm: "500px" }}>
         {worstCases.length > 0 ? (
           <Chart
             options={lineChartOptions}
             series={worstCasesLineData.series}
-            type="line"
+            type="area"
             width="100%"
             height="100%"
           />
@@ -475,12 +588,13 @@ const SurrogatePerformancePage = () => {
           {/* 첫 번째 탭 */}
           <TabPanel>
             <Grid
-              templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+              templateColumns={{ base: "1fr", md: "2fr 1fr" }}
               h="calc(80vh - 150px)"
               gap={6}
             >
-              {metricsCard}
+              {/* {metricsCard} */}
               {importanceCard}
+              {metricsCombinedCard}
             </Grid>
           </TabPanel>
 

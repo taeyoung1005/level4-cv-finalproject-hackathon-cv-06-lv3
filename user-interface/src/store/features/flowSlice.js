@@ -355,6 +355,7 @@ export const fetchSurrogateMatric = createAsyncThunk(
         throw new Error("Failed to fetch surrogate matric");
       }
       const data = await response.json();
+
       // data.surrogate_matric는 배열 형태
       return { flowId, data: data.surrogate_matric };
     } catch (error) {
