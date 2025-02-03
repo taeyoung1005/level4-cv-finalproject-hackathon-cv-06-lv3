@@ -56,7 +56,12 @@ class PreprocessingView(APIView):
 
         concat_df = pd.read_csv(flow.concat_csv)
 
-        df, dtype_info, scaler_info = preprocess_dynamic(concat_df, cat_cols, num_cols, text_cols)
+        df, df_scaled, dtype_info, scaler_info = preprocess_dynamic(
+            concat_df, cat_cols, num_cols, text_cols)
+
+        flow.preprocessed_csv.save(
+            f'{flow.flow_name}_preprocessed.csv', ContentFile(df.to_csv(index=False)))
+
         # 전처리 과정 중 결과물 더 뽑아내기
 
         return Response({"message": "Preprocessing completed successfully"}, status=200)

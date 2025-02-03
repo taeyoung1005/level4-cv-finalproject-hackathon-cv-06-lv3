@@ -146,12 +146,10 @@ class DataCleaningView(APIView):
 
         flow = FlowModel.objects.get(id=flow_id)
 
-        origin_rows = 0
-        for csv in flow.csv.all():
-            origin_rows += csv.rows
+        origin_rows = pd.read_csv(flow.concat_csv).shape[0]
 
         # row 개수
-        after_cleaning_rows = pd.read_csv(flow.concat_csv).shape[0]
+        after_cleaning_rows = pd.read_csv(flow.preprocessed_csv).shape[0]
 
         data_cleaning_ratio = (origin_rows - after_cleaning_rows) / origin_rows
         using_data_ratio = 1 - data_cleaning_ratio

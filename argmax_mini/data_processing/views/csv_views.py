@@ -58,10 +58,13 @@ class CsvView(APIView):
             )
 
         try:
-            df = pd.read_csv(csv_file)
+            if csv_file.name.endswith('.csv'):
+                df = pd.read_csv(csv_file)
+            elif csv_file.name.endswith('.parquet'):
+                df = pd.read_parquet(csv_file)
         except Exception as e:
             return Response(
-                {"error": f"Failed to read CSV: {str(e)}"},
+                {"error": f"Invalid or empty CSV file provided: {e}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -77,9 +80,6 @@ class CsvView(APIView):
         except ProjectModel.DoesNotExist:
             return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # csv_file csv확장자로 저장
-        if not csv_file.name.endswith('.csv'):
-            csv_file.name += '.csv'
 
         # CsvModel 데이터 저장
         CsvModel_serializer = CsvModelSerializer(data={

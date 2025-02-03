@@ -2,13 +2,12 @@ import json
 
 from django.core.files.base import ContentFile
 from rest_framework.views import APIView
+from adrf.views import APIView as ADRFAPIView
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from rest_framework import status
-
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
 import pandas as pd
 import numpy as np
 
@@ -229,8 +228,12 @@ class FlowCsvAddView(APIView):
         except models.CsvModel.DoesNotExist:
             return Response({"error": f"CsvModel not found for id: {csv_id}"}, status=status.HTTP_404_NOT_FOUND)
 
-        dataframes = [pd.read_csv(file, index_col=None)
-                      for file in concat_list]
+        dataframes = []
+        for file in concat_list:
+            if file.name.endswith('.csv'):
+                dataframes.append(pd.read_csv(file, index_col=None))
+            elif file.name.endswith('.parquet'):
+                dataframes.append(pd.read_parquet(file))
 
         common_columns = set(dataframes[0].columns)
         for df in dataframes[1:]:
@@ -378,3 +381,45 @@ class FlowConcatCsvView(APIView):
         concat_csv = pd.read_csv(flow.concat_csv).to_json()
 
         return Response({"concat_csv": concat_csv}, status=status.HTTP_200_OK)
+
+
+class FlowProgressView(ADRFAPIView):
+    @swagger_auto_schema(
+        operation_description="Flow 진행 상태 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                'flow_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER,
+                description="ID of the Flow",
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="Flow progress retrieved successfully"),
+            400: openapi.Response(description="Invalid flow ID"),
+            404: openapi.Response(description="Flow not found"),
+        },
+    )
+    async def get(self, request, *args, **kwargs):
+        # flow_id 유효성 검사
+        flow_id = request.GET.get("flow_id")
+        if not flow_id or not str(flow_id).isdigit():
+            return Response(
+                {"error": "Invalid or missing flow_id"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        flow_id = int(flow_id)
+
+        # 비동기 ORM을 사용하여 flow 조회
+        try:
+            flow = await models.FlowModel.objects.aget(id=flow_id)
+        except models.FlowModel.DoesNotExist:
+            return Response(
+                {"error": "Flow not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = {
+            "flow_id": flow.id,
+            "flow_name": flow.flow_name,
+            "progress": flow.progress,
+        }
+        return Response(data, status=status.HTTP_200_OK)

@@ -22,6 +22,7 @@ urlpatterns = [
     path('flows/csv-add/', views.FlowCsvAddView.as_view(), name='flow_add_csv'),
     path('flows/concat-csv/', views.FlowConcatCsvView.as_view(),
          name='flow_concat_csv'),
+     path('flows/progress/', views.FlowProgressView.as_view(), name='flow_progress'),
 
     path('optimization/goals/', views.OptimizationView.as_view(),
          name='optimization-goals'),

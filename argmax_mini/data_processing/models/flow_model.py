@@ -10,11 +10,12 @@ class FlowModel(models.Model):
         CsvModel, related_name="flow_model", blank=True)
     concat_csv = models.FileField(
         upload_to='flows/concat_csv/', blank=True, null=True)
-    # preprocessed_csv = models.FileField(
-    #     upload_to='flows/preprocessed_csv', blank=True, null=True)
+    preprocessed_csv = models.FileField(
+        upload_to='flows/preprocessed_csv', blank=True, null=True)
     flow_name = models.CharField(max_length=255, blank=False, null=False)
     model = models.FileField(upload_to='surrogate_model/',
                              default=None, blank=True, null=True)
+    progress = models.CharField(max_length=255, blank=True, null=True, default="Start")
 
     def __str__(self):
         return self.flow_name

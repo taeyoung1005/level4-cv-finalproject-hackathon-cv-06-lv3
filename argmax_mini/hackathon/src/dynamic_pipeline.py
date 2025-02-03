@@ -51,11 +51,11 @@ def preprocess_dynamic(df: pd.DataFrame, cat_cols:list, num_cols:list, text_cols
     if geospatial_cols:
         df = remove_geospatial_columns(df, geospatial_cols)
 
-    # 7. 스케일링 (동적 처리)
-    df, scaler_info = dynamic_scaling(df, num_cols)
-
-    # 8. 인코딩 (동적 처리)
+    # 7. 인코딩 (동적 처리)
     df = dynamic_encode(df, feature_info)
+
+    # 8. 스케일링 (동적 처리)
+    df_scaled, scaler_info = dynamic_scaling(df, num_cols)
 
     # 전처리 완료된 데이터프레임 반환
     # return {
@@ -63,4 +63,4 @@ def preprocess_dynamic(df: pd.DataFrame, cat_cols:list, num_cols:list, text_cols
     #     'dtypes': dtype_info,
     #     'scalers': scaler_info
     # }
-    return df, dtype_info, scaler_info
+    return df, df_scaled, dtype_info, scaler_info
