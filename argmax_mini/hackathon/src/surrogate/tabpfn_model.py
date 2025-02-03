@@ -1,6 +1,7 @@
 import numpy as np
 from tabpfn import TabPFNRegressor
 import warnings
+import pickle
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -45,3 +46,11 @@ def tabpfn_predict(model, X_test: np.ndarray) -> np.ndarray:
         y_pred = y_pred.reshape(-1, 1)
 
     return y_pred
+
+def tabpfn_save(model, path):
+    with open(path + '.pkl', 'wb') as f:
+        pickle.dump(model, f)
+
+def tabpfn_load(path):
+    with open(path + '.pkl', 'rb') as f:
+        return pickle.load(f)

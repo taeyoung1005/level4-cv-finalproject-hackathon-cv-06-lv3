@@ -1,3 +1,5 @@
+import argparse
+import numpy as np
 import pandas as pd
 from django.core.files.base import ContentFile
 
@@ -7,8 +9,10 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from hackathon.src.dynamic_pipeline import preprocess_dynamic
 from data_processing.models import FlowModel, ConcatColumnModel
+
+from hackathon.src.dynamic_pipeline import preprocess_dynamic
+from hackathon import surrogate_model
 
 
 class PreprocessingView(APIView):
@@ -62,6 +66,13 @@ class PreprocessingView(APIView):
         flow.preprocessed_csv.save(
             f'{flow.flow_name}_preprocessed.csv', ContentFile(df.to_csv(index=False)))
 
-        # 전처리 과정 중 결과물 더 뽑아내기
+        args = argparse.Namespace(
+            target = ['strength'],
+            data_path=flow.preprocessed_csv,
+            model='tabpfn',
+            flow_id=flow_id,
+            seed=40
+        )
+        surrogate_model.main(args, scaler_info)
 
         return Response({"message": "Preprocessing completed successfully"}, status=200)

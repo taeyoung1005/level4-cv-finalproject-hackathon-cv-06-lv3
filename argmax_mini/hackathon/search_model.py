@@ -8,10 +8,18 @@ import src.datasets as datasets
 import src.search as search
 import src.surrogate as surrogate
 from src.utils import Setting, measure_time
+from src.datasets.data_loader import load_data
 
+import numpy as np
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
-def main(args):
+def find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50):
+    # euclidean distance
+    distances = np.linalg.norm(X_train - y_user_request, axis=1)
+    top_k_indices = np.argsort(distances)[:k]
+    return X_train[top_k_indices], y_train[top_k_indices]
+
+def main(args, scalers=None):
     # 로깅 설정
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
@@ -27,11 +35,46 @@ def main(args):
         raise ValueError("backprob is not supported for now")
     
     # 데이터 로드 및 분할
-    load_data_func = datasets.load_and_split_data_with_x_col_list
+    # load_data_func = datasets.load_and_split_data_with_x_col_list
 
-    X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
+    # X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
+    df = load_data(args.data_path)
+    X = df.drop(columns=args.target)
+    y = df[args.target]
+    x_col_list = X.columns.tolist()
+
+    X_train,y_train = X.to_numpy(),y.to_numpy()
+
+
+    controll_range = {}
+    if scalers:
+        for key, value in args.controll_range.items():
+            controll_range[key] = scalers[key].transform(np.array(value).reshape(-1,1))
+
+        y_user_request = []
+
+        for i in range(len(args.target)):
+            y_user_request.append(scalers[args.target[i]].transform(np.array(args.user_request_target[i]).reshape(-1,1))[0])
+        y_user_request = np.array(y_user_request)
+
+    else:
+        raise ValueError("scalers is not provided")
+    
+    X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50)
+
+
+    def inverse_transform_x(x):
+        for j in range(len(x)):
+            x[j] = scalers[x_col_list[j]].inverse_transform(x[j].reshape(-1,1))[0]
+        return list(x)
+
+    def inverse_transform_y(y):
+        for j in range(len(y)):
+            y[j] = scalers[args.target[j]].inverse_transform(y[j].reshape(-1,1))[0]
+        return list(y)
 
         
+
     # 데이터셋 형태 출력
     logging.info(f"X_train.shape: {X_train.shape}")
     logging.info(f"X_test.shape: {X_test.shape}")
@@ -48,12 +91,12 @@ def main(args):
 
     # 사용자 요청 
 
-    
+        
     # 최적화/검색 수행
     # try:
     search_func = getattr(search, f'{search_model}_search_deploy')
     start_time = time.time()
-    x_opt = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, args.controll_range)
+    opt_df = search_func(model, predict_func, X_train, X_test, y_test,x_col_list, args.controll_name, args.optimize, args.importance, controll_range, scalers)
     end_time = time.time()
     print(f"search model 소요 시간: {end_time - start_time:.4f}초")
 
@@ -61,23 +104,35 @@ def main(args):
     #     logging.error(f"지원되지 않는 검색 모델 '{search_model}' 입니다.")
     #     return
 
-    # 최적화 결과 평가
-    try:
-        rmse, mae, r2 = search.eval_search_model(X_train, x_opt, X_test)
-        logging.info("R²: " + ", ".join([f"{x:.2f}" for x in r2]))
-    except Exception as e:
-        logging.error(f"최적화 결과 평가 중 오류 발생: {e}")
-        return
+    # # 최적화 결과 평가
+    # try:
+    #     rmse, mae, r2 = search.eval_search_model(X_train, x_opt, X_test)
+    #     logging.info("R²: " + ", ".join([f"{x:.2f}" for x in r2]))
+    # except Exception as e:
+    #     logging.error(f"최적화 결과 평가 중 오류 발생: {e}")
+    #     return
+
+    pred_y = predict_func(model, np.stack(opt_df['pred_x'].to_numpy()))
+
+    print(pred_y.shape)
+    opt_df['pred_y'] = np.array(list(map(inverse_transform_y,pred_y.reshape(-1,1))))
+    # opt_df['pred_y'] = inverse_transform_y(pred_y)
+    # opt_df['pred_y'] = opt_df['pred_y'].apply(inverse_transform_y)
+    opt_df['test_y'] = opt_df['test_y'].apply(inverse_transform_y)
+    opt_df['pred_x'] = opt_df['pred_x'].apply(inverse_transform_x)
+    opt_df['test_x'] = opt_df['test_x'].apply(inverse_transform_x)
+
+    return opt_df
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='모델 학습 스크립트')
     arg = parser.add_argument
     # arg('--dataset', '--dset', '-dset', type=str, default='cement',
     #     choices=['cement', 'melb', 'car'], help='사용할 데이터셋을 지정합니다 추후 제거')
-    arg('--model', '--model', '-model', type=str, default='lightgbm',
-        choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
+    arg('--model', '--model', '-model', type=str, default='catboost',
+        choices=['catboost', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: catboost)')
     arg('--search_model', '--search_model', '-search_model', type=str, default='k_means',
-        choices=['ga_adaptive_niching', 'ga_deap', 'ga_pygmo', 'k_means'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: ga_adaptive_niching)')
+        choices=['k_means'], help='사용할 검색/최적화 방법을 지정합니다 (기본값: k_means)')
     arg('--data_path', '--data_path', '-data_path', type=str, default='./data/concrete_processed.csv',
         help='데이터셋 CSV 파일 경로를 지정합니다')
     arg('--controll_name', '--controll_name', '-controll_name', type=list, default=['cement', 'slag', 'ash', 'water', 'superplastic', 'coarseagg', 'fineagg', 'age'],
@@ -93,7 +148,7 @@ if __name__ == "__main__":
                 'age': (1.0, 365.0)},
         help='제어 변수 범위를 지정합니다')
     # args.env? 
-    arg('--target', '--target', '-target', type=str, default='strength',
+    arg('--target', '--target', '-target', type=list, default=['strength'],
         help='타겟 변수를 지정합니다')
     arg('--importance', '--importance', '-importance', type=dict, default={'cement': 1,
                 # 'slag': 3,
@@ -121,8 +176,8 @@ if __name__ == "__main__":
         help='프로젝트 아이디를 지정합니다')
     arg('--seed', '--seed', '-seed', type=int, default=42,
         help='재현성을 위한 랜덤 시드 (기본값: 42)')
-    arg('--user_request', '--user_request', '-user_request', type=float, default=0.0,
-        help='사용자 요청 값을 지정합니다')
+    arg('--user_request_target', '--user_request_target', '-user_request_target', type=list, default=[0.0],
+        help='사용자 요청 타겟 값을 지정합니다')
     args = parser.parse_args()
 
     main(args)
