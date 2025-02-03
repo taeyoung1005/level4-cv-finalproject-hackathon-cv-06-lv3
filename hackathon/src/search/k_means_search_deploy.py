@@ -163,7 +163,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
     # TODO min max optimize 고려 해서 초기값 생성 
     def generate_individual():
         return np.random.uniform(x_min[control_index], x_max[control_index])
-
+    
 
     toolbox = base.Toolbox()
     toolbox.register('attr_float', generate_individual)
@@ -200,7 +200,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         toolbox.register('select', tools.selTournament)
 
         #TODO 생성시 minmax 고려 
-        population = toolbox.population(n=100)
+        population = toolbox.population(n=1000)
         # print(population[0].shape)
         ETA_CX = 2.0
         sigma_list = [(ub - lb)/(6.0) for (lb,ub) in zip(x_min, x_max)]

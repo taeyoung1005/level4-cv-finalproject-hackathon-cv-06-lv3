@@ -60,7 +60,7 @@ def main(args, scalers=None):
     else:
         raise ValueError("scalers is not provided")
     
-    X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50)
+    X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=5)
 
 
     def inverse_transform_x(x):
