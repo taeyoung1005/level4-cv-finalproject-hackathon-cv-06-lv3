@@ -55,130 +55,6 @@ const SurrogatePerformancePage = () => {
     dispatch(fetchSurrogateResult(flowId));
   }, [dispatch, flowId]);
 
-  const metricsCard = (
-    <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
-      {/* R-squared 카드 */}
-      <Card h="100%" minH="350px">
-        <CardHeader pb={2}>
-          <Text fontSize="xl" fontWeight="bold">
-            R-squared
-          </Text>
-        </CardHeader>
-
-        <CardBody>
-          <Flex
-            direction="column"
-            alignItems="center"
-            justify="center"
-            flex="1"
-          >
-            <Card alignItems="center" justify="center" bg="tranparent" mt="85">
-              <CircularProgress
-                max="1"
-                min="-1"
-                value={Number(surrogateMatric[0]?.r_squared.toFixed(3))}
-                size={
-                  window.innerWidth >= 1024
-                    ? 200
-                    : window.innerWidth >= 768
-                    ? 170
-                    : 200
-                }
-                thickness={9}
-                color="rgba(5,205,153,0.4)"
-              >
-                <CircularProgressLabel>
-                  <Flex direction="column" justify="center" align="center">
-                    <Text color="gray.400" fontSize="sm" fontFamily={"roboto"}>
-                      R-Squared
-                    </Text>
-                    <Text
-                      color="#fff"
-                      fontSize={{ md: "36px", lg: "50px" }}
-                      fontFamily={"roboto"}
-                      fontWeight="bold"
-                      mb="4px"
-                    >
-                      {surrogateMatric[0]?.r_squared.toFixed(3)}
-                    </Text>
-                  </Flex>
-                </CircularProgressLabel>
-              </CircularProgress>
-            </Card>
-            {/* 정보 카드 */}
-            <Box
-              position="absolute"
-              bottom="40px"
-              left="50%"
-              transform="translateX(-50%)"
-              mt={4}
-              w="80%"
-            >
-              <Card
-                borderRadius="md"
-                boxShadow="sm"
-                p={2}
-                bg="rgba(5,205,153,0.4)"
-              >
-                <Text fontSize="sm" color="#fff" textAlign="center">
-                  Higher is better
-                </Text>
-              </Card>
-            </Box>
-          </Flex>
-        </CardBody>
-      </Card>
-
-      {/* RMSE 카드 */}
-      <Card h="100%" minH="350px">
-        <CardHeader pb={2}>
-          <Text fontSize="xl" fontWeight="bold">
-            RMSE
-          </Text>
-        </CardHeader>
-
-        <CardBody>
-          <Flex
-            direction="column"
-            alignItems="center"
-            justify="center"
-            flex="1"
-          >
-            <Box textAlign="center" py={8} mt="120" borderRadius="md">
-              <Card bg="transparent">
-                <StatGroup justifyContent="center">
-                  <Stat>
-                    <StatNumber
-                      fontSize={{ md: "36px", lg: "50px" }}
-                      fontFamily={"roboto"}
-                    >
-                      {surrogateMatric[0]?.rmse.toFixed(4)}
-                    </StatNumber>
-                  </Stat>
-                </StatGroup>
-              </Card>
-            </Box>
-            {/* 정보 카드 */}
-            <Box
-              position="absolute"
-              bottom="40px"
-              left="50%"
-              transform="translateX(-50%)"
-              mt={4}
-              w="80%"
-            >
-              <Card borderRadius="md" boxShadow="sm" p={2}>
-                <Text fontSize="sm" color="gray.500" textAlign="center">
-                  Lower is better
-                </Text>
-              </Card>
-            </Box>
-          </Flex>
-        </CardBody>
-      </Card>
-    </Grid>
-  );
-
   const metricsCombinedCard = (
     <Card mb={4} h="100%" minH="400px">
       <CardHeader pb={2}>
@@ -449,6 +325,7 @@ const SurrogatePerformancePage = () => {
           style: {
             colors: "#fff",
             fontSize: "12px",
+            fontFamily: "Plus Jakarta Display",
           },
         },
       },
@@ -579,7 +456,7 @@ const SurrogatePerformancePage = () => {
       </Flex>
 
       {/* 탭 영역 */}
-      <Tabs variant="enclosed" colorScheme="blue">
+      <Tabs variant="enclosed" colorScheme="red">
         <TabList>
           <Tab>Metrics & Feature Importance</Tab>
           <Tab>Prediction Cases</Tab>

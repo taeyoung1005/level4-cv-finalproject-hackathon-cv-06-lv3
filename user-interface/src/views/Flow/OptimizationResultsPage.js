@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
 import {
@@ -9,108 +9,238 @@ import {
   Divider,
   Text,
   Spinner,
-  Button,
   HStack,
 } from "@chakra-ui/react";
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
+import Card from "components/Card/Card";
+import CardBody from "components/Card/CardBody";
+import CardHeader from "components/Card/CardHeader";
+import Chart from "react-apexcharts";
 import {
   ArrowForwardIcon,
+  ArrowBackIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@chakra-ui/icons";
-import Chart from "react-apexcharts";
-import { fetchSearchResult } from "store/features/flowSlice"; // 실제 경로에 맞게 조정
+import {
+  fetchSearchResult,
+  fetchOptimizationData,
+} from "store/features/flowSlice";
 
 const OptimizationResultsPage = () => {
   const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
 
-  // 기존 flow, projectDatasets 상태
+  // Flow 및 기타 기본 데이터
   const flow = useSelector((state) => state.flows.flows[flowId] || {});
-  const projectDatasets = useSelector(
-    (state) => state.projects.datasets[projectId] || []
-  );
-
-  // redux에 저장된 검색 결과 (searchResult는 flowId별 저장)
+  // searchResult: 최적화 결과 (API 응답에서 search_result 배열)
   const searchResult = useSelector((state) => state.flows.searchResult[flowId]);
-  const error = useSelector((state) => state.flows.error);
+  // optimizationData: 각 property의 최적화 목표, 타입, 순서 등 (redux에 저장됨)
+  const optimizationData = useSelector(
+    (state) => state.flows.optimizationData[flowId] || {}
+  );
 
   const [loading, setLoading] = useState(true);
 
-  // 페이징 관련 state: 한 페이지에 보여줄 카드 수, 현재 페이지
+  // 페이징 관련 state: 2x2 그리드를 사용하므로 한 페이지에 4개 카드
   const pageSize = 4;
   const [currentPage, setCurrentPage] = useState(1);
-
-  // 총 페이지 계산 (searchResult가 있을 경우)
   const totalPages = searchResult
     ? Math.ceil(searchResult.length / pageSize)
     : 0;
-
-  // 현재 페이지에 해당하는 검색 결과 목록
   const currentResults = searchResult
     ? searchResult.slice((currentPage - 1) * pageSize, currentPage * pageSize)
     : [];
 
+  // 페이지 마운트 시 searchResult fetch
   useEffect(() => {
-    if (!flowId) {
-      console.error("Invalid flowId:", flowId);
-      return;
-    }
-    // API 호출
+    if (!flowId) return;
     dispatch(fetchSearchResult(flowId))
       .unwrap()
       .catch((err) => console.error("Error fetching search result:", err))
       .finally(() => setLoading(false));
-  }, [flowId, dispatch]);
+  }, [dispatch, flowId]);
 
-  const handleNextStep = () => {
-    history.push(`/projects/${projectId}/flows/${flowId}/optimization-results`);
+  // optimizationData fetch:
+  // API 요청을 현재 페이지의 결과(currentResults)에서만 진행하고,
+  // 이미 데이터가 있는 property는 건너뛰도록 처리
+  useEffect(() => {
+    if (currentResults && currentResults.length > 0) {
+      currentResults.forEach((item) => {
+        const { column_name, property_type } = item;
+        // controllable/output 속성이고, 아직 redux에 데이터가 없다면 API 요청
+        if (
+          (property_type === "controllable" || property_type === "output") &&
+          !optimizationData[column_name]
+        ) {
+          dispatch(
+            fetchOptimizationData({
+              flowId,
+              property: column_name,
+              type: property_type,
+            })
+          );
+        }
+      });
+    }
+  }, [dispatch, flowId, currentResults, optimizationData]);
+
+  // 기본 차트 옵션 (Area 차트, 채움 효과 포함, 제목 제거)
+  const baseChartOptions = useMemo(() => {
+    return {
+      chart: {
+        type: "line",
+        zoom: { enabled: false },
+        toolbar: { show: false },
+      },
+      dataLabels: { enabled: false },
+      stroke: { curve: "smooth", width: 3 },
+      xaxis: {
+        labels: { show: false },
+        axisTicks: { show: false },
+        axisBorder: { show: false },
+      },
+      yaxis: {
+        labels: {
+          formatter: (val) => val.toFixed(3),
+          style: {
+            colors: "#fff",
+            fontSize: "10px",
+            fontFamily: "Plus Jakarta Display",
+          },
+        },
+      },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        theme: "dark",
+        style: {
+          fontSize: "12px",
+          fontFamily: "Plus Jakarta Display",
+        },
+      },
+      legend: { labels: { colors: "#fff" } },
+      colors: ["#2CD9FF", "#582CFF"],
+      fill: {
+        type: "gradient",
+        gradient: {
+          shade: "light",
+          type: "vertical",
+          opacityFrom: 1,
+          opacityTo: 0.8,
+          stops: [0, 90, 100],
+        },
+      },
+      grid: {
+        show: false,
+        padding: {
+          left: 20,
+        },
+      },
+    };
+  }, []);
+
+  // 각 결과 카드 렌더링 함수
+  const renderResultCard = (item, index) => {
+    const property = item.column_name;
+    const optData = optimizationData[property] || null;
+    const series = [
+      { name: "Previous", data: item.ground_truth },
+      { name: "Optimized", data: item.predicted },
+    ];
+
+    // 기본 차트 옵션 (제목은 제거한 상태)
+    const options = { ...baseChartOptions };
+
+    // 어노테이션: optData가 있으면 최소, 최대 값을 표시 (없으면 빈 객체)
+    const rangeAnnotations =
+      optData && optData.minimum_value !== "" && optData.maximum_value !== ""
+        ? {
+            yaxis: [
+              {
+                y: optData.minimum_value,
+                borderColor: "rgba(0,227,150,0.5)",
+                label: {
+                  text: `Min: ${optData.minimum_value}`,
+                  style: {
+                    color: "#fff",
+                    background: "rgba(0,227,150,0.5)",
+                    fontFamily: "Plus Jakarta Display",
+                    fontSize: "8px",
+                  },
+                },
+              },
+              {
+                y: optData.maximum_value,
+                borderColor: "rgba(255,69,96,0.5)",
+                label: {
+                  text: `Max: ${optData.maximum_value}`,
+                  style: {
+                    color: "#fff",
+                    background: "rgba(255,69,96,0.5)",
+                    fontFamily: "Plus Jakarta Display",
+                    fontSize: "8px",
+                  },
+                },
+              },
+            ],
+          }
+        : {};
+
+    const optionsWithAnnotations = {
+      ...options,
+      annotations: rangeAnnotations,
+    };
+
+    return (
+      <Card key={index} h="300px">
+        {/* 카드 헤더: property 이름 및 optimization 정보 */}
+        <CardHeader pb={2}>
+          <Flex justify="space-between" align="center" w="100%">
+            <Box>
+              <Text fontSize="lg" fontWeight="bold">
+                {property}
+              </Text>
+              <Text fontSize="sm" color="gray.400">
+                Type: {item.property_type || "-"} | Priority:{" "}
+                {optData ? optData.order || "-" : "-"}
+              </Text>
+            </Box>
+            <Card borderRadius="md" p={2} boxShadow="sm" w="140px">
+              <Text fontSize="sm" color="gray.200" textAlign="center">
+                {optData ? optData.goal || "-" : "Loading..."}
+              </Text>
+            </Card>
+          </Flex>
+        </CardHeader>
+        <Divider borderColor="gray.600" />
+        <CardBody p={2} h="100%">
+          <Box w="100%">
+            {optData ? (
+              <Chart
+                options={optionsWithAnnotations}
+                series={series}
+                type="line"
+                width="100%"
+                height="100%"
+              />
+            ) : (
+              <Flex justify="center" align="center" h="100%">
+                <Spinner size="md" />
+              </Flex>
+            )}
+          </Box>
+        </CardBody>
+      </Card>
+    );
   };
 
-  // 페이징 버튼 핸들러
+  // 페이징 핸들러
   const handlePrevPage = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
-
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
-
-  // x축 label, tick 등을 감추도록 옵션 구성
-  const baseChartOptions = {
-    chart: {
-      type: "line",
-      zoom: { enabled: false },
-      toolbar: { show: false },
-    },
-    stroke: {
-      curve: "smooth",
-    },
-    title: {
-      align: "left",
-      style: { color: "#fff" },
-    },
-    xaxis: {
-      // 인덱스 대신 내부적으로 숫자 값으로 사용, 라벨 숨김
-      labels: { show: false },
-      axisTicks: { show: false },
-      axisBorder: { show: false },
-    },
-    yaxis: {
-      labels: { style: { colors: "#fff" } },
-    },
-    tooltip: {
-      shared: true,
-      intersect: false,
-    },
-    legend: {
-      labels: { colors: "#fff" },
-    },
-    grid: {
-      borderColor: "#444",
-    },
   };
 
   if (!flow) {
@@ -120,7 +250,6 @@ const OptimizationResultsPage = () => {
       </Flex>
     );
   }
-
   if (loading) {
     return (
       <Flex pt={{ base: "120px", md: "75px" }} justify="center">
@@ -130,64 +259,40 @@ const OptimizationResultsPage = () => {
   }
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={4}>
-      {/* 상단 설명 및 Next Step 버튼 */}
+    <Flex
+      flexDirection="column"
+      pt={{ base: "120px", md: "75px" }}
+      px={4}
+      color="white"
+    >
+      {/* 헤더 영역 */}
       <Flex justifyContent="space-between" alignItems="center" mb={6}>
-        <Box>
-          <Text fontSize="xl" fontWeight="bold" color="white">
+        <IconButton
+          icon={<ArrowBackIcon />}
+          onClick={() => history.goBack()}
+          colorScheme="blue"
+        />
+        <Box textAlign="center">
+          <Text fontSize="2xl" fontWeight="bold">
             Optimization Results
           </Text>
-          <Text fontSize="md" color="gray.400">
-            Explore the optimization outcomes for each property.
+          <Text fontSize="sm" color="gray.400">
+            Explore optimization outcomes by property.
           </Text>
         </Box>
         <IconButton
           icon={<ArrowForwardIcon />}
+          onClick={() =>
+            history.push(`/projects/${projectId}/flows/${flowId}/next-step`)
+          }
           colorScheme="blue"
-          aria-label="Next Step"
-          onClick={handleNextStep}
         />
       </Flex>
 
-      {/* 전체 화면에 카드가 꽉 차도록 그리드 구성 - 페이징 */}
-      <Grid templateColumns="repeat(auto-fit, minmax(300px, 1fr))" gap={4}>
+      {/* 결과 카드 영역 - 2x2 그리드 */}
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         {currentResults && currentResults.length > 0 ? (
-          currentResults.map((item, index) => {
-            // series 데이터 구성
-            const series = [
-              {
-                name: "Ground Truth",
-                data: item.ground_truth,
-              },
-              {
-                name: "Predicted",
-                data: item.predicted,
-              },
-            ];
-            // 각 카드에 해당 프로퍼티에 대한 차트 옵션 적용 (타이틀만 변경)
-            const options = {
-              ...baseChartOptions,
-              title: {
-                text: `${item.column_name} Comparison`,
-                align: "left",
-                style: { color: "#fff" },
-              },
-            };
-
-            return (
-              <Card key={index} h="350px">
-                <CardBody p={2} h="100%">
-                  <Chart
-                    options={options}
-                    series={series}
-                    type="line"
-                    height="100%"
-                    width="100%"
-                  />
-                </CardBody>
-              </Card>
-            );
-          })
+          currentResults.map((item, index) => renderResultCard(item, index))
         ) : (
           <Text color="white" textAlign="center" width="100%">
             No optimization results available.
@@ -195,7 +300,7 @@ const OptimizationResultsPage = () => {
         )}
       </Grid>
 
-      {/* 페이징 컨트롤 (화면 하단에 고정된 영역) */}
+      {/* 페이징 컨트롤 */}
       {totalPages > 1 && (
         <Flex justifyContent="center" alignItems="center" mt={4}>
           <HStack spacing={4}>

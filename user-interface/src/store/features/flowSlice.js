@@ -632,6 +632,7 @@ const flowSlice = createSlice({
             data.maximum_value !== undefined ? data.maximum_value : "",
           goal: goalStr,
           type: type,
+          order: data.optimize_order,
         };
 
         console.log(state.optimizationData[flowId][property]);
