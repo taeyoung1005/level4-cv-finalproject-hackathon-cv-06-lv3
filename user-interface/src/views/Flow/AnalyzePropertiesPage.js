@@ -1,7 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
-import { Flex, Grid, Box, Text, IconButton, Divider } from "@chakra-ui/react";
+import {
+  Flex,
+  Grid,
+  Box,
+  Text,
+  IconButton,
+  Divider,
+  CircularProgress,
+  CircularProgressLabel,
+} from "@chakra-ui/react";
 import {
   ArrowBackIcon,
   ArrowForwardIcon,
@@ -18,6 +27,7 @@ import {
   fetchPropertyHistograms,
 } from "store/features/flowSlice";
 import { fetchCsvFilesByProject } from "store/features/projectSlice";
+import PieChart from "components/Charts/PieChart";
 
 const PROPERTIES_PER_PAGE = 3; // 한 페이지당 3개
 
@@ -40,36 +50,39 @@ function AnalyzePropertiesPage() {
       state.flows.properties?.[flowId] || {
         numerical: [],
         categorical: [],
+        text: [],
         unavailable: [],
       }
   );
 
-  // 페이지에서 분석할 property 목록 (여기서는 numerical + categorical)
+  // 예: (샘플) Flow 데이터 총 크기(추정), 총 행수(가짜), 등등
+  const totalSize = 123.4; // MB
+  const totalRows = 543210; // 임의 값
+  const numericCount = properties.numerical.length;
+  const categoricalCount = properties.categorical.length;
+  const unavailableCount = properties.unavailable.length;
+
+  // 분류하기 편하도록 하나로 합침
   const allProperties = [...properties.numerical, ...properties.categorical];
 
   // -------------------------------
   // 로컬 state
   // -------------------------------
   const [currentPage, setCurrentPage] = useState(0);
-
-  // 이미 fetch를 시도한 property를 기록해, 중복 요청 방지
-  const fetchedRef = useRef({});
+  const fetchedRef = useRef({}); // 이미 히스토그램 fetch 시도한 prop 기록
 
   // -------------------------------
   // 초기 로드
   // -------------------------------
   useEffect(() => {
-    // Property 목록
     dispatch(fetchFlowProperties(flowId));
-
-    // CSV 목록(없으면 Fetch)
     if (projectDatasets.length === 0) {
       dispatch(fetchCsvFilesByProject(projectId));
     }
-  }, [dispatch, flowId, projectDatasets.length, projectId]);
+  }, [dispatch, flowId, projectId, projectDatasets.length]);
 
   // -------------------------------
-  // 현재 페이지 properties 결정
+  // 페이지네이션
   // -------------------------------
   const totalPages = Math.ceil(allProperties.length / PROPERTIES_PER_PAGE);
   const currentPageProperties = allProperties.slice(
@@ -77,30 +90,21 @@ function AnalyzePropertiesPage() {
     (currentPage + 1) * PROPERTIES_PER_PAGE
   );
 
-  // -------------------------------
-  // 현재 페이지 property들에 대한 히스토그램 Fetch
-  // -------------------------------
   useEffect(() => {
+    // 현재 페이지에 해당하는 property들의 히스토그램 fetch
     currentPageProperties.forEach((prop) => {
       if (!histograms[prop] && !fetchedRef.current[prop]) {
-        fetchedRef.current[prop] = true; // 중복 요청 방지
+        fetchedRef.current[prop] = true;
         dispatch(fetchPropertyHistograms({ flowId, column_name: prop }));
       }
     });
   }, [currentPageProperties, histograms, dispatch, flowId]);
 
-  // -------------------------------
-  // 페이지 이동 핸들러
-  // -------------------------------
   const handleNextPage = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage((p) => p + 1);
-    }
+    if (currentPage < totalPages - 1) setCurrentPage((p) => p + 1);
   };
   const handlePrevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage((p) => p - 1);
-    }
+    if (currentPage > 0) setCurrentPage((p) => p - 1);
   };
 
   // -------------------------------
@@ -113,13 +117,126 @@ function AnalyzePropertiesPage() {
     history.goBack();
   };
 
+  const LeftStatsCard = ({
+    totalSize, // 현재 플로우 데이터셋 용량 (MB)
+    totalCapacity, // 전체 가능한 용량 (MB)
+    totalRows, // 전체 rows 수
+    availableRows, // 사용 가능한 rows 수
+    numericCount,
+    categoricalCount,
+    textCount, // 만약 text property가 있다면 (없으면 0)
+    unavailableCount,
+  }) => {
+    const pieData = [
+      { label: "Numeric", value: numericCount },
+      { label: "Categorical", value: categoricalCount },
+      { label: "Text", value: textCount || 0 },
+      { label: "Unavailable", value: unavailableCount },
+    ];
+
+    // 계산: dataset 용량 progress, rows progress (백분율)
+    const capacityProgress =
+      totalCapacity > 0 ? (totalSize / totalCapacity) * 100 : 0;
+    const rowsProgress = totalRows > 0 ? (availableRows / totalRows) * 100 : 0;
+
+    return (
+      <Grid templateRows="0.5fr 1fr 0.5fr" gap={4} h="100%">
+        {/* 카드 1: Dataset Capacity */}
+        <Card>
+          <CardHeader>
+            <Text color="#fff" fontSize="lg" fontWeight="bold">
+              Dataset Capacity
+            </Text>
+          </CardHeader>
+
+          <CardBody
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={4}
+          >
+            <Box display="flex">
+              <Text color="gray.400" fontSize="2xl">
+                {totalSize}
+              </Text>
+              <Text color="#fff" fontSize="2xl" ml={3}>
+                / {totalCapacity} MB
+              </Text>
+            </Box>
+            <CircularProgress
+              value={capacityProgress}
+              size="50px"
+              thickness="12px"
+              color="brand.100"
+            >
+              <CircularProgressLabel color="white">
+                {Math.round(capacityProgress)}%
+              </CircularProgressLabel>
+            </CircularProgress>
+          </CardBody>
+        </Card>
+
+        {/* 카드 2: Property Distribution (Pie Chart) */}
+        <Card>
+          <CardHeader>
+            <Text color="#fff" fontSize="lg" fontWeight="bold">
+              Property Distribution
+            </Text>
+          </CardHeader>
+
+          <CardBody
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={4}
+          >
+            {/* PieChart 컴포넌트를 사용 (가로/세로 크기 조정 필요) */}
+            <Box width="50px" height="50px">
+              <PieChart data={pieData} />
+            </Box>
+          </CardBody>
+        </Card>
+
+        {/* 카드 3: Rows Availability */}
+        <Card>
+          <CardHeader>
+            <Text color="#fff" fontSize="lg" fontWeight="bold">
+              Rows Availability
+            </Text>
+          </CardHeader>
+
+          <CardBody
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mt={4}
+          >
+            <Box display="flex">
+              <Text mt={4} fontSize="2xl" color="gray.400">
+                {availableRows}
+              </Text>
+              <Text mt={4} fontSize="2xl" color="white" ml={3}>
+                / {totalRows} Rows
+              </Text>
+            </Box>
+            <CircularProgress
+              value={rowsProgress}
+              size="50px"
+              thickness="12px"
+              color="brand.100"
+            >
+              <CircularProgressLabel color="white">
+                {Math.round(rowsProgress)}%
+              </CircularProgressLabel>
+            </CircularProgress>
+          </CardBody>
+        </Card>
+      </Grid>
+    );
+  };
+
   return (
-    <Flex
-      flexDirection="column"
-      pt={{ base: "120px", md: "75px" }}
-      px={6}
-      h="calc(80vh - 100px)"
-    >
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
       {/* 상단 헤더 */}
       <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
         <IconButton
@@ -143,24 +260,40 @@ function AnalyzePropertiesPage() {
         />
       </Flex>
 
-      <Grid templateColumns="1fr 3fr" h="calc(80vh - 50px)" gap={4}>
-        {/* 왼쪽 예시: 페이지 정보 카드 */}
-        <Card>
-          <CardHeader>
-            <Text color="#fff" fontSize="lg" fontWeight="bold">
-              Page Info
-            </Text>
-          </CardHeader>
-          <Divider borderColor="#fff" mb={4} />
-          <CardBody>
-            <Text color="white">Total Properties: {allProperties.length}</Text>
-            <Text color="white">
-              Current Page: {currentPage + 1} / {totalPages}
-            </Text>
-          </CardBody>
-        </Card>
+      {/* 메인 그리드: 왼쪽 1열(위/아래 2카드), 오른쪽 1열(차트) */}
+      <Grid templateColumns="1fr 3fr" gap={4} h="calc(80vh - 50px)">
+        <Grid templateRows="2fr 1fr" gap={4}>
+          {/* 왼쪽 영역: Flow Stats & Selected Datasets */}
 
-        {/* 오른쪽: 현재 페이지 차트 */}
+          {/* 상단 영역: Flow 데이터 통계 (LeftStatsCards) */}
+          <LeftStatsCard
+            totalSize={14}
+            totalCapacity={20}
+            totalRows={10004}
+            availableRows={5649}
+            numericCount={properties.numerical.length}
+            categoricalCount={properties.categorical.length}
+            unavailableCount={unavailableCount}
+          />
+
+          {/* 하단 카드: Selected Datasets (예시) */}
+          <Card>
+            <CardHeader>
+              <Text color="#fff" fontSize="lg" fontWeight="bold">
+                Selected Datasets
+              </Text>
+            </CardHeader>
+            <Divider borderColor="#fff" mb={4} />
+            <CardBody>
+              <Text color="white">
+                {/* 예: 아직 별도 로직 없다면 간단히 보여주기 */}
+                Currently selected dataset(s) info here...
+              </Text>
+            </CardBody>
+          </Card>
+        </Grid>
+
+        {/* 오른쪽: 차트 카드 */}
         <Card>
           <CardHeader>
             <Text color="#fff" fontSize="lg" fontWeight="bold">
@@ -173,9 +306,10 @@ function AnalyzePropertiesPage() {
             h="500px"
             display="flex"
             flexDirection="column"
-            justifyContent="center"
+            //justifyContent="center"
             alignItems="center"
           >
+            {/* 차트 3개(현재 페이지) */}
             <Grid templateColumns="repeat(3, 1fr)" gap={4} w="100%" mb={6}>
               {currentPageProperties.map((prop) => {
                 const hData = histograms[prop];
@@ -187,7 +321,6 @@ function AnalyzePropertiesPage() {
                 let binMax = 1;
                 let range = 1;
                 let diff = 0;
-
                 if (hData) {
                   try {
                     // 1) binEdges, counts 파싱
@@ -212,7 +345,7 @@ function AnalyzePropertiesPage() {
                       binMin = binEdges[0];
                       binMax = binEdges[binEdges.length - 1];
                       range = binMax - binMin;
-                      diff = range * 0.1;
+                      diff = range * 0.03;
                     } else if (binEdges.length === 1) {
                       // binEdges 하나뿐이라면 diff를 1 정도로 잡거나, 임의 처리
                       binMin = binEdges[0] - 1;
@@ -225,11 +358,10 @@ function AnalyzePropertiesPage() {
                 }
 
                 return (
-                  <Box key={prop} textAlign="center" w="100%" h="100%">
-                    <Text color="gray.300" fontWeight="bold" mt={1} mb={1}>
+                  <Box key={prop} textAlign="center" h="100%">
+                    <Text color="gray.300" fontWeight="bold" mb={2}>
                       {prop}
                     </Text>
-
                     <BarChart
                       barChartData={[
                         {
@@ -250,32 +382,29 @@ function AnalyzePropertiesPage() {
                           bar: {
                             distributed: true,
                             borderRadius: 8,
-                            columnWidth: "10px",
+                            columnWidth: "8px",
+                          },
+                        },
+                        xaxis: {
+                          type: "numeric",
+                          min: binMin - diff,
+                          max: binMax + diff,
+                          labels: {
+                            style: { colors: "#fff", fontSize: "10px" },
+                          },
+                        },
+                        yaxis: {
+                          labels: {
+                            style: { colors: "#fff", fontSize: "10px" },
                           },
                         },
                         dataLabels: { enabled: false },
                         legend: { show: false },
-
-                        xaxis: {
-                          type: "numeric",
-                          // 6) min/max에 diff 적용
-                          min: binMin - diff,
-                          max: binMax + diff,
-                          labels: {
-                            show: true,
-                            style: { colors: "#fff", fontSize: "12px" },
-                          },
-                        },
-                        yaxis: {
-                          show: true,
-                          labels: {
-                            show: true,
-                            style: { colors: "#fff", fontSize: "12px" },
-                          },
-                        },
                         tooltip: {
                           theme: "dark",
-                          y: { formatter: (val) => `${parseInt(val)}` },
+                          y: {
+                            formatter: (val) => `${parseInt(val)}`,
+                          },
                           style: { fontSize: "14px" },
                         },
                         colors: colorsArray,
@@ -285,7 +414,7 @@ function AnalyzePropertiesPage() {
                               y: avgValue,
                               borderColor: "red",
                               label: {
-                                //text: `AvgCount`,
+                                //text: AvgCount,
                                 position: "left",
                                 offsetX: 35,
                                 style: {
@@ -298,34 +427,34 @@ function AnalyzePropertiesPage() {
                           ],
                         },
                       }}
-                      width="100%"
-                      height="200px"
                     />
                   </Box>
                 );
               })}
             </Grid>
 
-            {/* 페이지네이션 */}
-            <Flex justify="center" align="center">
-              <IconButton
-                aria-label="Previous Page"
-                icon={<ChevronLeftIcon />}
-                onClick={handlePrevPage}
-                isDisabled={currentPage === 0}
-                mr={2}
-              />
-              <Text color="white" mx={2}>
-                Page {currentPage + 1} of {totalPages}
-              </Text>
-              <IconButton
-                aria-label="Next Page"
-                icon={<ChevronRightIcon />}
-                onClick={handleNextPage}
-                isDisabled={currentPage === totalPages - 1}
-                ml={2}
-              />
-            </Flex>
+            {/* 페이지네이션 버튼 */}
+            <Box>
+              <Flex justify="center" align="center">
+                <IconButton
+                  aria-label="Previous Page"
+                  icon={<ChevronLeftIcon />}
+                  onClick={handlePrevPage}
+                  isDisabled={currentPage === 0}
+                  mr={2}
+                />
+                <Text color="white" mx={2}>
+                  Page {currentPage + 1} of {totalPages}
+                </Text>
+                <IconButton
+                  aria-label="Next Page"
+                  icon={<ChevronRightIcon />}
+                  onClick={handleNextPage}
+                  isDisabled={currentPage === totalPages - 1}
+                  ml={2}
+                />
+              </Flex>
+            </Box>
           </CardBody>
         </Card>
       </Grid>
