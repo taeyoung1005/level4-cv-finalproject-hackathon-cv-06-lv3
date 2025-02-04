@@ -289,3 +289,4 @@ pyrightconfig.json
 *.pth
 *.pt
 **/.DS_Store
+catboost_info/

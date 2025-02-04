@@ -88,7 +88,7 @@ class PreprocessingView(APIView):
         args = argparse.Namespace(
             target=output_columns,
             data_path=flow.preprocessed_csv.path,
-            model='tabpfn',
+            model='catboost',
             flow_id=flow_id,
             seed=40
         )
@@ -102,13 +102,39 @@ class PreprocessingView(APIView):
 
         shutil.rmtree('./temp')
 
-        # for index, row in df_eval.iterrows():
-        #     SurrogateMatricModel.objects.create(
-        #         flow=flow, rmse=row['rmse'], mae=row['mae'], r2=row['r2'])
+        # Update or create SurrogateResultModel instances
+        for index, row in df_rank.iterrows():
+            column_instance = ConcatColumnModel.objects.get(flow=flow, column_name=row['column_name'])
+            SurrogateResultModel.objects.update_or_create(
+                flow=flow,
+                column=column_instance,
+                defaults={
+                    'ground_truth': row['y_test'],
+                    'predicted': row['y_pred'],
+                    'rank': row['rank']
+                }
+            )
 
+        # Update or create SurrogateMatricModel instances
+        for index, row in df_eval.iterrows():
+            column_instance = ConcatColumnModel.objects.get(flow=flow, column_name=row['target'])
+            SurrogateMatricModel.objects.update_or_create(
+                flow=flow,
+                column=column_instance,
+                defaults={
+                    'rmse': row['rmse'],
+                    'r_squared': row['r2']
+                }
+            )
+
+        # Update or create FeatureImportanceModel instances
         for index, row in df_importance.iterrows():
-            column_instance = ConcatColumnModel.objects.get(
-                flow=flow, column_name=row['feature'])
-            FeatureImportanceModel.objects.create(
-                flow=flow, column=column_instance, importance=row['importance'])
+            column_instance = ConcatColumnModel.objects.get(flow=flow, column_name=row['feature'])
+            FeatureImportanceModel.objects.update_or_create(
+                flow=flow,
+                column=column_instance,
+                defaults={
+                    'importance': row['importance']
+                }
+            )
         return Response({"message": "Preprocessing completed successfully"}, status=200)

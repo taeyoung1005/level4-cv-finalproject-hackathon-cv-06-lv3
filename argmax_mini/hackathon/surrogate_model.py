@@ -5,12 +5,13 @@ import logging
 import time
 import os
 
+import pandas as pd
+import numpy as np
+
 import hackathon.src.datasets as datasets
 import hackathon.src.search as search
 import hackathon.src.surrogate as surrogate
 from hackathon.src.utils import Setting, measure_time
-
-import pandas as pd
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
 
@@ -50,51 +51,67 @@ def main(args, scalers=None):
         X_train, X_test, y_train, y_test)
 
     # 데이터셋 형태 출력
-    logging.info(f"X_train.shape: {X_train.shape}")
-    logging.info(f"X_test.shape: {X_test.shape}")
-    logging.info(f"y_train.shape: {y_train.shape}")
-    logging.info(f"y_test.shape: {y_test.shape}")
+    # logging.info(f"X_train.shape: {X_train.shape}")
+    # logging.info(f"X_test.shape: {X_test.shape}")
+    # logging.info(f"y_train.shape: {y_train.shape}")
+    # logging.info(f"y_test.shape: {y_test.shape}")
 
     # 모델 학습
-    # try:
-    if len(args.target) > 1:
-        train_func = getattr(surrogate, f'{model_name}_multi_train')
-    else:
-        train_func = getattr(surrogate, f'{model_name}_train')
-    # model = measure_time(train_func, train_loader, val_loader)
+    # Determine suffix based on the number of targets
+    suffix = '_multi' if len(args.target) > 1 else ''
+
+    # Dynamically get and call the training function
+    train_func = getattr(surrogate, f'{model_name}{suffix}_train')
     model = train_func(train_loader, val_loader)
-    # except AttributeError:
-    #     logging.error(f"지원되지 않는 모델 '{model_name}'의 학습 함수입니다.")
-    #     return
 
-    if len(args.target) > 1:
-        predict_func = getattr(surrogate, f'{model_name}_multi_predict')
-    else:
-        predict_func = getattr(surrogate, f'{model_name}_predict')
+    # Dynamically get and call the prediction function
+    predict_func = getattr(surrogate, f'{model_name}{suffix}_predict')
     y_pred = predict_func(model, X_test)
-
-    print(y_pred.shape)
-    print(y_test.shape)
 
     rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
 
-    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
-    print(df_eval)
+    df_eval = pd.DataFrame(
+        {'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
 
     if scalers:
         for i in range(len(args.target)):
-            y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1))[:,0]
-            y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1))[:,0]
+            y_test[:, i] = scalers[args.target[i]].inverse_transform(
+                y_test[:, i].reshape(-1, 1))[:, 0]
+            y_pred[:, i] = scalers[args.target[i]].inverse_transform(
+                y_pred[:, i].reshape(-1, 1))[:, 0]
 
-    #TODO only for single target -> multi target ranking?
+    # TODO only for single target -> multi target ranking?
     # print(y_test.shape, y_pred.shape)
     # print(abs(y_test - y_pred).shape)
 
-    for i in range(len(args.target)):
-        df_rank = pd.DataFrame({'y_test': y_test[:,i].squeeze(), 'y_pred': y_pred[:,i].squeeze(),'diff': abs(y_test[:,i] - y_pred[:,i]).squeeze()}) # y_pred, y_test rank ! 
-        df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
-    os.makedirs(f'./temp/surrogate_model', exist_ok=True)
+    diff = np.abs(y_test - y_pred)
+    all_rank = []
+    for i, col_name in enumerate(args.target):
+        # Create a DataFrame for the current target column.
+        df_rank = pd.DataFrame({
+            'y_test': y_test[:, i].squeeze(),
+            'y_pred': y_pred[:, i].squeeze(),
+            'diff': diff[:, i].squeeze()
+        })
+        df_rank['column_name'] = col_name
 
+        # Select the top 5 smallest and bottom 5 largest differences.
+        top5 = df_rank.nsmallest(5, 'diff')
+        bottom5 = df_rank.nlargest(5, 'diff')
+
+        # Combine the two subsets.
+        df_subset = pd.concat([top5, bottom5])
+
+        # Compute the rank based on the 'diff' column.
+        df_subset['rank'] = df_subset['diff'].rank(method='min').astype(int)
+
+        # Append the subset to the list.
+        all_rank.append(df_subset)
+
+    # Concatenate all the DataFrames.
+    df_rank = pd.concat(all_rank, ignore_index=True)
+
+    os.makedirs(f'./temp/surrogate_model', exist_ok=True)
 
     if model_name == 'catboost':
         df_importance = pd.DataFrame({'feature': x_col_list, 'importance': model.get_feature_importance(
