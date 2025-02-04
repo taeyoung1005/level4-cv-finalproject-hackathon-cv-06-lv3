@@ -1,9 +1,10 @@
 # src/preprocess/encoding.py
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
-from transformers import BertTokenizer, BertModel
+import pandas as pd
 import torch
+from sklearn.preprocessing import LabelEncoder
+from transformers import BertModel, BertTokenizer
+
 
 def one_hot_encode(df: pd.DataFrame, cols: list) -> pd.DataFrame:
     """
@@ -13,7 +14,7 @@ def one_hot_encode(df: pd.DataFrame, cols: list) -> pd.DataFrame:
     df = pd.get_dummies(df, columns=cols, drop_first=True)
     return df
 
-def label_encode(df: pd.DataFrame, cols: list) -> pd.DataFrame:
+def label_encode(df: pd.DataFrame, cols: list, scaler: dict) -> pd.DataFrame:
     """
     Label Encoding 수행. 각 열마다 LabelEncoder를 독립적으로 학습.
     """
@@ -22,7 +23,8 @@ def label_encode(df: pd.DataFrame, cols: list) -> pd.DataFrame:
             continue
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col].astype(str))
-    return df
+        scaler[col] = le
+    return df, scaler
 
 def bert_encode(categories: list, model, tokenizer, batch_size: int = 32, max_length: int = 128) -> pd.DataFrame:
     """

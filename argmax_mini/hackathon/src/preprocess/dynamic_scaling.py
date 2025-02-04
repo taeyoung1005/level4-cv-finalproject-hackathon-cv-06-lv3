@@ -5,7 +5,8 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from hackathon.src.preprocess.analyze_distribution import analyze_distribution
 
 
-def dynamic_scaling(df: pd.DataFrame, numerical_cols: list) -> pd.DataFrame:
+
+def dynamic_scaling(df: pd.DataFrame, numerical_cols: list, scalers: dict) -> pd.DataFrame:
     """
     데이터 특성에 따라 동적으로 스케일링 방법을 선택.
     :param df: 입력 데이터프레임
@@ -13,8 +14,7 @@ def dynamic_scaling(df: pd.DataFrame, numerical_cols: list) -> pd.DataFrame:
     :return: 스케일링된 데이터프레임
     """
     distribution_info = analyze_distribution(df, numerical_cols)
-    scalers = {}
-
+    
     for col in numerical_cols:
         if col not in df.columns:
             continue

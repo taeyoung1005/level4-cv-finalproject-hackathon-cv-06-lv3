@@ -3,7 +3,8 @@ from transformers import BertTokenizer, BertModel
 from hackathon.src.preprocess.encoding import label_encode, bert_encode
 
 
-def dynamic_encode(df: pd.DataFrame, feature_info: dict) -> pd.DataFrame:
+
+def dynamic_encode(df: pd.DataFrame, feature_info: dict, scaler: dict) -> pd.DataFrame:
     """
     동적으로 범주형 데이터를 처리.
     - 'text' 타입의 컬럼은 BERT 임베딩 평균값 적용
@@ -54,7 +55,7 @@ def dynamic_encode(df: pd.DataFrame, feature_info: dict) -> pd.DataFrame:
     if 'categorical' in feature_info:
         for col in feature_info['categorical']:
             print(f"{col}: Label Encoding 적용 (범주형 데이터)")
-            df = label_encode(df, [col])
+            df, scaler = label_encode(df, [col], scaler)
             print(f"{col}: Label Encoding 적용 완료.")
 
-    return df
+    return df, scaler
