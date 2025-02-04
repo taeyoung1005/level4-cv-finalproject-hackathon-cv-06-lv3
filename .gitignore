@@ -288,3 +288,4 @@ pyrightconfig.json
 *.parquet
 *.pth
 *.pt
+**/.DS_Store
