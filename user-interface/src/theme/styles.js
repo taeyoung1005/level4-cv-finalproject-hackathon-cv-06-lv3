@@ -19,13 +19,13 @@ export const globalStyles = {
   styles: {
     global: (props) => ({
       body: {
-        fontFamily: "Plus Jakarta Display",
+        fontFamily: "Do Hyeon",
       },
       "*::placeholder": {
         color: "gray.400",
       },
       html: {
-        fontFamily: "Plus Jakarta Display",
+        fontFamily: "Do Hyeon",
       },
     }),
   },

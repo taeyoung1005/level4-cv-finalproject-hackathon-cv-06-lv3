@@ -30,6 +30,7 @@ import {
   fetchPropertyHistograms,
   postOptimizationData,
 } from "store/features/flowSlice";
+import { position } from "stylis";
 
 const SetGoalsPage = () => {
   const { projectId, flowId } = useParams();
@@ -280,14 +281,22 @@ const SetGoalsPage = () => {
                 diff * 0.5,
               labels: {
                 show: true,
-                style: { colors: "#fff", fontSize: "12px" },
+                style: {
+                  colors: "#fff",
+                  fontSize: "12px",
+                  fontFamily: "Plus Jakarta Display",
+                },
               },
             },
             yaxis: {
               show: true,
               labels: {
                 show: true,
-                style: { colors: "#fff", fontSize: "12px" },
+                style: {
+                  colors: "#fff",
+                  fontSize: "12px",
+                  fontFamily: "Plus Jakarta Display",
+                },
               },
             },
             tooltip: {
@@ -300,13 +309,16 @@ const SetGoalsPage = () => {
               yaxis: [
                 {
                   y: avgValue,
-                  borderColor: "#000",
+                  borderColor: "yellow",
                   label: {
-                    text: `AvgCount: ${avgValue.toFixed(2)}`,
+                    text: `AvgCount`,
+                    position: "left",
+                    offsetX: 35,
                     style: {
                       color: "#fff",
-                      background: "#000",
-                      fontSize: "10px",
+                      background: "#0c0c0c",
+                      fontSize: "8px",
+                      fontFamily: "Plus Jakarta Display",
                     },
                   },
                 },
@@ -316,11 +328,12 @@ const SetGoalsPage = () => {
                   x: minX,
                   borderColor: "#00E396",
                   label: {
-                    text: `Min: ${minX.toFixed(2)}`,
+                    //text: `Min: ${minX.toFixed(2)}`,
                     style: {
                       color: "#fff",
                       background: "#00E396",
                       fontSize: "10px",
+                      fontFamily: "Plus Jakarta Display",
                     },
                   },
                 },
@@ -328,11 +341,12 @@ const SetGoalsPage = () => {
                   x: maxX,
                   borderColor: "#FF4560",
                   label: {
-                    text: `Max: ${maxX.toFixed(2)}`,
+                    //text: `Max: ${maxX.toFixed(2)}`,
                     style: {
                       color: "#fff",
                       background: "#FF4560",
                       fontSize: "10px",
+                      fontFamily: "Plus Jakarta Display",
                     },
                   },
                 },
@@ -393,6 +407,10 @@ const SetGoalsPage = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "bottom",
+        containerStyle: {
+          marginLeft: "280px",
+        },
       });
     }
   };
@@ -522,7 +540,8 @@ const SetGoalsPage = () => {
                     localValues[property]?.min ?? propertyData.minimum_value
                   }
                   isReadOnly={!editing}
-                  color="#fff"
+                  color="rgba(0, 227, 150, 0.5)"
+                  textAlign="center"
                   onChange={(e) =>
                     setLocalValues((prev) => ({
                       ...prev,
@@ -534,30 +553,88 @@ const SetGoalsPage = () => {
                   }
                   onBlur={() => {
                     setIsEditing((prev) => ({ ...prev, [property]: false }));
-                    const newVal = parseFloat(localValues[property]?.min);
-                    const currentVal = parseFloat(propertyData.minimum_value);
-                    if (!isNaN(newVal) && newVal !== currentVal) {
-                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+
+                    const newValRaw = localValues[property]?.min;
+                    let newVal = parseFloat(newValRaw);
+
+                    // 현재 Max값(비교용). 숫자로 변환
+                    const currentMax = parseFloat(propertyData.maximum_value);
+
+                    // (1) 숫자가 아니면 → 이전 값으로 복구 + 에러
+                    if (isNaN(newVal)) {
+                      // 로컬 상태 되돌리기
                       setLocalValues((prev) => ({
                         ...prev,
-                        [property]: { ...prev[property], min: formatted },
+                        [property]: {
+                          ...prev[property],
+                          min: propertyData.minimum_value,
+                        },
                       }));
-                      dispatch(
-                        updateOptimizationData({
-                          flowId,
-                          property,
-                          newData: { minimum_value: parseFloat(formatted) },
-                          type,
-                        })
-                      );
                       toast({
-                        title: "Optimization range updated.",
-                        description: "Min value has been updated.",
-                        status: "success",
+                        title: "Invalid value",
+                        description: "Please enter a numeric value for Min.",
+                        status: "error",
                         duration: 1000,
                         isClosable: true,
+                        position: "bottom",
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
+                      return;
                     }
+
+                    // (2) 새로 입력한 Min >= 기존 Max → 에러
+                    if (newVal >= currentMax) {
+                      setLocalValues((prev) => ({
+                        ...prev,
+                        [property]: {
+                          ...prev[property],
+                          min: propertyData.minimum_value,
+                        },
+                      }));
+                      toast({
+                        title: "Invalid range",
+                        description:
+                          "Min cannot be greater than or equal to Max.",
+                        status: "error",
+                        duration: 1000,
+                        isClosable: true,
+                        position: "bottom",
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
+                      });
+                      return;
+                    }
+
+                    // (3) 정상적인 숫자이면서 Max보다 작다면 → store에 업데이트
+                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+                    setLocalValues((prev) => ({
+                      ...prev,
+                      [property]: { ...prev[property], min: formatted },
+                    }));
+
+                    dispatch(
+                      updateOptimizationData({
+                        flowId,
+                        property,
+                        newData: { minimum_value: parseFloat(formatted) },
+                        type,
+                      })
+                    );
+
+                    toast({
+                      title: "Optimization range updated.",
+                      description: `Min value has been updated to ${newVal}.`,
+                      status: "success",
+                      duration: 1000,
+                      isClosable: true,
+                      position: "bottom",
+                      containerStyle: {
+                        marginLeft: "280px",
+                      },
+                    });
                   }}
                 />
               </Box>
@@ -570,7 +647,8 @@ const SetGoalsPage = () => {
                     localValues[property]?.max ?? propertyData.maximum_value
                   }
                   isReadOnly={!editing}
-                  color="#fff"
+                  color="rgba(255, 69, 96, 0.5)"
+                  textAlign="center"
                   onChange={(e) =>
                     setLocalValues((prev) => ({
                       ...prev,
@@ -582,30 +660,86 @@ const SetGoalsPage = () => {
                   }
                   onBlur={() => {
                     setIsEditing((prev) => ({ ...prev, [property]: false }));
-                    const newVal = parseFloat(localValues[property]?.max);
-                    const currentVal = parseFloat(propertyData.maximum_value);
-                    if (!isNaN(newVal) && newVal !== currentVal) {
-                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+
+                    const newValRaw = localValues[property]?.max;
+                    let newVal = parseFloat(newValRaw);
+
+                    // 현재 Min값(비교용). 숫자로 변환
+                    const currentMin = parseFloat(propertyData.minimum_value);
+
+                    // (1) 숫자가 아니면 → 이전 값으로 복구 + 에러
+                    if (isNaN(newVal)) {
                       setLocalValues((prev) => ({
                         ...prev,
-                        [property]: { ...prev[property], max: formatted },
+                        [property]: {
+                          ...prev[property],
+                          max: propertyData.maximum_value,
+                        },
                       }));
-                      dispatch(
-                        updateOptimizationData({
-                          flowId,
-                          property,
-                          newData: { maximum_value: parseFloat(formatted) },
-                          type,
-                        })
-                      );
                       toast({
-                        title: "Optimization range updated.",
-                        description: "Max value has been updated.",
-                        status: "success",
+                        title: "Invalid value",
+                        description: "Please enter a numeric value for Max.",
+                        status: "error",
                         duration: 1000,
                         isClosable: true,
+                        position: "bottom",
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
+                      return;
                     }
+
+                    // (2) 새로 입력한 Max <= 기존 Min → 에러
+                    if (newVal <= currentMin) {
+                      setLocalValues((prev) => ({
+                        ...prev,
+                        [property]: {
+                          ...prev[property],
+                          max: propertyData.maximum_value,
+                        },
+                      }));
+                      toast({
+                        title: "Invalid range",
+                        description: "Max cannot be less than or equal to Min.",
+                        status: "error",
+                        duration: 1000,
+                        isClosable: true,
+                        position: "bottom",
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
+                      });
+                      return;
+                    }
+
+                    // (3) 정상적인 숫자이면서 Min보다 크다면 → store에 업데이트
+                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+                    setLocalValues((prev) => ({
+                      ...prev,
+                      [property]: { ...prev[property], max: formatted },
+                    }));
+
+                    dispatch(
+                      updateOptimizationData({
+                        flowId,
+                        property,
+                        newData: { maximum_value: parseFloat(formatted) },
+                        type,
+                      })
+                    );
+
+                    toast({
+                      title: "Optimization range updated.",
+                      description: `Max value has been updated to ${newVal}.`,
+                      status: "success",
+                      duration: 1000,
+                      isClosable: true,
+                      position: "bottom",
+                      containerStyle: {
+                        marginLeft: "280px",
+                      },
+                    });
                   }}
                 />
               </Box>
@@ -621,9 +755,10 @@ const SetGoalsPage = () => {
                   bg={
                     propertyData.goal === option
                       ? getGoalColor(option)
-                      : "gray.400"
+                      : "linear-gradient(125deg,rgba(74, 81, 114, 0.5) 0%,rgba(98, 119, 157, 0.8) 50%, rgba(13, 23, 67, 0.5) 100%)"
                   }
                   color={propertyData.goal === option ? "#0c1c1c" : "#fff"}
+                  isDisabled={propertyData.goal === option}
                   _hover={{ bg: "blue.100" }}
                   onClick={() =>
                     dispatch(

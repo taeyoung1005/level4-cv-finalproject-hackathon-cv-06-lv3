@@ -483,7 +483,13 @@ const flowSlice = createSlice({
         state.newCategories[flowId] = {}; // ✅ 새로운 category 저장 공간 초기화
       }
     },
-
+    removeCategory: (state, action) => {
+      const { flowId, property } = action.payload;
+      // 해당 flowId 아래 newCategories에서 해당 property를 제거
+      if (state.newCategories[flowId]) {
+        delete state.newCategories[flowId][property];
+      }
+    },
     updateCategory: (state, action) => {
       const { flowId, property, category } = action.payload;
 
@@ -726,6 +732,7 @@ export const {
   initializeFlow,
   setCurrentStep,
   initializeCategories,
+  removeCategory,
   updateCategory,
   updateOptimizationData,
   updatePriorities,

@@ -3,31 +3,317 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
-  Box,
   Flex,
   Grid,
+  Box,
   IconButton,
   Divider,
   Text,
   Button,
 } from "@chakra-ui/react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader.js";
-import { ArrowForwardIcon } from "@chakra-ui/icons";
+import { ArrowBackIcon, ArrowForwardIcon } from "@chakra-ui/icons";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DroppableProvided,
+} from "react-beautiful-dnd";
+import Card from "components/Card/Card";
+import CardBody from "components/Card/CardBody";
+import CardHeader from "components/Card/CardHeader";
+
 import {
   fetchFlowProperties,
   savePropertyCategories,
   updateCategory,
 } from "store/features/flowSlice";
+import { removeCategory } from "store/features/flowSlice";
 
+/* ------------------------------------------------------
+   (A) 개별 property를 Draggable로 표시하는 컴포넌트
+------------------------------------------------------ */
+function DraggableProperty({
+  prop,
+  index,
+  isDisabled,
+  bgColor,
+  getOriginalCategory,
+}) {
+  return (
+    <Draggable
+      key={prop}
+      draggableId={prop}
+      index={index}
+      isDragDisabled={isDisabled}
+    >
+      {(provided, snapshot) => {
+        const child = (
+          <Box
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            display="inline-flex" // or inline-block
+            alignItems="center"
+            justifyContent="center"
+            px={3}
+            py={2}
+            bg={bgColor}
+            borderRadius="md"
+            color="white"
+            fontWeight="bold"
+            mb={1}
+            ml={2}
+            mr={2}
+            mt={1}
+            zIndex={snapshot.isDragging ? 1000 : "auto"}
+            position={snapshot.isDragging ? "fixed" : "relative"}
+            left={
+              snapshot.isDragging
+                ? `${provided.draggableProps.style?.left || 0}px`
+                : "auto"
+            }
+            top={
+              snapshot.isDragging
+                ? `${provided.draggableProps.style?.top || 0}px`
+                : "auto"
+            }
+            // 너비를 내용에 맞춤
+            width="auto"
+            whiteSpace="nowrap"
+          >
+            <Text fontWeight={"medium"}>{prop}</Text>
+          </Box>
+        );
+
+        // 드래그 중일 때는 createPortal로 body에 띄우기
+        return snapshot.isDragging ? createPortal(child, document.body) : child;
+      }}
+    </Draggable>
+  );
+}
+
+/* ------------------------------------------------------
+   (B) 하나의 Droppable 영역을 렌더링하는 컴포넌트
+   예: LeftDatasetProperties 안의 numerical/categorical/unavailable
+       RightCategorizedProperties 안의 environmental/controllable/output
+------------------------------------------------------ */
+function DroppableList({
+  droppableId,
+  title,
+  propertiesList,
+  getOriginalCategory,
+  propertyColors,
+  isLeftSide,
+}) {
+  return (
+    <Droppable droppableId={droppableId}>
+      {(provided) => (
+        <Box
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+          p={4}
+          bg={"transparent"}
+          borderRadius="xl"
+          boxShadow={"none"}
+          border={"none"}
+          minH={isLeftSide ? "auto" : "300px"} /* 오른쪽을 조금 더 크게 */
+          minW="100%"
+        >
+          {propertiesList.map((prop, index) => {
+            const originalCat = getOriginalCategory(prop);
+            const bgColor = propertyColors[originalCat] || "gray.500";
+            const isDisabled = originalCat === "unavailable" && isLeftSide;
+
+            return (
+              <DraggableProperty
+                key={prop}
+                prop={prop}
+                index={index}
+                isDisabled={isDisabled}
+                bgColor={bgColor}
+                getOriginalCategory={getOriginalCategory}
+              />
+            );
+          })}
+
+          {provided.placeholder}
+        </Box>
+      )}
+    </Droppable>
+  );
+}
+
+/* ------------------------------------------------------
+   (C) 왼쪽 섹션: DatasetProperties (numerical, categorical, unavailable)
+------------------------------------------------------ */
+function LeftDatasetProperties({
+  datasetProperties,
+  getOriginalCategory,
+  propertyColors,
+}) {
+  // 왼쪽에 표시할 카테고리 목록 (예: ["numerical", "categorical", "unavailable"])
+  const categories = Object.keys(datasetProperties);
+
+  // 4단계로 점차 진해지는 그라데이션 배열
+  const gradients = [
+    "linear-gradient(125deg, rgba(74,81,114,0.5) 0%, rgba(81, 97, 127, 0.9) 20%, rgba(13,23,67,1) 100%)",
+
+    "linear-gradient(125deg, rgba(74,81,114,0.4) 0%, rgba(58, 70, 92, 0.8) 20%, rgba(13,23,67,0.8) 100%)",
+
+    "linear-gradient(125deg, rgba(74,81,114,0.3) 0%, rgba(40, 48, 62, 0.6) 20%, rgba(13,23,67,0.6) 100%)",
+
+    "linear-gradient(125deg, rgba(74,81,114,0.2) 0%, rgba(56, 67, 88,0.4) 20%, rgba(13,23,67,0.4) 100%)",
+  ];
+
+  return (
+    <Card h="100%">
+      <CardHeader>
+        <Text color="#fff" fontSize="lg" fontWeight="bold">
+          Dataset Properties
+        </Text>
+      </CardHeader>
+
+      <CardBody h="100%" mt={4}>
+        <Grid
+          // 카테고리 개수만큼 row 생성
+          templateRows={`repeat(${categories.length}, auto`}
+          gap={4}
+          h="100%"
+          w="100%"
+          alignItems={"start"}
+        >
+          {categories.map((category, i) => {
+            // i: 0,1,2,3,... 배열 범위 넘어가면 마지막(4번째) 톤으로 적용
+            const bgGradient = gradients[i] || gradients[gradients.length - 1];
+
+            return (
+              <Card key={category} w="100%" h="100%" bg={bgGradient}>
+                <CardHeader>
+                  <Text color="gray.100" fontWeight="bold" fontSize="md">
+                    {category.toUpperCase()}
+                  </Text>
+                </CardHeader>
+
+                <CardBody
+                  h="100%"
+                  w="100%"
+                  minW="300"
+                  overflowY="auto"
+                  css={{
+                    "&::-webkit-scrollbar": {
+                      width: "0px",
+                    },
+                  }}
+                >
+                  <DroppableList
+                    droppableId={category}
+                    title={category}
+                    propertiesList={datasetProperties[category] || []}
+                    getOriginalCategory={getOriginalCategory}
+                    propertyColors={propertyColors}
+                    isLeftSide
+                  />
+                </CardBody>
+              </Card>
+            );
+          })}
+        </Grid>
+      </CardBody>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------
+   (D) 오른쪽 섹션: CategorizedProperties
+       (environmental, controllable, output) 3칸 Grid
+------------------------------------------------------ */
+function RightCategorizedProperties({
+  categorizedProperties,
+  getOriginalCategory,
+  propertyColors,
+}) {
+  const categories = Object.keys(categorizedProperties);
+
+  // 3개의 카드에 쓸 그라데이션 (배열 길이를 카테고리 수와 맞추거나, 모자라면 %연산 사용 가능)
+  const categoryGradients = [
+    // (1) 밝은 톤
+    "linear-gradient(125deg, rgba(28,40,51,0.2) 0%, rgba(44,62,80,0.8) 30%, rgba(76,94,112,0.2) 70%)",
+
+    // (2) 중간 톤
+    "linear-gradient(125deg, rgba(19,29,39,0.2) 0%, rgba(31,42,57,0.8) 30%, rgba(59,74,90,0.2) 70%)",
+
+    // (3) 어두운 톤
+    "linear-gradient(125deg, rgba(11,20,28,0.2) 0%, rgba(24,32,45,0.8) 30%, rgba(42,58,72,0.2) 70%)",
+  ];
+
+  const categoryDescriptions = [
+    "Used for model training, but cannot be manipulated.",
+    "Optimization targets that can be actively adjusted.",
+    "Derived from the objective variables identified through the controllable inputs.",
+  ];
+
+  return (
+    <Card h="100%">
+      <CardHeader>
+        <Text color="#fff" fontSize="lg" fontWeight="bold">
+          Categorized Properties
+        </Text>
+      </CardHeader>
+
+      <CardBody h="100%" mt={4}>
+        {/* 3개의 카테고리를 가로로 배치 (카테고리 수만큼 반복) */}
+        <Grid
+          templateColumns={`repeat(${categories.length}, 1fr)`}
+          gap={4}
+          h="100%"
+          w="100%"
+        >
+          {categories.map((category, i) => (
+            <Card
+              key={category}
+              w="100%"
+              h="100%"
+              // 배열 길이보다 인덱스가 많을 수도 있으니 안전하게 % 연산
+              bg={categoryGradients[i % categoryGradients.length]}
+            >
+              <CardHeader h="20">
+                <Flex flexDirection={"column"}>
+                  <Text color="gray.100" fontWeight="bold" fontSize="lg">
+                    {category.toUpperCase()}
+                  </Text>
+                  <Text color="gray.500" fontSize="xs" mt={2}>
+                    {categoryDescriptions[i % categoryDescriptions.length]}
+                  </Text>
+                </Flex>
+              </CardHeader>
+
+              <CardBody h="100%" mt={3}>
+                <DroppableList
+                  droppableId={category}
+                  title={category}
+                  propertiesList={categorizedProperties[category] || []}
+                  getOriginalCategory={getOriginalCategory}
+                  propertyColors={propertyColors}
+                  isLeftSide={false}
+                />
+              </CardBody>
+            </Card>
+          ))}
+        </Grid>
+      </CardBody>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------
+   (E) 메인 페이지 컴포넌트
+------------------------------------------------------ */
 const ConfigurePropertiesPage = () => {
   const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
 
-  // ✅ 기존 numerical, categorical, unavailable 데이터 유지
+  // (1) 기존 numerical, categorical, unavailable
   const properties = useSelector(
     (state) =>
       state.flows.properties?.[flowId] || {
@@ -37,48 +323,49 @@ const ConfigurePropertiesPage = () => {
       }
   );
 
-  const reduxState = useSelector((state) => state);
-  useEffect(() => {
-    console.log("ConfigureProperties Redux state:", reduxState);
-  }, [reduxState]);
-
-  // ✅ 새로운 environmental, controllable, output 카테고리 저장
+  // (2) 새로운 environmental, controllable, output
   const newCategories = useSelector(
     (state) => state.flows.newCategories?.[flowId] || {}
   );
 
+  // (3) 로컬 state
   const [datasetProperties, setDatasetProperties] = useState({
     numerical: [],
     categorical: [],
     unavailable: [],
   });
-
   const [categorizedProperties, setCategorizedProperties] = useState({
     environmental: [],
     controllable: [],
     output: [],
   });
 
+  /* ------------------------------------------------------
+     (F) 데이터 Fetch
+  ------------------------------------------------------ */
   useEffect(() => {
     dispatch(fetchFlowProperties(flowId));
   }, [dispatch, flowId]);
 
+  /* ------------------------------------------------------
+     (G) 로컬 state 갱신: datasetProperties / categorizedProperties
+  ------------------------------------------------------ */
   useEffect(() => {
-    // ✅ 기존 properties에서 newCategories에 포함되지 않은 속성만 유지
-    const updatedDatasetProperties = {
+    // 왼쪽(기존)에서 "새로운 카테고리에 포함되지 않은" 속성만 남기기
+    const updatedDatasetProps = {
       numerical: properties.numerical.filter((p) => !newCategories[p]),
       categorical: properties.categorical.filter((p) => !newCategories[p]),
       unavailable: properties.unavailable.filter((p) => !newCategories[p]),
     };
 
-    // ✅ 기존 categorizedProperties와 비교 후 변경 사항이 있을 때만 업데이트
     setDatasetProperties((prev) =>
-      JSON.stringify(prev) !== JSON.stringify(updatedDatasetProperties)
-        ? updatedDatasetProperties
+      JSON.stringify(prev) !== JSON.stringify(updatedDatasetProps)
+        ? updatedDatasetProps
         : prev
     );
 
-    const updatedCategorizedProperties = {
+    // 오른쪽(새로운 카테고리) 설정
+    const updatedCategorizedProps = {
       environmental: Object.keys(newCategories).filter(
         (p) => newCategories[p] === "environmental"
       ),
@@ -91,24 +378,24 @@ const ConfigurePropertiesPage = () => {
     };
 
     setCategorizedProperties((prev) =>
-      JSON.stringify(prev) !== JSON.stringify(updatedCategorizedProperties)
-        ? updatedCategorizedProperties
+      JSON.stringify(prev) !== JSON.stringify(updatedCategorizedProps)
+        ? updatedCategorizedProps
         : prev
     );
-  }, [properties, JSON.stringify(newCategories)]); // ✅ `JSON.stringify(newCategories)`를 활용해 의존성 변경 감지
+  }, [properties, JSON.stringify(newCategories)]);
 
-  /**
-   * ✅ Drag & Drop 후 새로운 category 추가
-   */
+  /* ------------------------------------------------------
+     (H) Drag & Drop 로직
+  ------------------------------------------------------ */
   const handleDragEnd = (result) => {
     const { source, destination } = result;
     if (!destination) return;
 
-    const sourceId = source.droppableId;
+    const sourceId = source.droppableId; // numerical / environmental 등
     const destId = destination.droppableId;
     let movedItem = null;
 
-    // 왼쪽 영역(datasetProperties)에서 드래그한 경우
+    // (1) 소스가 왼쪽(datasetProperties)
     if (datasetProperties[sourceId]) {
       const newSourceList = [...datasetProperties[sourceId]];
       movedItem = newSourceList.splice(source.index, 1)[0];
@@ -117,7 +404,7 @@ const ConfigurePropertiesPage = () => {
         [sourceId]: newSourceList,
       }));
     }
-    // 오른쪽 영역(categorizedProperties)에서 드래그한 경우
+    // (2) 소스가 오른쪽(categorizedProperties)
     else if (categorizedProperties[sourceId]) {
       const newSourceList = [...categorizedProperties[sourceId]];
       movedItem = newSourceList.splice(source.index, 1)[0];
@@ -126,34 +413,32 @@ const ConfigurePropertiesPage = () => {
         [sourceId]: newSourceList,
       }));
     }
-
     if (!movedItem) return;
 
-    // 드랍 대상이 오른쪽 영역(categorizedProperties)인 경우
+    // (3) 도착지가 오른쪽
     if (destId in categorizedProperties) {
       setCategorizedProperties((prev) => ({
         ...prev,
         [destId]: [...prev[destId], movedItem],
       }));
-      // Redux 상태 업데이트: property의 category를 destId로 변경
+      // Redux에 업데이트
       dispatch(
         updateCategory({ flowId, property: movedItem, category: destId })
       );
     }
-    // 드랍 대상이 왼쪽 영역(datasetProperties)인 경우
+    // (4) 도착지가 왼쪽
     else if (destId in datasetProperties) {
       setDatasetProperties((prev) => ({
         ...prev,
         [destId]: [...prev[destId], movedItem],
       }));
-      // 필요하다면 Redux 상태 업데이트도 수행
-      // 예를 들어, 기존 카테고리로 돌아가도록 처리할 수도 있음.
+      dispatch(removeCategory({ flowId, property: movedItem }));
     }
   };
 
-  /**
-   * ✅ Next Step 버튼 클릭 시 새로운 category만 API 요청
-   */
+  /* ------------------------------------------------------
+     (I) Next Step 처리
+  ------------------------------------------------------ */
   const handleNextStep = async () => {
     const updates = Object.keys(newCategories).map((property) => ({
       flow_id: parseInt(flowId),
@@ -161,16 +446,17 @@ const ConfigurePropertiesPage = () => {
       property_type: newCategories[property],
     }));
 
-    console.log(updates);
-
-    updates.forEach((update) => {
-      console.log(update);
-      return dispatch(savePropertyCategories({ flowId, update }));
-    });
+    // 실제 API 요청 (각 property에 대해)
+    for (const update of updates) {
+      await dispatch(savePropertyCategories({ flowId, update }));
+    }
 
     history.push(`/projects/${projectId}/flows/${flowId}/set-goals`);
   };
 
+  /* ------------------------------------------------------
+     (J) 기타 부가 로직
+  ------------------------------------------------------ */
   const getOriginalCategory = (prop) => {
     if (properties.numerical.includes(prop)) return "numerical";
     if (properties.categorical.includes(prop)) return "categorical";
@@ -178,179 +464,64 @@ const ConfigurePropertiesPage = () => {
     return "unknown";
   };
 
-  // 각 원래 카테고리별 색상 매핑
   const propertyColors = {
-    numerical: "blue.500",
-    categorical: "green.500",
-    unavailable: "red.500",
-    unknown: "gray.500",
+    numerical: "brand.100",
+    categorical: "blue.100",
+    unavailable: "red.100",
+    unknown: "gray.200",
   };
 
-  return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
-        <Box>
-          <Text fontSize="2xl" fontWeight="bold" color="white">
-            Configure Properties
-          </Text>
-          <Text fontSize="md" color="gray.400">
-            Drag and drop properties into appropriate categories.
-          </Text>
-        </Box>
-        <IconButton
-          icon={<ArrowForwardIcon />}
-          colorScheme="blue"
-          aria-label="Next Step"
-          onClick={handleNextStep}
-        />
+  /* ------------------------------------------------------
+     (K) 레이아웃 렌더
+  ------------------------------------------------------ */
+  const renderHeader = () => (
+    <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
+      {/* 왼쪽: 뒤로가기 */}
+      <IconButton
+        icon={<ArrowBackIcon />}
+        onClick={() => history.goBack()}
+        colorScheme="blue"
+      />
+
+      {/* 중앙: 제목/설명 */}
+      <Flex direction="column" align="center">
+        <Text fontSize="2xl" fontWeight="bold" color="white">
+          Configure Properties
+        </Text>
+        <Text fontSize="md" color="gray.400">
+          Drag and drop properties into appropriate categories.
+        </Text>
       </Flex>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Grid templateColumns="1fr 2fr" h="calc(80vh - 50px)" gap={6} px={6}>
-          {/* ✅ 기존 속성 (numerical, categorical, unavailable) */}
-          <Card>
-            <CardHeader>
-              <Text color="#fff" fontSize="lg" fontWeight="bold">
-                Dataset Properties
-              </Text>
-            </CardHeader>
-            <Divider borderColor="#fff" mb={4} />
-            <CardBody>
-              {Object.keys(datasetProperties).map((category) => (
-                <Droppable key={category} droppableId={category}>
-                  {(provided) => (
-                    <Box
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      p={4}
-                      mb={4}
-                      bg="gray.800"
-                      borderRadius="lg"
-                      boxShadow="lg"
-                    >
-                      <Text color="gray.300" fontWeight="bold" mb={2}>
-                        {category.toUpperCase()}
-                      </Text>
-                      {datasetProperties[category]?.map((prop, index) => (
-                        <Draggable
-                          key={prop}
-                          draggableId={prop}
-                          index={index}
-                          isDragDisabled={
-                            getOriginalCategory(prop) === "unavailable"
-                          }
-                        >
-                          {(provided, snapshot) => {
-                            const child = (
-                              <Box
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                p={3}
-                                bg={propertyColors[getOriginalCategory(prop)]}
-                                borderRadius="md"
-                                color="white"
-                                fontWeight="bold"
-                                textAlign="center"
-                                mb={2}
-                                zIndex={snapshot.isDragging ? 1000 : "auto"}
-                                position={
-                                  snapshot.isDragging ? "fixed" : "relative"
-                                }
-                                left={
-                                  snapshot.isDragging
-                                    ? `${provided.draggableProps.style.left}px`
-                                    : "auto"
-                                }
-                                top={
-                                  snapshot.isDragging
-                                    ? `${provided.draggableProps.style.top}px`
-                                    : "auto"
-                                }
-                              >
-                                {prop}
-                              </Box>
-                            );
-                            return snapshot.isDragging
-                              ? createPortal(child, document.body)
-                              : child;
-                          }}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </Box>
-                  )}
-                </Droppable>
-              ))}
-            </CardBody>
-          </Card>
+      {/* 오른쪽: Next Step */}
+      <IconButton
+        icon={<ArrowForwardIcon />}
+        colorScheme="blue"
+        aria-label="Next Step"
+        onClick={handleNextStep}
+      />
+    </Flex>
+  );
 
-          {/* ✅ 새로운 카테고리 (environmental, controllable, output) */}
-          <Grid templateColumns="repeat(3, 1fr)" gap={4}>
-            {Object.keys(categorizedProperties).map((category) => (
-              <Card key={category}>
-                <CardHeader>
-                  <Text color="#fff" fontSize="lg" fontWeight="bold">
-                    {category.charAt(0).toUpperCase() + category.slice(1)}{" "}
-                    Properties
-                  </Text>
-                </CardHeader>
-                <Divider borderColor="#fff" mb={4} />
-                <CardBody>
-                  <Droppable droppableId={category}>
-                    {(provided) => (
-                      <Box
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        p={4}
-                        minH="600px"
-                        minW="100%"
-                        bg="transparent"
-                        borderRadius="lg"
-                        border="1px dashed #fff"
-                        boxShadow="lg"
-                      >
-                        {categorizedProperties[category]?.map((prop, index) => (
-                          <Draggable
-                            key={prop}
-                            draggableId={prop}
-                            index={index}
-                          >
-                            {(provided, snapshot) => {
-                              const child = (
-                                <Box
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  p={3}
-                                  bg={propertyColors[getOriginalCategory(prop)]}
-                                  borderRadius="md"
-                                  color="white"
-                                  fontWeight="bold"
-                                  textAlign="center"
-                                  mb={2}
-                                  zIndex={snapshot.isDragging ? 1000 : "auto"}
-                                  position={
-                                    snapshot.isDragging ? "fixed" : "relative"
-                                  }
-                                >
-                                  {prop}
-                                </Box>
-                              );
-                              return snapshot.isDragging
-                                ? createPortal(child, document.body)
-                                : child;
-                            }}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </Box>
-                    )}
-                  </Droppable>
-                </CardBody>
-              </Card>
-            ))}
-          </Grid>
+  return (
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
+      {renderHeader()}
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Grid templateColumns="1fr 3fr" h="calc(80vh - 100px)" gap={6} px={6}>
+          {/* 왼쪽: 기존 properties */}
+          <LeftDatasetProperties
+            datasetProperties={datasetProperties}
+            getOriginalCategory={getOriginalCategory}
+            propertyColors={propertyColors}
+          />
+
+          {/* 오른쪽: 새 카테고리 (environmental, controllable, output) */}
+          <RightCategorizedProperties
+            categorizedProperties={categorizedProperties}
+            getOriginalCategory={getOriginalCategory}
+            propertyColors={propertyColors}
+          />
         </Grid>
       </DragDropContext>
     </Flex>

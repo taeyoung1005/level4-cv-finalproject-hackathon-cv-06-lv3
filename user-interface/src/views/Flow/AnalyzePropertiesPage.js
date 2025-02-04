@@ -1,38 +1,34 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, useHistory } from "react-router-dom";
+import { Flex, Grid, Box, Text, IconButton, Divider } from "@chakra-ui/react";
 import {
-  Box,
-  Flex,
-  Grid,
-  IconButton,
-  Tooltip,
-  Divider,
-  Text,
-} from "@chakra-ui/react";
-import { ArrowForwardIcon, ArrowBackIcon } from "@chakra-ui/icons";
+  ArrowBackIcon,
+  ArrowForwardIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@chakra-ui/icons";
+
+import Card from "components/Card/Card";
+import CardHeader from "components/Card/CardHeader";
+import CardBody from "components/Card/CardBody";
 import BarChart from "components/Charts/BarChart";
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader.js";
-import SelectedDataArea from "components/Card/SelectedDataArea";
 import {
   fetchFlowProperties,
-  fetchFlowHistograms,
+  fetchPropertyHistograms,
 } from "store/features/flowSlice";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { fetchCsvFilesByProject } from "store/features/projectSlice";
 
-const MAX_BINS = 20; // ✅ 최대 20개까지만 표시
-const CHARTS_PER_PAGE = 5; // ✅ 한 번에 5개씩 보여줌
+const PROPERTIES_PER_PAGE = 3; // 한 페이지당 3개
 
-const AnalyzePropertiesPage = () => {
+function AnalyzePropertiesPage() {
   const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
 
-  // ✅ Redux에서 데이터 가져오기
-  const flow = useSelector((state) => state.flows.flows[flowId] || {});
+  // -------------------------------
+  // Redux 상태
+  // -------------------------------
   const projectDatasets = useSelector(
     (state) => state.projects.datasets[projectId] || []
   );
@@ -48,101 +44,97 @@ const AnalyzePropertiesPage = () => {
       }
   );
 
-  const reduxState = useSelector((state) => state);
+  // 페이지에서 분석할 property 목록 (여기서는 numerical + categorical)
+  const allProperties = [...properties.numerical, ...properties.categorical];
+
+  // -------------------------------
+  // 로컬 state
+  // -------------------------------
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // 이미 fetch를 시도한 property를 기록해, 중복 요청 방지
+  const fetchedRef = useRef({});
+
+  // -------------------------------
+  // 초기 로드
+  // -------------------------------
   useEffect(() => {
-    console.log("AnalyzePropertiesPage Redux state:", reduxState);
-  }, [reduxState]);
-
-  // ✅ 선택된 데이터셋
-  const selectedDatasets = useSelector(
-    (state) => state.flows.flows[flowId]?.csv
-  );
-
-  // ✅ 차트 데이터 상태
-  const [chartData, setChartData] = useState([]);
-  const [currentPage, setCurrentPage] = useState(0); // ✅ 현재 페이지 인덱스
-
-  useEffect(() => {
+    // Property 목록
     dispatch(fetchFlowProperties(flowId));
-    dispatch(fetchFlowHistograms(flowId));
-  }, [dispatch, flowId]);
 
-  // ✅ 새로고침 시 데이터 유지하도록 API 요청
-  useEffect(() => {
-    if (!projectDatasets.length) {
+    // CSV 목록(없으면 Fetch)
+    if (projectDatasets.length === 0) {
       dispatch(fetchCsvFilesByProject(projectId));
     }
-  }, [dispatch, projectId, projectDatasets.length]);
+  }, [dispatch, flowId, projectDatasets.length, projectId]);
 
-  // ✅ Histogram 데이터를 가공하여 차트용 데이터 변환
+  // -------------------------------
+  // 현재 페이지 properties 결정
+  // -------------------------------
+  const totalPages = Math.ceil(allProperties.length / PROPERTIES_PER_PAGE);
+  const currentPageProperties = allProperties.slice(
+    currentPage * PROPERTIES_PER_PAGE,
+    (currentPage + 1) * PROPERTIES_PER_PAGE
+  );
+
+  // -------------------------------
+  // 현재 페이지 property들에 대한 히스토그램 Fetch
+  // -------------------------------
   useEffect(() => {
-    if (histograms && Object.keys(histograms).length > 0) {
-      const transformedData = Object.entries(histograms)
-        .map(([columnName, { counts, bin_edges }]) => {
-          try {
-            let parsedCounts = JSON.parse(counts);
-            let parsedBinEdges = JSON.parse(bin_edges).map((edge) =>
-              decodeURIComponent(escape(edge.toString()))
-            );
+    currentPageProperties.forEach((prop) => {
+      if (!histograms[prop] && !fetchedRef.current[prop]) {
+        fetchedRef.current[prop] = true; // 중복 요청 방지
+        dispatch(fetchPropertyHistograms({ flowId, column_name: prop }));
+      }
+    });
+  }, [currentPageProperties, histograms, dispatch, flowId]);
 
-            // ✅ counts와 bin_edges 길이가 20 초과하면 자르기
-            if (parsedCounts.length > MAX_BINS) {
-              parsedCounts = parsedCounts.slice(0, MAX_BINS);
-              parsedBinEdges = parsedBinEdges.slice(0, MAX_BINS);
-              parsedBinEdges[MAX_BINS - 1] += " ..."; // 마지막 항목에 '...' 추가
-            }
-
-            return {
-              name: columnName,
-              data: parsedCounts,
-              categories: parsedBinEdges,
-            };
-          } catch (error) {
-            console.error(
-              `❌ Histogram Parsing Error for ${columnName}:`,
-              error
-            );
-            return null;
-          }
-        })
-        .filter((data) => data !== null);
-
-      setChartData(transformedData);
-    }
-  }, [histograms]);
-
-  // ✅ 차트 페이징 관련 함수
-  const totalPages = Math.ceil(chartData.length / CHARTS_PER_PAGE); // 전체 페이지 개수
-  const displayedCharts = chartData.slice(
-    currentPage * CHARTS_PER_PAGE,
-    (currentPage + 1) * CHARTS_PER_PAGE
-  ); // 현재 페이지 차트
-
+  // -------------------------------
+  // 페이지 이동 핸들러
+  // -------------------------------
   const handleNextPage = () => {
-    if (currentPage < totalPages - 1) setCurrentPage((prev) => prev + 1);
+    if (currentPage < totalPages - 1) {
+      setCurrentPage((p) => p + 1);
+    }
   };
-
   const handlePrevPage = () => {
-    if (currentPage > 0) setCurrentPage((prev) => prev - 1);
+    if (currentPage > 0) {
+      setCurrentPage((p) => p - 1);
+    }
   };
 
+  // -------------------------------
+  // Next / Back
+  // -------------------------------
   const handleNextStep = () => {
     history.push(`/projects/${projectId}/flows/${flowId}/configure-properties`);
   };
+  const handleGoBack = () => {
+    history.goBack();
+  };
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      {/* 상단 설명 및 Next Step 버튼 */}
-      <Flex justifyContent="space-between" alignItems="center" mb={6} px={4}>
-        <Box>
-          <Text fontSize="xl" fontWeight="bold" color="white">
+    <Flex
+      flexDirection="column"
+      pt={{ base: "120px", md: "75px" }}
+      px={6}
+      h="calc(80vh - 100px)"
+    >
+      {/* 상단 헤더 */}
+      <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
+        <IconButton
+          icon={<ArrowBackIcon />}
+          onClick={handleGoBack}
+          colorScheme="blue"
+        />
+        <Flex direction="column" align="center">
+          <Text fontSize="2xl" fontWeight="bold" color="white">
             Analyze Properties
           </Text>
           <Text fontSize="md" color="gray.400">
-            Review and analyze the properties of your datasets to ensure they
-            align with your objectives.
+            (Paged histogram fetching)
           </Text>
-        </Box>
+        </Flex>
         <IconButton
           icon={<ArrowForwardIcon />}
           colorScheme="blue"
@@ -151,158 +143,194 @@ const AnalyzePropertiesPage = () => {
         />
       </Flex>
 
-      {/* 전체 레이아웃 */}
       <Grid templateColumns="1fr 3fr" h="calc(80vh - 50px)" gap={4}>
-        {/* 왼쪽 - 작은 카드 2개 (데이터 개요 & 선택된 데이터셋) */}
-        <Grid templateRows="1fr 1fr" gap={4}>
-          {/* 데이터 개요 카드 */}
-          <Card>
-            <CardHeader>
-              <Text color="#fff" fontSize="lg" fontWeight="bold">
-                Dataset Overview
-              </Text>
-            </CardHeader>
-            <Divider borderColor="#fff" mb={4} />
-            <CardBody>
-              <Grid templateColumns="repeat(3, 1fr)" gap={3}>
-                <Box p={3} bg="gray.700" borderRadius="lg" textAlign="center">
-                  <Text fontSize="sm" color="gray.400">
-                    Total Size
-                  </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="white">
-                    {projectDatasets.reduce((sum, d) => sum + (d.size || 0), 0)}{" "}
-                    MB
-                  </Text>
-                </Box>
-                <Box p={3} bg="gray.700" borderRadius="lg" textAlign="center">
-                  <Text fontSize="sm" color="gray.400">
-                    Total Rows
-                  </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="white">
-                    {Math.floor(Math.random() * 500000) + 10000}
-                  </Text>
-                </Box>
-                <Box p={3} bg="gray.700" borderRadius="lg" textAlign="center">
-                  <Text fontSize="sm" color="gray.400">
-                    Available Properties
-                  </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="white">
-                    {properties.numerical.length +
-                      properties.categorical.length}{" "}
-                    /{" "}
-                    {properties.numerical.length +
-                      properties.categorical.length +
-                      properties.unavailable.length}
-                  </Text>
-                </Box>
-              </Grid>
-            </CardBody>
-          </Card>
-
-          {/* 선택된 데이터셋 카드 */}
-          <Card>
-            <CardHeader>
-              <Text color="#fff" fontSize="lg" fontWeight="bold">
-                Selected Datasets
-              </Text>
-            </CardHeader>
-            <Divider borderColor="#fff" mb={4} />
-            <CardBody>
-              <SelectedDataArea
-                selectedFiles={selectedDatasets}
-                allDatasets={projectDatasets}
-                onDeselect={() => {}}
-              />
-            </CardBody>
-          </Card>
-        </Grid>
-
-        {/* 오른쪽 - 히스토그램 카드 */}
+        {/* 왼쪽 예시: 페이지 정보 카드 */}
         <Card>
-          <CardHeader display="flex" justifyContent="space-between">
+          <CardHeader>
+            <Text color="#fff" fontSize="lg" fontWeight="bold">
+              Page Info
+            </Text>
+          </CardHeader>
+          <Divider borderColor="#fff" mb={4} />
+          <CardBody>
+            <Text color="white">Total Properties: {allProperties.length}</Text>
+            <Text color="white">
+              Current Page: {currentPage + 1} / {totalPages}
+            </Text>
+          </CardBody>
+        </Card>
+
+        {/* 오른쪽: 현재 페이지 차트 */}
+        <Card>
+          <CardHeader>
             <Text color="#fff" fontSize="lg" fontWeight="bold">
               Data Properties Distribution
             </Text>
           </CardHeader>
           <Divider borderColor="#fff" mb={4} />
-          {/* ✅ CardBody 내부를 relative로 설정하여 버튼 배치 */}
-          <CardBody position="relative">
-            {/* ✅ 좌우 이동 버튼을 Body 내부 중앙에 배치 */}
-            <IconButton
-              icon={<ArrowBackIcon />}
-              size="sm"
-              position="absolute"
-              left="0"
-              top="50%"
-              bg="transparent"
-              transform="translateY(-50%)"
-              zIndex="10"
-              isDisabled={currentPage === 0}
-              onClick={handlePrevPage}
-            />
-            {/* ✅ 차트 영역 */}
-            <Grid templateColumns="repeat(5, 1fr)" gap={1} w="100%">
-              {displayedCharts.map(({ name, data, categories }, index) => (
-                <Box key={index} textAlign="center">
-                  <Text
-                    color="gray.300"
-                    fontWeight="bold"
-                    mt={1}
-                    mb={1}
-                    textAlign="center"
-                  >
-                    {name}
-                  </Text>
-                  <BarChart
-                    barChartData={[{ name, data }]}
-                    barChartOptions={{
-                      plotOptions: {},
-                      xaxis: {
-                        categories,
-                        labels: {
-                          style: { colors: "#fff", fontSize: "12px" },
-                          minHeight: 60,
-                          maxHeight: 60,
-                          formatter: (val) => {
-                            if (!isNaN(val)) {
-                              return parseFloat(val).toFixed(4); // ✅ 소수점 4자리까지 표시
-                            }
-                            return val.length > 10
-                              ? `${val.substring(0, 10)}...`
-                              : val; // ✅ 문자열이면 생략 처리
+
+          <CardBody
+            h="500px"
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Grid templateColumns="repeat(3, 1fr)" gap={4} w="100%" mb={6}>
+              {currentPageProperties.map((prop) => {
+                const hData = histograms[prop];
+                let binEdges = [];
+                let counts = [];
+                let avgValue = 0;
+                let colorsArray = [];
+                let binMin = 0;
+                let binMax = 1;
+                let range = 1;
+                let diff = 0;
+
+                if (hData) {
+                  try {
+                    // 1) binEdges, counts 파싱
+                    const parsedBinEdges = JSON.parse(hData.bin_edges) || [];
+                    const parsedCounts = JSON.parse(hData.counts) || [];
+
+                    // 2) 각 요소 숫자로 변환
+                    binEdges = parsedBinEdges.map((edge) => parseFloat(edge));
+                    counts = parsedCounts.map((val) => parseFloat(val));
+
+                    // 3) 평균값 계산
+                    const total = counts.reduce((sum, val) => sum + val, 0);
+                    avgValue = counts.length > 0 ? total / counts.length : 0;
+
+                    // 4) colorsArray 예시
+                    colorsArray = counts.map((val) =>
+                      val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
+                    );
+
+                    // 5) x축 범위 확장
+                    if (binEdges.length > 1) {
+                      binMin = binEdges[0];
+                      binMax = binEdges[binEdges.length - 1];
+                      range = binMax - binMin;
+                      diff = range * 0.1;
+                    } else if (binEdges.length === 1) {
+                      // binEdges 하나뿐이라면 diff를 1 정도로 잡거나, 임의 처리
+                      binMin = binEdges[0] - 1;
+                      binMax = binEdges[0] + 1;
+                      diff = 0;
+                    }
+                  } catch (e) {
+                    console.error("Histogram parse error:", e);
+                  }
+                }
+
+                return (
+                  <Box key={prop} textAlign="center" w="100%" h="100%">
+                    <Text color="gray.300" fontWeight="bold" mt={1} mb={1}>
+                      {prop}
+                    </Text>
+
+                    <BarChart
+                      barChartData={[
+                        {
+                          name: prop,
+                          data: binEdges.map((edge, i) => ({
+                            x: edge,
+                            y: counts[i] || 0,
+                          })),
+                        },
+                      ]}
+                      barChartOptions={{
+                        chart: {
+                          type: "bar",
+                          toolbar: { show: false },
+                          zoom: { enabled: false },
+                        },
+                        plotOptions: {
+                          bar: {
+                            distributed: true,
+                            borderRadius: 8,
+                            columnWidth: "10px",
                           },
                         },
-                      },
-                      chart: {
-                        toolbar: {
-                          show: false,
+                        dataLabels: { enabled: false },
+                        legend: { show: false },
+
+                        xaxis: {
+                          type: "numeric",
+                          // 6) min/max에 diff 적용
+                          min: binMin - diff,
+                          max: binMax + diff,
+                          labels: {
+                            show: true,
+                            style: { colors: "#fff", fontSize: "12px" },
+                          },
                         },
-                      },
-                    }}
-                    width="70%"
-                    height="450px"
-                  />
-                </Box>
-              ))}
+                        yaxis: {
+                          show: true,
+                          labels: {
+                            show: true,
+                            style: { colors: "#fff", fontSize: "12px" },
+                          },
+                        },
+                        tooltip: {
+                          theme: "dark",
+                          y: { formatter: (val) => `${parseInt(val)}` },
+                          style: { fontSize: "14px" },
+                        },
+                        colors: colorsArray,
+                        annotations: {
+                          yaxis: [
+                            {
+                              y: avgValue,
+                              borderColor: "red",
+                              label: {
+                                //text: `AvgCount`,
+                                position: "left",
+                                offsetX: 35,
+                                style: {
+                                  color: "#fff",
+                                  background: "#0c0c0c",
+                                  fontSize: "8px",
+                                },
+                              },
+                            },
+                          ],
+                        },
+                      }}
+                      width="100%"
+                      height="200px"
+                    />
+                  </Box>
+                );
+              })}
             </Grid>
-            {/* ✅ 우측 이동 버튼 */}
-            <IconButton
-              icon={<ArrowForwardIcon />}
-              size="sm"
-              position="absolute"
-              right="0"
-              top="50%"
-              bg="transparent"
-              transform="translateY(-50%)"
-              zIndex="10"
-              isDisabled={currentPage === totalPages - 1}
-              onClick={handleNextPage}
-            />
+
+            {/* 페이지네이션 */}
+            <Flex justify="center" align="center">
+              <IconButton
+                aria-label="Previous Page"
+                icon={<ChevronLeftIcon />}
+                onClick={handlePrevPage}
+                isDisabled={currentPage === 0}
+                mr={2}
+              />
+              <Text color="white" mx={2}>
+                Page {currentPage + 1} of {totalPages}
+              </Text>
+              <IconButton
+                aria-label="Next Page"
+                icon={<ChevronRightIcon />}
+                onClick={handleNextPage}
+                isDisabled={currentPage === totalPages - 1}
+                ml={2}
+              />
+            </Flex>
           </CardBody>
         </Card>
       </Grid>
     </Flex>
   );
-};
+}
 
 export default AnalyzePropertiesPage;
