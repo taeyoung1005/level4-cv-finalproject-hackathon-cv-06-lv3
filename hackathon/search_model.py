@@ -11,6 +11,7 @@ from src.utils import Setting, measure_time
 from src.datasets.data_loader import load_data
 
 import numpy as np
+import pandas as pd
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
 def find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50):
@@ -167,7 +168,30 @@ def main(args, scalers=None):
         opt_df[f'test_x_{x_col_list[i]}'] = X_test[:,i]
         opt_df[f'test_x_{x_col_list[i]}'] = inverse_transform(opt_df[[f'test_x_{x_col_list[i]}']])
     # opt_df['test_x_control'] = opt_df['test_x'].apply(lambda x : x[control_index])
-    return opt_df
+
+
+    target_columns = [
+
+    (f'pred_x_{col}',f'test_x_{col}')
+    for col in args.controll_name
+    ] + [
+    (f'pred_y_{target}',f'test_y_{target}')
+    for target in args.target
+    ]
+
+    df_transformed = []
+    for test_col, pred_col in target_columns:
+        df_transformed.append(
+            {
+                "column_name": test_col.split("_")[-1],
+                "ground_truth": opt_df[test_col].tolist(),
+                "predicted": opt_df[pred_col].tolist(),
+            }
+        )
+
+    # 새로운 데이터프레임 생성
+    df_result = pd.DataFrame(df_transformed)
+    return df_result
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='모델 학습 스크립트')
