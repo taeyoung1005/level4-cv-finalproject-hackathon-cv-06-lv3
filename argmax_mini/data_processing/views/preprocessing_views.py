@@ -1,4 +1,4 @@
-import os
+import shutil
 import argparse
 
 import numpy as np
@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from data_processing.models import FlowModel, ConcatColumnModel
+from data_processing.models import FlowModel, ConcatColumnModel, SurrogateMatricModel, SurrogateResultModel, FeatureImportanceModel
 
 from hackathon.src.dynamic_pipeline import preprocess_dynamic
 from hackathon import surrogate_model
@@ -83,7 +83,7 @@ class PreprocessingView(APIView):
         output_columns = ConcatColumnModel.objects.filter(
             flow=flow, property_type='output').values_list('column_name', flat=True)
 
-        flow_progress(flow, 'Model training started')
+        flow_progress(flow, 'Surrogate Model training started')
 
         args = argparse.Namespace(
             target=output_columns,
@@ -92,18 +92,23 @@ class PreprocessingView(APIView):
             flow_id=flow_id,
             seed=40
         )
-        print(args)
+
         df_rank, df_eval, df_importance, model_path = surrogate_model.main(
             args, scaler_info)
-        flow_progress(flow, 'Model training completed')
+        flow_progress(flow, 'Surrogate Model training completed')
 
         flow.model.save(
             f"{model_path.split('/')[-1]}", ContentFile(model_path))
 
-        os.remove(model_path)
+        shutil.rmtree('./temp')
 
-        print(f'{df_rank=}')
-        print(f'{df_eval=}')
-        print(f'{df_importance=}')
+        # for index, row in df_eval.iterrows():
+        #     SurrogateMatricModel.objects.create(
+        #         flow=flow, rmse=row['rmse'], mae=row['mae'], r2=row['r2'])
 
+        for index, row in df_importance.iterrows():
+            column_instance = ConcatColumnModel.objects.get(
+                flow=flow, column_name=row['feature'])
+            FeatureImportanceModel.objects.create(
+                flow=flow, column=column_instance, importance=row['importance'])
         return Response({"message": "Preprocessing completed successfully"}, status=200)
