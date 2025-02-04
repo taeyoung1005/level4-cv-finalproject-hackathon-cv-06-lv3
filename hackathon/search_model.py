@@ -15,7 +15,7 @@ import numpy as np
 
 def find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50):
     # euclidean distance
-    distances = np.linalg.norm(X_train - y_user_request, axis=1)
+    distances = np.linalg.norm(y_train - y_user_request.reshape(1,-1), axis=1)
     top_k_indices = np.argsort(distances)[:k]
     return X_train[top_k_indices], y_train[top_k_indices]
 
@@ -55,26 +55,51 @@ def main(args, scalers=None):
 
         for i in range(len(args.target)):
             y_user_request.append(scalers[args.target[i]].transform(np.array(args.user_request_target[i]).reshape(-1,1))[0])
-        y_user_request = np.array(y_user_request)
+        y_user_request = np.array(y_user_request).reshape(-1,1)
 
     else:
         raise ValueError("scalers is not provided")
     
     X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=5)
 
+    
 
-    def inverse_transform_x(x):
-        for j in range(len(x)):
-            x[j] = scalers[x_col_list[j]].inverse_transform(x[j].reshape(-1,1))[0]
-        return list(x)
+    # def inverse_transform_x(x):
+    #     for j in range(len(x)):
 
-    def inverse_transform_y(y):
-        for j in range(len(y)):
-            y[j] = scalers[args.target[j]].inverse_transform(y[j].reshape(-1,1))[0]
-        return list(y)
+    #         x[j] = scalers[x_col_list[j]].inverse_transform(x[j].reshape(-1,1))[0]
+    #     return list(x)
+    def inverse_transform(df):#, col_names):
+        """
+        df : scaled col이 있는 df 
+        """
+        df_tmp = df.copy()
+        df_scaled_cols = [i.split('_')[-1] for i in df.columns]
+        for i in range(len(df_scaled_cols)):
+            col_reshaped = df_tmp[df.columns[i]].values.reshape(-1, 1)
+            inversed = scalers[df_scaled_cols[i]].inverse_transform(col_reshaped)
+            df_tmp[df.columns[i]] = inversed.flatten()
+        return df_tmp
 
-        
+        # for j, col in enumerate(col_names):
+        #     transformed_value = scalers[col].inverse_transform(np.array(x[j]).reshape(-1, 1))[0]
+        #     transformed_x.append(transformed_value)
+        # return transformed_x
 
+    # def inverse_transform_y(y):
+    #     # len_y = len(y) if isinstance(y, list) or isinstance(y, np.ndarray) else 1
+    #     # for j in range(len_y):
+    #     #     y[j] = scalers[args.target[j]].inverse_transform(y[j].reshape(-1,1))[0]
+    #     # return list(y)
+    #     y_arr = np.array(y, dtype=float)
+
+    #     if y_arr.ndim == 0:
+    #         return float(scalers[args.target[0]].inverse_transform(y_arr.reshape(-1, 1))[0, 0])
+    #     elif y_arr.ndim == 1:
+    #         return [float(scalers[args.target[j]].inverse_transform(np.array(val).reshape(-1, 1))[0, 0])
+    #                 for j, val in enumerate(y_arr)]
+    #     else:
+    #         raise ValueError(f"Unsupported y shape: {y_arr.shape}")
     # 데이터셋 형태 출력
     logging.info(f"X_train.shape: {X_train.shape}")
     logging.info(f"X_test.shape: {X_test.shape}")
@@ -84,14 +109,14 @@ def main(args, scalers=None):
     model_load_func = getattr(surrogate, f'{model_name}_load')
     model = model_load_func(f'./prj/{args.prj_id}/surrogate_model/model')
     print(model)
-
+    
 
     predict_func = getattr(surrogate, f'{model_name}_predict')
     # y_pred = predict_func(model, X_test)
 
     # 사용자 요청 
 
-        
+    
     # 최적화/검색 수행
     # try:
     search_func = getattr(search, f'{search_model}_search_deploy')
@@ -114,17 +139,34 @@ def main(args, scalers=None):
     # except Exception as e:
     #     logging.error(f"최적화 결과 평가 중 오류 발생: {e}")
     #     return
+    pred_input = X_test.copy()
+    control_index = [i for i, v in enumerate(x_col_list) if v in args.controll_name]
+    for i in range(len(args.controll_name)):
+        pred_input[:,control_index[i]] = opt_df[f'pred_x_{args.controll_name[i]}']
+    pred_y = predict_func(model, pred_input)
 
-    pred_y = predict_func(model, np.stack(opt_df['pred_x'].to_numpy()))
-
-    print(pred_y.shape)
-    opt_df['pred_y'] = np.array(list(map(inverse_transform_y,pred_y.reshape(-1,1))))
+    for i in range(len(args.target)):
+        opt_df[f'pred_y_{args.target[i]}'] = pred_y[:,i]
+        opt_df[f'pred_y_{args.target[i]}'] = inverse_transform(opt_df[[f'pred_y_{args.target[i]}']])
+    
+    # print(pred_y.shape)
+    # print(pred_y)
+    # import pdb; pdb.set_trace()
     # opt_df['pred_y'] = inverse_transform_y(pred_y)
     # opt_df['pred_y'] = opt_df['pred_y'].apply(inverse_transform_y)
-    opt_df['test_y'] = opt_df['test_y'].apply(inverse_transform_y)
-    opt_df['pred_x'] = opt_df['pred_x'].apply(inverse_transform_x)
-    opt_df['test_x'] = opt_df['test_x'].apply(inverse_transform_x)
+    for i in range(len(args.target)):
+    
+        opt_df[f'test_y_{args.target[i]}'] = y_test[:,i]
+        opt_df[f'test_y_{args.target[i]}'] = inverse_transform(opt_df[[f'test_y_{args.target[i]}']])
 
+    for i in range(len(args.controll_name)):
+
+        opt_df[f'pred_x_{args.controll_name[i]}'] = inverse_transform(opt_df[[f'pred_x_{args.controll_name[i]}']])
+        # print(opt_df[f'pred_x_{args.controll_name[i]}'])
+    for i in range(len(x_col_list)):
+        opt_df[f'test_x_{x_col_list[i]}'] = X_test[:,i]
+        opt_df[f'test_x_{x_col_list[i]}'] = inverse_transform(opt_df[[f'test_x_{x_col_list[i]}']])
+    # opt_df['test_x_control'] = opt_df['test_x'].apply(lambda x : x[control_index])
     return opt_df
 
 if __name__ == "__main__":

@@ -57,12 +57,24 @@ def cx_simulated_binary_w_cx_uniform(ind1, ind2, eta, indpb, is_nominal):
 #     return individual,
 
 def lexicographic_selection(population,k):
+    """
+    개체의 fitness를 내림차순 정렬한 후 상위 k개를 선택합니다.
+    
+    Args:
+        population (list): 평가된 개체 리스트.
+        k (int): 선택할 개체 수.
+    
+    Returns:
+        population (list): 선택된 개체 리스트 
+    """
 
     # population.sort(key=lambda ind: tuple(ind.fitness.values[0],)+tuple(ind.fitness.values[i] for i in importance.values()), reverse=True)
-    population.sort(
-        key=lambda ind: tuple(ind.fitness.values[i] * ind.fitness.weights[i] for i in range(len(ind.fitness.values))),
-        reverse=True
-    )
+    # population.sort(
+    #     key=lambda ind: tuple(ind.fitness.values[i] * ind.fitness.weights[i] for i in range(len(ind.fitness.values))),
+    #     reverse=True
+    # )
+    population.sort(key=lambda ind: tuple(val * w for val, w in zip(ind.fitness.values, ind.fitness.weights)), 
+                    reverse=True)
 
     return population[:k] 
 
@@ -73,9 +85,9 @@ def kmeans_clustering(population, k):
     kmeans.train(population)
 
     cluster_labels = kmeans.index.search(population, 1)[1].flatten()  
-    centroids = kmeans.centroids
+    # centroids = kmeans.centroids
     
-    return cluster_labels, centroids
+    return cluster_labels, kmeans.centroids
 
 def k_means_selection(population, k):
     """
@@ -127,9 +139,12 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
 
     # bounds 
     """
+
+    # 제어 변수 인덱스 결정 및 중요도 순 정렬
+
     control_set = set(control_var_names)  
     control_index = [i for i, v in enumerate(all_var_names) if v in control_set] # var 중에 control
-
+    print(control_index)
     control_index_to_pop_idx = {v: i+1 for i, v in enumerate(control_index)}
 
     # control중 importance 순서    
@@ -139,7 +154,6 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
 
     # optimize를 vars 순서로 정렬 
     sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
-
 
     scale_factor_x = np.std(X_train, axis=0)
     rounding_digits_x = np.clip(np.ceil(-np.log10(scale_factor_x/100)), 2, 10).astype(int)[sorted_control_index_by_importance]
@@ -156,13 +170,14 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         x_min = np.array([value[0] for key, value in bounds.items()]).squeeze()
         x_max = np.array([value[1] for key, value in bounds.items()]).squeeze()
     else:
-        x_min,x_max = np.min(X_train, axis=0), np.max(X_train, axis=0)
+        x_min,x_max = np.min(X_train, axis=0)[control_index], np.max(X_train, axis=0)[control_index]
 
     print("x_min : ",x_min)
     print("x_max : ",x_max)
     n_features = X_train.shape[1]
-    weights = tuple(1.0 if opt == 'maximize' else -1.0 for opt in sorted_optimize_dict_by_vars_idx.values())
-    creator.create('FitnessMax', base.Fitness, weights=(1.0,) + weights) # model pred + control optim
+    weights =  (1.0,) * y_test.shape[-1]
+    weights += tuple(1.0 if opt == 'maximize' else -1.0 for opt in sorted_optimize_dict_by_vars_idx.values())
+    creator.create('FitnessMax', base.Fitness, weights=weights) # model pred + control optim
     creator.create('Individual', np.ndarray, fitness=creator.FitnessMax)
 
     # def generate_individual():
@@ -173,7 +188,9 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
 
     # TODO min max optimize 고려 해서 초기값 생성 
     def generate_individual():
-        return np.random.uniform(x_min[control_index], x_max[control_index])
+        # return np.random.uniform(x_min[control_index], x_max[control_index])
+        return np.random.uniform(x_min, x_max)
+
 
 
     toolbox = base.Toolbox()
@@ -182,7 +199,10 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
     toolbox.register('individual', tools.initIterate, creator.Individual, toolbox.attr_float)
     toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
-    res = {"pred_x":[], "test_x":[], "test_y":[]}
+    # res = {"pred_x":[]} # , "test_x":[], "test_y":[]}
+    res = {}
+    for control_var in control_var_names:
+        res[f"pred_x_{control_var}"] = []
     for idx, (gt_x, gt_y) in tqdm(enumerate(zip(X_test, y_test))):
 
         def fitness(population):
@@ -197,7 +217,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
             # fit_res.append(-(y_pred - gt_y)**2)
             # print(-(y_pred - user_request_target)**2)
             # print(y_pred)
-            fit_res.append(-(y_pred - user_request_target)**2)
+            fit_res.append(-(y_pred - user_request_target.reshape(1,-1))**2)
             
             for i in sorted_pop_idx_by_importance:
                     fit_res.append(population[:,i-1:i])
@@ -222,7 +242,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         toolbox.register('mate', tools.cxSimulatedBinary, eta=ETA_CX)
         toolbox.register('mutate', tools.mutGaussian, mu=[0.0]*(len(x_min)), sigma=sigma_list, indpb=INDPB)
 
-        for gen in range(1,101):    
+        for gen in range(1,3):    
 
             offspring = algorithms.varAnd(population, toolbox, cxpb, mutpb)
 
@@ -235,6 +255,9 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
                 ind.fitness.values = tuple(fit)
             population = k_means_selection(population, k=len(population)//3)
             # print(len(population))
+            # for ind in population:
+            #     print(ind)
+            #     print(ind.fitness.values)
 
         # population = [ind for ind in population if ind.fitness.values[0] > -0.01]
         # if idx == 0:
@@ -242,18 +265,21 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         #     df['fitness'] = np.array([ind.fitness.values[0] for ind in population])
         #     df.to_csv(f'k_means_search_{idx}.csv')
         population = tools.selBest(population, k=1)
-        gt_x = X_test[idx]
+        # gt_x = X_test[idx]
+        print(population[0])
         # expanded_gt_x = np.tile(gt_x, (len(population), 1))
         # differences = population - expanded_gt_x
         # distances = np.linalg.norm(differences, axis=1)
         # res_idx = np.argmin(distances)
         # x_pred = population[res_idx]
-        res["pred_x"].append(np.array(population[0], dtype=float))
+        for i in range(len(control_index)):
+            res[f"pred_x_{control_var_names[i]}"].append(np.array(population[0][i], dtype=float))
+        
         # res["pred_y"].append(population[0].fitness.values[0].reshape(-1))
-        res["test_x"].append(gt_x)
-        res["test_y"].append(gt_y.reshape(-1,1))
+        # res["test_x"].append(gt_x)
+        # res["test_y"].append(gt_y.reshape(-1,1))
 
 
-
+    
     
     return pd.DataFrame(res)
