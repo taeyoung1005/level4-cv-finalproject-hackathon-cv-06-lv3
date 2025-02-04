@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const API_BASE_URL = "http://10.28.224.157:30258/data-processing";
+const API_BASE_URL = "http://10.28.224.157:30887/data-processing";
 
 //
 // -------------------- Flows API Thunks --------------------
@@ -211,6 +211,24 @@ export const fetchFlowHistograms = createAsyncThunk(
   }
 );
 
+export const fetchPropertyHistograms = createAsyncThunk(
+  "flows/fetchPropertyHistograms",
+  async ({ flowId, column_name }, thunkAPI) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/histograms/?flow_id=${flowId}&column_name=${column_name}`
+      );
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return { flowId, column_name, histograms: data.histograms };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
 // ✅ 새로운 카테고리 정보 PUT 요청 (Next Step 버튼 클릭 시 실행)
 export const savePropertyCategories = createAsyncThunk(
   "flows/savePropertyCategories",
@@ -264,10 +282,18 @@ export const postOptimizationData = createAsyncThunk(
     { flowId, property, type, goal, minimum_value, maximum_value },
     thunkAPI
   ) => {
+    const goalMapping = {
+      "No Optimization": 1,
+      Maximize: 2,
+      Minimize: 3,
+      "Fit to Range": 4,
+      "Fit to Property": 5,
+    };
+
     let payload = {
       flow_id: flowId,
       column_name: property,
-      optimize_goal: goal,
+      optimize_goal: goalMapping[goal],
       minimum_value: minimum_value,
       maximum_value: maximum_value,
     };
@@ -578,6 +604,20 @@ const flowSlice = createSlice({
         console.error("❌ Failed to fetch histograms:", action.payload);
         state.error = action.payload;
       })
+      .addCase(fetchPropertyHistograms.fulfilled, (state, action) => {
+        const { flowId, column_name, histograms } = action.payload;
+        if (!state.histograms) {
+          state.histograms = {};
+        }
+        if (!state.histograms[flowId]) {
+          state.histograms[flowId] = {};
+        }
+        state.histograms[flowId][column_name] = histograms;
+      })
+      .addCase(fetchPropertyHistograms.rejected, (state, action) => {
+        console.error("fetchPropertyHistograms rejected:", action.payload);
+        // 필요한 에러 처리를 추가
+      })
       .addCase(savePropertyCategories.fulfilled, (state, action) => {
         console.log(
           "✅ Property categories successfully updated:",
@@ -601,20 +641,13 @@ const flowSlice = createSlice({
           type === "controllable" ? "No Optimization" : "Fit to Property";
 
         // 매핑 객체 정의
-        const goalMapping =
-          type === "controllable"
-            ? {
-                1: "No Optimization",
-                2: "Maximize",
-                3: "Minimize",
-                4: "Fit to Range",
-              }
-            : {
-                1: "Maximize",
-                2: "Minimize",
-                3: "Fit to Range",
-                4: "Fit to Property",
-              };
+        const goalMapping = {
+          1: "No Optimization",
+          2: "Maximize",
+          3: "Minimize",
+          4: "Fit to Range",
+          5: "Fit to Property",
+        };
 
         // data.goal 값이 숫자이면 매핑 객체로, 아니면 문자열이면 그대로 사용, 없으면 defaultGoal
         const goalStr =
@@ -626,9 +659,17 @@ const flowSlice = createSlice({
 
         state.optimizationData[flowId][property] = {
           minimum_value:
-            data.minimum_value !== undefined ? data.minimum_value : "",
+            data.minimum_value !== undefined
+              ? parseFloat(data.minimum_value)
+                  .toFixed(4)
+                  .replace(/\.?0+$/, "")
+              : "",
           maximum_value:
-            data.maximum_value !== undefined ? data.maximum_value : "",
+            data.maximum_value !== undefined
+              ? parseFloat(data.maximum_value)
+                  .toFixed(4)
+                  .replace(/\.?0+$/, "")
+              : "",
           goal: goalStr,
           type: type,
           order: data.optimize_order,

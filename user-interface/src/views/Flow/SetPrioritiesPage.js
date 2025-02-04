@@ -192,11 +192,10 @@ const SetPrioritiesPage = () => {
                   <CardBody p={1} mt={4}>
                     <Flex direction="column">
                       <Text fontSize="xs" color="white">
-                        Range:{" "}
                         {data.minimum_value !== " "
                           ? data.minimum_value
                           : "NaN"}{" "}
-                        -{" "}
+                        ~{" "}
                         {data.maximum_value !== " "
                           ? data.maximum_value
                           : "NaN"}

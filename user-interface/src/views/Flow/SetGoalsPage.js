@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
-import { createPortal } from "react-dom";
 import {
   Box,
   Flex,
@@ -9,9 +8,9 @@ import {
   Button,
   Divider,
   IconButton,
-  Badge,
   Input,
   Grid,
+  useToast,
 } from "@chakra-ui/react";
 import {
   ArrowForwardIcon,
@@ -23,30 +22,32 @@ import Card from "components/Card/Card";
 import CardBody from "components/Card/CardBody";
 import CardHeader from "components/Card/CardHeader";
 import BarChart from "components/Charts/BarChart";
+
 import {
   fetchFlowProperties,
   updateOptimizationData,
   fetchOptimizationData,
-  fetchFlowHistograms,
-  initializePriorities,
+  fetchPropertyHistograms,
+  postOptimizationData,
 } from "store/features/flowSlice";
-import { postOptimizationData } from "store/features/flowSlice";
 
 const SetGoalsPage = () => {
   const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
+  const toast = useToast();
 
-  // Redux: properties (newCategories)
+  // Redux
   const properties = useSelector(
     (state) => state.flows.newCategories[flowId] || {}
   );
-  // histograms: histogram data per property
   const histograms = useSelector(
     (state) => state.flows.histograms[flowId] || {}
   );
+  const optimizationData =
+    useSelector((state) => state.flows.optimizationData[flowId]) || {};
 
-  // controllable/output property 분리
+  // Property 분류
   const controllableProperties = useMemo(
     () =>
       Object.keys(properties).filter(
@@ -59,202 +60,367 @@ const SetGoalsPage = () => {
     [properties]
   );
 
-  // 현재 선택된 property의 인덱스 (각 카테고리 별: 페이지 단위로 1개씩 보여줌)
+  // 페이징
   const [currentControllablePage, setCurrentControllablePage] = useState(1);
   const [currentOutputPage, setCurrentOutputPage] = useState(1);
 
-  // optimizationData: 각 property의 최적화 데이터
-  const optimizationData =
-    useSelector((state) => state.flows.optimizationData[flowId]) || {};
-
-  // 로컬 상태: 편집 모드, 차트 데이터 등
-  const [isEditing, setIsEditing] = useState({});
+  // 차트 및 입력값 관리
   const [chartData, setChartData] = useState({});
+  const [localValues, setLocalValues] = useState({});
+  const [isEditing, setIsEditing] = useState({});
 
-  // Flow properties 및 histogram fetch
+  // 로딩, 초기화
+  const [isLoading, setIsLoading] = useState(true);
+  const [initPropertyReady, setInitPropertyReady] = useState(false);
+
+  // fetch 중복 방지
+  const attemptedFetchRef = useRef({});
+  const histogramFetchRef = useRef({});
+
+  // ------------------------------------------------------------
+  // (A) 첫 번째 useEffect:
+  //   - Property가 비어있으면 fetch
+  //   - 현재 페이지 property 히스토그램 & 옵티마이제이션이 없으면 fetch or 초기화
+  // ------------------------------------------------------------
   useEffect(() => {
-    dispatch(fetchFlowProperties(flowId));
-    dispatch(fetchFlowHistograms(flowId));
-  }, [dispatch, flowId]);
-
-  // controllable/output property에 대해 optimizationData fetch
-  useEffect(() => {
-    Object.keys(properties).forEach((property) => {
-      const type = properties[property];
-      if (type === "controllable" || type === "output") {
-        dispatch(fetchOptimizationData({ flowId, property, type }));
-      }
-    });
-  }, [dispatch, flowId, properties]);
-
-  // histogram 데이터에 따른 차트 데이터 업데이트 함수
-  const updateChartDataForProperty = (property) => {
-    const histogramData = histograms[property];
-    if (histogramData && histogramData.bin_edges && histogramData.counts) {
-      try {
-        const binEdges = JSON.parse(histogramData.bin_edges);
-        const counts = JSON.parse(histogramData.counts);
-        if (binEdges.length > 1) {
-          const total = counts.reduce((sum, val) => sum + val, 0);
-          const avgValue = total / counts.length;
-          const maxValue = Math.max(...counts);
-          const colorsArray = counts.map((val) =>
-            val === maxValue ? "#582CFF" : "#2CD9FF"
-          );
-          setChartData((prev) => {
-            const newChartData = {
-              ...prev,
-              [property]: {
-                barChartData: [{ name: property, data: counts }],
-                barChartOptions: {
-                  chart: { type: "bar", toolbar: { show: false } },
-                  plotOptions: {
-                    bar: {
-                      distributed: true,
-                      borderRadius: 8,
-                      columnWidth: "10px",
-                    },
-                  },
-                  dataLabels: {
-                    enabled: false,
-                  },
-                  legend: { show: false },
-                  xaxis: {
-                    title: {
-                      text: `${property}`,
-                      style: { color: "#fff" },
-                    },
-                    categories: binEdges,
-                    labels: {
-                      show: true,
-                      style: {
-                        colors: "#fff",
-                        fontSize: "12px",
-                        fontFamily: "Plus Jakarta Display",
-                      },
-                    },
-                    axisBorder: {
-                      show: false,
-                    },
-                    axisTicks: {
-                      show: true,
-                    },
-                  },
-                  yaxis: {
-                    show: true,
-                    color: "#fff",
-                    // categories: counts,
-                    labels: {
-                      show: true,
-                      style: {
-                        colors: "#fff",
-                        fontSize: "12px",
-                        fontFamily: "Plus Jakarta Display",
-                      },
-                    },
-                  },
-                  tooltip: {
-                    theme: "dark",
-                    y: { formatter: (val) => `${parseInt(val)}` },
-                    style: {
-                      fontSize: "14px",
-                      fontFamily: "Plus Jakarta Display",
-                    },
-                    onDatasetHover: {
-                      style: {
-                        fontSize: "14px",
-                        fontFamily: "Plus Jakarta Display",
-                      },
-                    },
-                  },
-                  colors: colorsArray,
-                  annotations: {
-                    yaxis: [
-                      {
-                        y: avgValue,
-                        borderColor: "red",
-                      },
-                    ],
-                  },
-                  responsive: [
-                    {
-                      breakpoint: 768,
-                      options: {
-                        plotOptions: {
-                          bar: {
-                            borderRadius: 0,
-                          },
-                        },
-                      },
-                    },
-                  ],
-                },
-              },
-            };
-            return JSON.stringify(prev) !== JSON.stringify(newChartData)
-              ? newChartData
-              : prev;
-          });
+    // 1) property 목록이 없으면 한번 fetch
+    const initProperties = async () => {
+      if (Object.keys(properties).length === 0) {
+        try {
+          await dispatch(fetchFlowProperties(flowId)).unwrap();
+        } catch (err) {
+          console.error("Failed to fetch flow properties:", err);
         }
-      } catch (error) {
-        console.error("Error updating chart data:", error);
       }
-    }
-  };
+      setInitPropertyReady(true);
+    };
+    initProperties();
+  }, [dispatch, flowId, properties]); // properties가 아무것도 없을 때만 fetch
 
   useEffect(() => {
-    controllableProperties.forEach((property) => {
-      updateChartDataForProperty(property);
-    });
-    outputProperties.forEach((property) => {
-      updateChartDataForProperty(property);
-    });
-  }, [histograms, controllableProperties, outputProperties]);
+    if (!initPropertyReady) return;
 
-  // 초기 페이징: 만약 optimizationData가 로드되면 default 순서(기본 우선순위)를 설정
-  const initializedRef = useRef(false);
+    // 현재 페이지에서 보여줄 property
+    const controllableProp =
+      controllableProperties[currentControllablePage - 1];
+    const outputProp = outputProperties[currentOutputPage - 1];
+
+    console.log(controllableProp, outputProp);
+    console.log("histograms::::::::::::::", histograms);
+
+    const handlePropertyFetch = async (prop) => {
+      if (!prop) return; // 없는 페이지면 스킵
+
+      // (1) 히스토그램이 없으면 fetch
+      if (!histograms[prop] && !histogramFetchRef.current[prop]) {
+        histogramFetchRef.current[prop] = true;
+        try {
+          await dispatch(
+            fetchPropertyHistograms({ flowId, column_name: prop })
+          ).unwrap();
+        } catch (err) {
+          console.error("Failed to fetch histograms:", err);
+        }
+      }
+
+      // (2) 옵티마이제이션 데이터 없으면 서버에서 fetch
+      //     실패 시 히스토그램 기반 초기화
+      if (!optimizationData[prop] && !attemptedFetchRef.current[prop]) {
+        attemptedFetchRef.current[prop] = true;
+        try {
+          await dispatch(
+            fetchOptimizationData({
+              flowId,
+              property: prop,
+              type: properties[prop],
+            })
+          ).unwrap();
+        } catch (err) {
+          console.error("Failed to fetch optimization data:", err);
+          // 없다면 히스토그램으로 초기화
+          const histogramData = histograms[prop]?.histograms;
+          if (histogramData?.bin_edges && histogramData.counts) {
+            try {
+              const binEdges = JSON.parse(histogramData.bin_edges);
+              if (binEdges.length > 1) {
+                const minEdge = binEdges[0];
+                const maxEdge = binEdges[binEdges.length - 1];
+                const diff = maxEdge - minEdge;
+                const newMin = (minEdge - diff * 0.1)
+                  .toFixed(4)
+                  .replace(/\.?0+$/, "");
+                const newMax = (maxEdge + diff * 0.1)
+                  .toFixed(4)
+                  .replace(/\.?0+$/, "");
+                await dispatch(
+                  updateOptimizationData({
+                    flowId,
+                    property: prop,
+                    newData: {
+                      minimum_value: newMin,
+                      maximum_value: newMax,
+                      goal:
+                        properties[prop] === "output"
+                          ? "Fit to Property"
+                          : "No Optimization",
+                    },
+                    type: properties[prop],
+                  })
+                );
+              }
+            } catch (e) {
+              console.error("Error initializing optimization data:", e);
+            }
+          }
+        }
+      }
+    };
+
+    // 실제 호출
+    (async () => {
+      setIsLoading(true);
+      await Promise.all([
+        handlePropertyFetch(controllableProp),
+        handlePropertyFetch(outputProp),
+      ]);
+      setIsLoading(false);
+    })();
+  }, [
+    initPropertyReady,
+    currentControllablePage,
+    currentOutputPage,
+    controllableProperties,
+    outputProperties,
+    // !!! 여기에 histograms, optimizationData를 굳이 넣지 않는다 !!!
+    // store가 바뀌어도 이 이펙트가 반복되지 않도록
+
+    dispatch,
+    flowId,
+    properties,
+  ]);
+
+  // ------------------------------------------------------------
+  // (B) 두 번째 useEffect: (읽기 전용) store → chartData 로컬 state 반영
+  // ------------------------------------------------------------
   useEffect(() => {
-    if (!initializedRef.current && Object.keys(optimizationData).length > 0) {
-      // 기본 순서는 controllable, output 순서대로
-      const defaultControllable = controllableProperties;
-      const defaultOutput = outputProperties;
-      if (defaultControllable.length > 0) setCurrentControllablePage(1);
-      if (defaultOutput.length > 0) setCurrentOutputPage(1);
-      initializedRef.current = true;
-    }
-  }, [optimizationData, controllableProperties, outputProperties]);
+    // 매 렌더마다 store의 값이 갱신되었는지 확인
+    // 해당 property의 histogram, optimizationData 있으면 차트 세팅
+    const controllableProp =
+      controllableProperties[currentControllablePage - 1];
+    const outputProp = outputProperties[currentOutputPage - 1];
 
-  // Next Step 버튼 (여기서는 별도의 저장 없이 바로 다음 페이지로 이동)
+    console.log("optData:", optimizationData);
+    console.log("chartData", chartData);
+
+    const updateChartDataForProperty = (prop) => {
+      if (!prop) return;
+      const hData = histograms[prop]; // store에서 읽기
+      const oData = optimizationData[prop]; // store에서 읽기
+      console.log(histograms[prop], hData, oData);
+      if (!hData || !oData) return;
+
+      try {
+        console.log("gogo");
+        const binEdges = JSON.parse(hData.bin_edges);
+        const counts = JSON.parse(hData.counts);
+        if (binEdges.length < 2) return;
+
+        const diff =
+          parseFloat(binEdges[binEdges.length - 1] - binEdges[0]) * 0.1;
+        const minX = parseFloat(oData.minimum_value || binEdges[0] - diff);
+        const maxX = parseFloat(
+          oData.maximum_value || binEdges[binEdges.length - 1] + diff
+        );
+
+        const total = counts.reduce((sum, val) => sum + val, 0);
+        const avgValue = total / counts.length;
+        const colorsArray = counts.map((val) =>
+          val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
+        );
+
+        setLocalValues((prev) => ({
+          ...prev,
+          [prop]: {
+            min: minX,
+            max: maxX,
+          },
+        }));
+
+        console.log(minX, maxX);
+        console.log(binEdges);
+
+        const newChart = {
+          barChartData: [
+            {
+              name: prop,
+              data: binEdges.map((edge, i) => ({
+                x: edge, // bin의 실제 숫자 위치
+                y: counts[i], // 그 bin의 카운트
+              })),
+            },
+          ],
+          barChartOptions: {
+            chart: {
+              type: "bar",
+              toolbar: { show: false },
+              zoom: {
+                enabled: false, // 드래그 줌 비활성화
+              },
+            },
+            plotOptions: {
+              bar: { distributed: true, borderRadius: 8, columnWidth: "10px" },
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            xaxis: {
+              type: "numeric",
+              min: Math.min(minX, parseFloat(binEdges[0])) - diff * 0.5,
+              max:
+                Math.max(maxX, parseFloat(binEdges[binEdges.length - 1])) +
+                diff * 0.5,
+              labels: {
+                show: true,
+                style: { colors: "#fff", fontSize: "12px" },
+              },
+            },
+            yaxis: {
+              show: true,
+              labels: {
+                show: true,
+                style: { colors: "#fff", fontSize: "12px" },
+              },
+            },
+            tooltip: {
+              theme: "dark",
+              y: { formatter: (val) => `${parseInt(val)}` },
+              style: { fontSize: "14px" },
+            },
+            colors: colorsArray,
+            annotations: {
+              yaxis: [
+                {
+                  y: avgValue,
+                  borderColor: "#000",
+                  label: {
+                    text: `AvgCount: ${avgValue.toFixed(2)}`,
+                    style: {
+                      color: "#fff",
+                      background: "#000",
+                      fontSize: "10px",
+                    },
+                  },
+                },
+              ],
+              xaxis: [
+                {
+                  x: minX,
+                  borderColor: "#00E396",
+                  label: {
+                    text: `Min: ${minX.toFixed(2)}`,
+                    style: {
+                      color: "#fff",
+                      background: "#00E396",
+                      fontSize: "10px",
+                    },
+                  },
+                },
+                {
+                  x: maxX,
+                  borderColor: "#FF4560",
+                  label: {
+                    text: `Max: ${maxX.toFixed(2)}`,
+                    style: {
+                      color: "#fff",
+                      background: "#FF4560",
+                      fontSize: "10px",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        };
+
+        setChartData((prev) => ({
+          ...prev,
+          [prop]: newChart,
+        }));
+      } catch (err) {
+        console.error("Error making chart data:", err);
+      }
+    };
+
+    // 현재 페이지 property들에 대해 차트 세팅
+    updateChartDataForProperty(controllableProp);
+    updateChartDataForProperty(outputProp);
+  }, [
+    // store에서 읽고, chartData 로컬 상태만 세팅
+    // histograms, optimizationData 등이 바뀔 때마다 실행
+    histograms,
+    optimizationData,
+    currentControllablePage,
+    currentOutputPage,
+    controllableProperties,
+    outputProperties,
+  ]);
+
+  // ------------------------------------------------------------
+  // 나머지 부분(카드 렌더링, handleNextStep 등)은 기존과 동일
+  // ------------------------------------------------------------
   const handleNextStep = async () => {
-    // API 요청 로직은 기존 postOptimizationData를 활용하여 각 property의 데이터를 저장하는 방식
-    // 생략하고, 단순히 다음 페이지로 이동하도록 처리 (혹은 추가 로직을 넣을 수 있음)
-    history.push(`/projects/${projectId}/flows/${flowId}/check-performance`);
+    try {
+      const postPromises = Object.keys(optimizationData).map((prop) => {
+        const data = optimizationData[prop];
+        if (!data) return null;
+        return dispatch(
+          postOptimizationData({
+            flowId,
+            property: prop,
+            type: properties[prop],
+            goal: data.goal,
+            minimum_value: data.minimum_value,
+            maximum_value: data.maximum_value,
+          })
+        ).unwrap();
+      });
+      await Promise.all(postPromises);
+      history.push(`/projects/${projectId}/flows/${flowId}/set-priorities`);
+    } catch (error) {
+      console.error("Failed to post optimization data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update optimization data.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  // 각 goal에 따른 색상 결정 함수 (어두운 배경에 어울리는 밝은 색상)
   const getGoalColor = (goal) => {
     switch (goal) {
       case "No Optimization":
-        return "gray.200";
+        return "gray.100";
       case "Maximize":
-        return "green.200";
+        return "green.100";
       case "Minimize":
-        return "red.200";
+        return "red.100";
       case "Fit to Range":
-        return "orange.200";
+        return "orange.100";
       case "Fit to Property":
-        return "purple.200";
+        return "purple.100";
       default:
-        return "gray.200";
+        return "gray.100";
     }
   };
 
-  // Header 영역 렌더링 함수
   const renderHeader = () => (
     <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
-      <Button leftIcon={<ArrowBackIcon />} onClick={() => history.goBack()}>
-        Back
-      </Button>
+      <IconButton
+        icon={<ArrowBackIcon />}
+        onClick={() => history.goBack()}
+        colorScheme="blue"
+      />
       <Flex direction="column" align="center">
         <Text fontSize="2xl" fontWeight="bold" color="white">
           Set Goals
@@ -272,8 +438,28 @@ const SetGoalsPage = () => {
     </Flex>
   );
 
-  // 각 property 카드 렌더링 함수 (인자로 type과 property 이름을 받음)
+  // property 카드 렌더링
   const renderPropertyCard = (type, property) => {
+    if (!property) {
+      return (
+        <Card w="100%" h="calc(80vh - 160px)">
+          <Flex align="center" justify="center" h="100%">
+            <Text color="white">No {type} property</Text>
+          </Flex>
+        </Card>
+      );
+    }
+
+    if (isLoading) {
+      return (
+        <Card w="100%" h="calc(80vh - 150px)">
+          <Flex align="center" justify="center" h="100%">
+            <Text color="white">Loading...</Text>
+          </Flex>
+        </Card>
+      );
+    }
+
     const propertyData = optimizationData[property] || {
       minimum_value: "",
       maximum_value: "",
@@ -284,24 +470,25 @@ const SetGoalsPage = () => {
       barChartData: [],
       barChartOptions: {},
     };
+
     const optimizationOptions =
       type === "controllable"
         ? ["No Optimization", "Maximize", "Minimize", "Fit to Range"]
         : ["Maximize", "Minimize", "Fit to Range", "Fit to Property"];
 
     return (
-      <Card w="100%" h="calc(80vh - 160px)">
+      <Card w="100%" h="calc(80vh - 140px)">
         <CardHeader
           display="flex"
           justifyContent="space-between"
           alignItems="center"
         >
           <Box>
-            <Text color="#fff" fontSize="lg" fontWeight="bold">
+            <Text color="#fff" fontSize="xl" fontWeight="bold">
               {property}
             </Text>
             <Text fontSize="sm" color="gray.400">
-              Type: {type}
+              {type}
             </Text>
           </Box>
           <Card borderRadius="md" p={2} boxShadow="sm" w="140px">
@@ -314,7 +501,7 @@ const SetGoalsPage = () => {
             </Text>
           </Card>
         </CardHeader>
-
+        <Divider borderColor="gray.600" />
         <CardBody display="flex" flexDirection="column" alignItems="center">
           <Box w="100%">
             <BarChart
@@ -322,86 +509,150 @@ const SetGoalsPage = () => {
               barChartOptions={propertyChartData.barChartOptions}
             />
           </Box>
-          <Flex alignItems="center" gap={4} mt={4}>
-            <Input
-              value={propertyData.minimum_value}
-              isReadOnly={!editing}
-              color="#fff"
-              onChange={(e) =>
-                dispatch(
-                  updateOptimizationData({
-                    flowId,
-                    property,
-                    newData: {
-                      minimum_value: parseFloat(e.target.value) || 0,
-                    },
-                    type,
-                  })
-                )
-              }
-            />
-            <Input
-              value={propertyData.maximum_value}
-              isReadOnly={!editing}
-              color="#fff"
-              onChange={(e) =>
-                dispatch(
-                  updateOptimizationData({
-                    flowId,
-                    property,
-                    newData: {
-                      maximum_value: parseFloat(e.target.value) || 0,
-                    },
-                    type,
-                  })
-                )
-              }
-            />
-            <Button
-              colorScheme={type === "controllable" ? "blue" : "purple"}
-              onClick={() =>
-                setIsEditing((prev) => ({
-                  ...prev,
-                  [property]: !editing,
-                }))
-              }
-            >
-              {editing ? "Done" : "Edit"}
-            </Button>
-          </Flex>
-          <Grid templateColumns="repeat(2, 2fr)" gap={4} mt={4}>
-            {optimizationOptions.map((option) => (
-              <Button
-                key={option}
-                colorScheme={propertyData.goal === option ? "green" : "gray"}
-                onClick={() =>
-                  dispatch(
-                    updateOptimizationData({
-                      flowId,
-                      property,
-                      newData: { goal: option },
-                      type,
-                    })
-                  )
-                }
-              >
-                {option}
-              </Button>
-            ))}
-          </Grid>
+
+          {/* Min/Max 입력 */}
+          <Box w="100%" mt={4}>
+            <Flex alignItems="center" gap={4}>
+              <Box w="100%">
+                <Text fontSize="xs" color="gray.300" textAlign="center" mb={1}>
+                  Min
+                </Text>
+                <Input
+                  value={
+                    localValues[property]?.min ?? propertyData.minimum_value
+                  }
+                  isReadOnly={!editing}
+                  color="#fff"
+                  onChange={(e) =>
+                    setLocalValues((prev) => ({
+                      ...prev,
+                      [property]: { ...prev[property], min: e.target.value },
+                    }))
+                  }
+                  onFocus={() =>
+                    setIsEditing((prev) => ({ ...prev, [property]: true }))
+                  }
+                  onBlur={() => {
+                    setIsEditing((prev) => ({ ...prev, [property]: false }));
+                    const newVal = parseFloat(localValues[property]?.min);
+                    const currentVal = parseFloat(propertyData.minimum_value);
+                    if (!isNaN(newVal) && newVal !== currentVal) {
+                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+                      setLocalValues((prev) => ({
+                        ...prev,
+                        [property]: { ...prev[property], min: formatted },
+                      }));
+                      dispatch(
+                        updateOptimizationData({
+                          flowId,
+                          property,
+                          newData: { minimum_value: parseFloat(formatted) },
+                          type,
+                        })
+                      );
+                      toast({
+                        title: "Optimization range updated.",
+                        description: "Min value has been updated.",
+                        status: "success",
+                        duration: 1000,
+                        isClosable: true,
+                      });
+                    }
+                  }}
+                />
+              </Box>
+              <Box w="100%">
+                <Text fontSize="xs" color="gray.300" textAlign="center" mb={1}>
+                  Max
+                </Text>
+                <Input
+                  value={
+                    localValues[property]?.max ?? propertyData.maximum_value
+                  }
+                  isReadOnly={!editing}
+                  color="#fff"
+                  onChange={(e) =>
+                    setLocalValues((prev) => ({
+                      ...prev,
+                      [property]: { ...prev[property], max: e.target.value },
+                    }))
+                  }
+                  onFocus={() =>
+                    setIsEditing((prev) => ({ ...prev, [property]: true }))
+                  }
+                  onBlur={() => {
+                    setIsEditing((prev) => ({ ...prev, [property]: false }));
+                    const newVal = parseFloat(localValues[property]?.max);
+                    const currentVal = parseFloat(propertyData.maximum_value);
+                    if (!isNaN(newVal) && newVal !== currentVal) {
+                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+                      setLocalValues((prev) => ({
+                        ...prev,
+                        [property]: { ...prev[property], max: formatted },
+                      }));
+                      dispatch(
+                        updateOptimizationData({
+                          flowId,
+                          property,
+                          newData: { maximum_value: parseFloat(formatted) },
+                          type,
+                        })
+                      );
+                      toast({
+                        title: "Optimization range updated.",
+                        description: "Max value has been updated.",
+                        status: "success",
+                        duration: 1000,
+                        isClosable: true,
+                      });
+                    }
+                  }}
+                />
+              </Box>
+            </Flex>
+          </Box>
+
+          {/* Goal 설정 */}
+          <Box w="100%" mt={4}>
+            <Grid templateColumns="repeat(2, 2fr)" gap={2}>
+              {optimizationOptions.map((option) => (
+                <Button
+                  key={option}
+                  bg={
+                    propertyData.goal === option
+                      ? getGoalColor(option)
+                      : "gray.400"
+                  }
+                  color={propertyData.goal === option ? "#0c1c1c" : "#fff"}
+                  _hover={{ bg: "blue.100" }}
+                  onClick={() =>
+                    dispatch(
+                      updateOptimizationData({
+                        flowId,
+                        property,
+                        newData: { goal: option },
+                        type,
+                      })
+                    )
+                  }
+                >
+                  {option}
+                </Button>
+              ))}
+            </Grid>
+          </Box>
         </CardBody>
       </Card>
     );
   };
 
-  // 전체 페이지 수 계산 (각 카테고리별)
+  // 페이징
   const totalControllablePages = controllableProperties.length;
   const totalOutputPages = outputProperties.length;
   const currentControllableProperty =
     controllableProperties[currentControllablePage - 1] || "";
   const currentOutputProperty = outputProperties[currentOutputPage - 1] || "";
 
-  // 페이징 컨트롤 렌더링 함수
   const renderPagination = (currentPage, totalPages, setPage) => (
     <Flex justify="center" align="center" mt={4}>
       <IconButton
@@ -428,19 +679,21 @@ const SetGoalsPage = () => {
       <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6} px={6}>
         <Box>
           {renderPropertyCard("controllable", currentControllableProperty)}
-          {renderPagination(
-            currentControllablePage,
-            totalControllablePages,
-            setCurrentControllablePage
-          )}
+          {totalControllablePages > 1 &&
+            renderPagination(
+              currentControllablePage,
+              totalControllablePages,
+              setCurrentControllablePage
+            )}
         </Box>
         <Box>
           {renderPropertyCard("output", currentOutputProperty)}
-          {renderPagination(
-            currentOutputPage,
-            totalOutputPages,
-            setCurrentOutputPage
-          )}
+          {totalOutputPages > 1 &&
+            renderPagination(
+              currentOutputPage,
+              totalOutputPages,
+              setCurrentOutputPage
+            )}
         </Box>
       </Grid>
     </Flex>
