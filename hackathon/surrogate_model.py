@@ -76,22 +76,28 @@ def main(args, scalers=None):
 
     rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
 
-    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2})
+    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
     print(df_eval)
 
     if scalers:
-        y_test = scalers[args.target[0]].inverse_transform(y_test)
-        y_pred = scalers[args.target[0]].inverse_transform(y_pred)
+        for i in range(len(args.target)):
+            y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1))[:,0]
+            y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1))[:,0]
 
     #TODO only for single target -> multi target ranking?
-    print(y_test.shape, y_pred.shape)
-    print(abs(y_test - y_pred).shape)
-    df_rank = pd.DataFrame({'y_test': y_test[:,0].squeeze(), 'y_pred': y_pred[:,0].squeeze(),'diff': abs(y_test[:,0] - y_pred[:,0]).squeeze()}) # y_pred, y_test rank ! 
-    df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
-
-
+    # print(y_test.shape, y_pred.shape)
+    # print(abs(y_test - y_pred).shape)
     os.makedirs(f'./prj/{args.prj_id}/surrogate_model', exist_ok=True)
-    df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model.csv', index=False)
+    for i in range(len(args.target)):
+        df_rank = pd.DataFrame({'y_test': y_test[:,i].squeeze(), 'y_pred': y_pred[:,i].squeeze(),'diff': abs(y_test[:,i] - y_pred[:,i]).squeeze()}) # y_pred, y_test rank ! 
+        df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
+        df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
+    # df_rank = pd.DataFrame({'y_test': y_test[:,0].squeeze(), 'y_pred': y_pred[:,0].squeeze(),'diff': abs(y_test[:,0] - y_pred[:,0]).squeeze()}) # y_pred, y_test rank ! 
+    # df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
+
+
+    # 
+    # df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model.csv', index=False)
 
     if model_name == 'catboost':
         df_importance = pd.DataFrame({'feature': x_col_list, 'importance': model.get_feature_importance()/model.get_feature_importance().sum()})
