@@ -1,5 +1,5 @@
 import pandas as pd
-from src.preprocess.encoding import bert_encode, label_encode, identity_scaler
+from src.preprocess.encoding import bert_encode, label_encode
 from transformers import BertModel, BertTokenizer
 
 
