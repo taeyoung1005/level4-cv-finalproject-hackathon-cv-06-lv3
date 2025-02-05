@@ -177,7 +177,7 @@ export const fetchFlowProperties = createAsyncThunk(
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/concat-columns/?flow_id=${flowId}`
+        `${API_BASE_URL}/concat-columns/properties/?flow_id=${flowId}`
       );
       if (!response.ok) throw new Error("Failed to fetch properties");
 
@@ -186,6 +186,26 @@ export const fetchFlowProperties = createAsyncThunk(
       return { flowId, data };
     } catch (error) {
       console.error("❌ Error fetching properties:", error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// 데이터 타입 변경 (숫자형, 문자형, 문자, 사용 불가)
+export const savePropertyTypes = createAsyncThunk(
+  "flows/savePropertyTypes",
+  async ({ flowId, update }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/concat-columns/types/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(update),
+      });
+
+      if (!response.ok) throw new Error("Failed to update property types");
+
+      return { flowId, update };
+    } catch (error) {
       return rejectWithValue(error.message);
     }
   }
@@ -234,11 +254,14 @@ export const savePropertyCategories = createAsyncThunk(
   "flows/savePropertyCategories",
   async ({ flowId, update }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/concat-columns/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(update),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/concat-columns/properties/`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(update),
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to update property categories");
 

@@ -34,6 +34,7 @@ import {
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { fetchFlowProperties } from "store/features/flowSlice";
 import { updatePropertyCategory } from "store/features/flowSlice";
+import { savePropertyTypes } from "store/features/flowSlice";
 
 const SelectDatasetsPage = () => {
   const { projectId, flowId } = useParams();
@@ -47,6 +48,34 @@ const SelectDatasetsPage = () => {
   // ✅ 선택된 데이터셋을 로컬 상태에서 관리
   const [selectedDatasets, setSelectedDatasets] = useState([]);
   const [totalSelectedSize, setTotalSelectedSize] = useState(0);
+
+  const properties = useSelector(
+    (state) =>
+      state.flows.properties?.[flowId] || {
+        numerical: [],
+        categorical: [],
+        text: [],
+        unavailable: [],
+      }
+  );
+
+  // 로컬 상태로 카테고리별 property 배열을 관리
+  const [categoriesState, setCategoriesState] = useState({
+    numerical: properties.numerical,
+    categorical: properties.categorical,
+    text: properties.text,
+    unavailable: properties.unavailable,
+  });
+
+  // Redux 상태 변경 시 로컬 상태 동기화 (필요하다면)
+  useEffect(() => {
+    setCategoriesState({
+      numerical: properties.numerical,
+      categorical: properties.categorical,
+      text: properties.text,
+      unavailable: properties.unavailable,
+    });
+  }, [properties]);
 
   // Redux 상태에서 데이터 가져오기
   const flow = useSelector((state) => state.flows.flows[flowId] || {});
@@ -99,8 +128,28 @@ const SelectDatasetsPage = () => {
 
   //  setTotalSelectedSize(SelectedSize);
 
-  const handleNextStep = () => {
-    history.push(`/projects/${projectId}/flows/${flowId}/analyze-properties`);
+  const handleNextStep = async () => {
+    for (const category of Object.keys(categoriesState)) {
+      for (const property of categoriesState[category]) {
+        try {
+          await dispatch(
+            savePropertyTypes({
+              flowId,
+              update: {
+                flow_id: flowId,
+                column_name: property,
+                column_type: category,
+              },
+            })
+          ).unwrap();
+          // 각 업데이트가 성공하면 toast나 console.log로 메시지 표시 가능
+          console.log(`Updated ${property} to ${category}`);
+        } catch (error) {
+          console.error(`Failed to update ${property}:`, error);
+        }
+      }
+    }
+    history.push(`/projects/${projectId}/flows/${flowId}/configure-properties`);
   };
 
   const handleGoBack = () => {
@@ -249,37 +298,6 @@ const SelectDatasetsPage = () => {
 
   // 예시: 초기 Redux 상태의 properties (numeric, categorical, text, unavailable)
   const DataPropertiesDragAndDrop = () => {
-    const { flowId } = useParams();
-    const dispatch = useDispatch();
-    const properties = useSelector(
-      (state) =>
-        state.flows.properties?.[flowId] || {
-          numerical: [],
-          categorical: [],
-          text: [],
-          unavailable: [],
-        }
-    );
-
-    // 로컬 상태로 카테고리별 property 배열을 관리
-    const [categoriesState, setCategoriesState] = useState({
-      numerical: properties.numerical,
-      categorical: properties.categorical,
-      text: properties.text,
-      unavailable: properties.unavailable,
-    });
-
-    // Redux 상태 변경 시 로컬 상태 동기화 (필요하다면)
-    useEffect(() => {
-      setCategoriesState({
-        numerical: properties.numerical,
-        categorical: properties.categorical,
-        text: properties.text,
-        unavailable: properties.unavailable,
-      });
-    }, [properties]);
-
-    // onDragEnd 핸들러
     // onDragEnd 핸들러
     const onDragEnd = (result) => {
       const { source, destination } = result;

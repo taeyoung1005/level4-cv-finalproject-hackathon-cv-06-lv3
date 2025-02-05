@@ -30,7 +30,6 @@ import {
   fetchPropertyHistograms,
   postOptimizationData,
 } from "store/features/flowSlice";
-import { position } from "stylis";
 
 const SetGoalsPage = () => {
   const { projectId, flowId } = useParams();
@@ -45,6 +44,9 @@ const SetGoalsPage = () => {
   const histograms = useSelector(
     (state) => state.flows.histograms[flowId] || {}
   );
+
+  const types = useSelector((state) => state.flows.properties[flowId] || {});
+
   const optimizationData =
     useSelector((state) => state.flows.optimizationData[flowId]) || {};
 
@@ -105,9 +107,6 @@ const SetGoalsPage = () => {
     const controllableProp =
       controllableProperties[currentControllablePage - 1];
     const outputProp = outputProperties[currentOutputPage - 1];
-
-    console.log(controllableProp, outputProp);
-    console.log("histograms::::::::::::::", histograms);
 
     const handlePropertyFetch = async (prop) => {
       if (!prop) return; // 없는 페이지면 스킵
@@ -210,9 +209,6 @@ const SetGoalsPage = () => {
       controllableProperties[currentControllablePage - 1];
     const outputProp = outputProperties[currentOutputPage - 1];
 
-    console.log("optData:", optimizationData);
-    console.log("chartData", chartData);
-
     const updateChartDataForProperty = (prop) => {
       if (!prop) return;
       const hData = histograms[prop]; // store에서 읽기
@@ -221,7 +217,6 @@ const SetGoalsPage = () => {
       if (!hData || !oData) return;
 
       try {
-        console.log("gogo");
         const binEdges = JSON.parse(hData.bin_edges);
         const counts = JSON.parse(hData.counts);
         if (binEdges.length < 2) return;
@@ -246,9 +241,6 @@ const SetGoalsPage = () => {
             max: maxX,
           },
         }));
-
-        console.log(minX, maxX);
-        console.log(binEdges);
 
         const newChart = {
           barChartData: [
@@ -284,7 +276,6 @@ const SetGoalsPage = () => {
                 style: {
                   colors: "#fff",
                   fontSize: "12px",
-                  fontFamily: "Plus Jakarta Display",
                 },
               },
             },
@@ -295,7 +286,6 @@ const SetGoalsPage = () => {
                 style: {
                   colors: "#fff",
                   fontSize: "12px",
-                  fontFamily: "Plus Jakarta Display",
                 },
               },
             },
@@ -311,14 +301,12 @@ const SetGoalsPage = () => {
                   y: avgValue,
                   borderColor: "yellow",
                   label: {
-                    text: `AvgCount`,
                     position: "left",
                     offsetX: 35,
                     style: {
                       color: "#fff",
                       background: "#0c0c0c",
                       fontSize: "8px",
-                      fontFamily: "Plus Jakarta Display",
                     },
                   },
                 },
@@ -328,12 +316,10 @@ const SetGoalsPage = () => {
                   x: minX,
                   borderColor: "#00E396",
                   label: {
-                    //text: `Min: ${minX.toFixed(2)}`,
                     style: {
                       color: "#fff",
                       background: "#00E396",
                       fontSize: "10px",
-                      fontFamily: "Plus Jakarta Display",
                     },
                   },
                 },
@@ -457,12 +443,12 @@ const SetGoalsPage = () => {
   );
 
   // property 카드 렌더링
-  const renderPropertyCard = (type, property) => {
+  const renderPropertyCard = (category, property) => {
     if (!property) {
       return (
         <Card w="100%" h="calc(80vh - 160px)">
           <Flex align="center" justify="center" h="100%">
-            <Text color="white">No {type} property</Text>
+            <Text color="white">No {category} property</Text>
           </Flex>
         </Card>
       );
@@ -481,7 +467,7 @@ const SetGoalsPage = () => {
     const propertyData = optimizationData[property] || {
       minimum_value: "",
       maximum_value: "",
-      goal: type === "output" ? "Fit to Property" : "No Optimization",
+      goal: category === "output" ? "Fit to Property" : "No Optimization",
     };
     const editing = isEditing[property] || false;
     const propertyChartData = chartData[property] || {
@@ -490,7 +476,7 @@ const SetGoalsPage = () => {
     };
 
     const optimizationOptions =
-      type === "controllable"
+      category === "controllable"
         ? ["No Optimization", "Maximize", "Minimize", "Fit to Range"]
         : ["Maximize", "Minimize", "Fit to Range", "Fit to Property"];
 
@@ -506,7 +492,7 @@ const SetGoalsPage = () => {
               {property}
             </Text>
             <Text fontSize="sm" color="gray.400">
-              {type}
+              {category}
             </Text>
           </Box>
           <Card borderRadius="md" p={2} boxShadow="sm" w="140px">
@@ -620,7 +606,7 @@ const SetGoalsPage = () => {
                         flowId,
                         property,
                         newData: { minimum_value: parseFloat(formatted) },
-                        type,
+                        category,
                       })
                     );
 
@@ -725,7 +711,7 @@ const SetGoalsPage = () => {
                         flowId,
                         property,
                         newData: { maximum_value: parseFloat(formatted) },
-                        type,
+                        category,
                       })
                     );
 
@@ -766,7 +752,7 @@ const SetGoalsPage = () => {
                         flowId,
                         property,
                         newData: { goal: option },
-                        type,
+                        category,
                       })
                     )
                   }
