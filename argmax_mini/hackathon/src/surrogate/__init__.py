@@ -13,6 +13,7 @@ from .lightgbm_multi_model import (
 )
 from .simpleNN_model import simpleNN_train, simpleNN_evaluate, simpleNN_predict
 from .eval_surrogate_model import eval_surrogate_model
+from .eval_classification_model import eval_classification_model
 from .eval_multi_surrogate_model import eval_multi_surrogate_model
 from .tabpfn_model import (
     tabpfn_train, 
@@ -35,3 +36,13 @@ from .catboost_multi_model import (
 from .tabpfn_multi_model import (
     tabpfn_multi_train, 
     tabpfn_multi_predict)
+
+from .tabpfn_classification_model import (
+    tabpfn_classification_train,
+    tabpfn_classification_predict,
+)
+
+from .catboost_classification_model import (
+    catboost_classification_train,
+    catboost_classification_predict,
+)

@@ -5,6 +5,7 @@ from hackathon.src.preprocess.dynamic_encoding import dynamic_encode
 from hackathon.src.preprocess.dynamic_outlier import dynamic_outlier_removal
 from hackathon.src.preprocess.dynamic_scaling import dynamic_scaling
 from hackathon.src.preprocess.geospatial_features import remove_geospatial_columns
+from hackathon.src.preprocess.scaling import IdentityScaler
 from hackathon.src.preprocess.missing_values import (
     drop_high_missing_data,
     fill_missing_categorical,
@@ -13,7 +14,7 @@ from hackathon.src.preprocess.missing_values import (
 from hackathon.src.preprocess.text_processing import process_text
 
 
-def preprocess_dynamic(df: pd.DataFrame, cat_cols: list, num_cols: list, text_cols: list) -> pd.DataFrame:
+def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     """
     입력된 df에 대해 동적 전처리를 수행한다.
     - detect_features()로 컬럼 분류
@@ -27,9 +28,12 @@ def preprocess_dynamic(df: pd.DataFrame, cat_cols: list, num_cols: list, text_co
 
     # 1. 데이터 특성 탐지
     feature_info = detect_features(df)
+    num_cols = feature_info['numerical']
+    text_cols = feature_info['text']
+    cat_cols = feature_info['categorical']
     datetime_cols = feature_info['datetime']
     dtype_info = feature_info['dtypes']
-    scaler_info = {}
+    scaler_info = {col: IdentityScaler() for col in df.columns}
 
     # 2. 결측치 처리
     df = drop_high_missing_data(df, threshold=0.5)
@@ -56,4 +60,5 @@ def preprocess_dynamic(df: pd.DataFrame, cat_cols: list, num_cols: list, text_co
     # 7. 스케일링 (동적 처리)
     df_scaled, scaler_info = dynamic_scaling(df, num_cols, scaler_info)
 
+    # 전처리 완료된 데이터프레임 반환
     return df, df_scaled, dtype_info, scaler_info
