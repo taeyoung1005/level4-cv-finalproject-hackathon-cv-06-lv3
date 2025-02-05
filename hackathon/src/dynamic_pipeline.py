@@ -4,6 +4,7 @@ from src.preprocess.detect_features import detect_features
 from src.preprocess.dynamic_encoding import dynamic_encode
 from src.preprocess.dynamic_outlier import dynamic_outlier_removal
 from src.preprocess.dynamic_scaling import dynamic_scaling
+from src.preprocess.identity_scaler import IdentityScaler
 from src.preprocess.missing_values import (
     drop_high_missing_data,
     fill_missing_categorical,
@@ -31,7 +32,7 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     datetime_cols = feature_info['datetime']
     text_cols = feature_info['text']
     dtype_info = feature_info['dtypes']
-    scaler_info = {}
+    scaler_info = {col: IdentityScaler() for col in df.columns}
 
 
     # 2. 결측치 처리
