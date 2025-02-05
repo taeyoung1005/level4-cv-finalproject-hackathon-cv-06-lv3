@@ -5,7 +5,7 @@ from hackathon.src.preprocess.dynamic_encoding import dynamic_encode
 from hackathon.src.preprocess.dynamic_outlier import dynamic_outlier_removal
 from hackathon.src.preprocess.dynamic_scaling import dynamic_scaling
 from hackathon.src.preprocess.geospatial_features import remove_geospatial_columns
-from hackathon.src.preprocess.scaling import IdentityScaler
+from hackathon.src.preprocess.identity_scaler import IdentityScaler
 from hackathon.src.preprocess.missing_values import (
     drop_high_missing_data,
     fill_missing_categorical,

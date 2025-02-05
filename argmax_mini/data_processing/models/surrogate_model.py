@@ -13,7 +13,7 @@ class SurrogateMatricModel(models.Model):
         ConcatColumnModel, on_delete=models.CASCADE, related_name="surrogate_matric")
     r_squared = models.FloatField(blank=False, null=False)
     rmse = models.FloatField(blank=False, null=False, default=0)
-    mse = models.FloatField(blank=False, null=False, default=0)
+    mae = models.FloatField(blank=False, null=False, default=0)
 
     def __str__(self):
         return self.flow.flow_name
