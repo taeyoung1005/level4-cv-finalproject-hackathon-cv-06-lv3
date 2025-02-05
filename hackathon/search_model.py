@@ -48,9 +48,15 @@ def main(args, scalers=None):
 
 
     controll_range = {}
+    
     if scalers:
         for key, value in args.controll_range.items():
-            controll_range[key] = scalers[key].transform(np.array(value).reshape(-1,1))
+            if type(scalers[key]).__name__ == 'LabelEncoder':
+                # controll_range[key] = scalers[key].transform(np.array(value).reshape(-1,1))
+                i = x_col_list.index(key)
+                controll_range[key] = (X_train[:,i].min(),X_train[:,i].max())
+            else:
+                controll_range[key] = tuple(scalers[key].transform(np.array(value).reshape(-1,1)).flatten())
 
         y_user_request = []
 
@@ -61,6 +67,11 @@ def main(args, scalers=None):
     else:
         raise ValueError("scalers is not provided")
     
+    # is_nominal = [False]*len(args.controll_name)
+    # for i, key in enumerate(args.controll_name):
+    #     if type(scalers[key]).__name__ == 'LabelEncoder':
+    #         is_nominal[i] = True
+    # print("is_nominal",is_nominal)
     X_test,y_test = find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=5)
 
     
@@ -147,25 +158,23 @@ def main(args, scalers=None):
     pred_y = predict_func(model, pred_input)
 
     for i in range(len(args.target)):
+
         opt_df[f'pred_y_{args.target[i]}'] = pred_y[:,i]
         opt_df[f'pred_y_{args.target[i]}'] = inverse_transform(opt_df[[f'pred_y_{args.target[i]}']])
     
-    # print(pred_y.shape)
-    # print(pred_y)
-    # import pdb; pdb.set_trace()
-    # opt_df['pred_y'] = inverse_transform_y(pred_y)
-    # opt_df['pred_y'] = opt_df['pred_y'].apply(inverse_transform_y)
     for i in range(len(args.target)):
-    
         opt_df[f'test_y_{args.target[i]}'] = y_test[:,i]
         opt_df[f'test_y_{args.target[i]}'] = inverse_transform(opt_df[[f'test_y_{args.target[i]}']])
 
     for i in range(len(args.controll_name)):
 
         opt_df[f'pred_x_{args.controll_name[i]}'] = inverse_transform(opt_df[[f'pred_x_{args.controll_name[i]}']])
-        # print(opt_df[f'pred_x_{args.controll_name[i]}'])
+    
     for i in range(len(x_col_list)):
-        opt_df[f'test_x_{x_col_list[i]}'] = X_test[:,i]
+        if type(scalers[x_col_list[i]]).__name__ == 'LabelEncoder':
+            opt_df[f'test_x_{x_col_list[i]}'] = X_test[:,i].astype(int)
+        else:
+            opt_df[f'test_x_{x_col_list[i]}'] = X_test[:,i]
         opt_df[f'test_x_{x_col_list[i]}'] = inverse_transform(opt_df[[f'test_x_{x_col_list[i]}']])
     # opt_df['test_x_control'] = opt_df['test_x'].apply(lambda x : x[control_index])
 
