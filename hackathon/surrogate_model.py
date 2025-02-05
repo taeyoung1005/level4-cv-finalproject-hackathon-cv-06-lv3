@@ -11,6 +11,8 @@ import src.surrogate as surrogate
 from src.utils import Setting, measure_time
 
 import pandas as pd
+import numpy as np
+
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
 def main(args, scalers=None):
@@ -28,7 +30,7 @@ def main(args, scalers=None):
     # 데이터 로드 및 분할
     load_data_func = datasets.load_and_split_data_with_x_col_list
     X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
-    
+
     if model_name == 'tabpfn':
         if X_train.shape[0] > 3000:
             X_train = X_train[:3000]
@@ -57,7 +59,15 @@ def main(args, scalers=None):
     if len(args.target) > 1:
         train_func = getattr(surrogate, f'{model_name}_multi_train')
     else:
-        train_func = getattr(surrogate, f'{model_name}_train')
+        if type(scalers[args.target[0]]).__name__ == 'LabelEncoder':
+            unique_classes_train = np.unique(y_train)
+            unique_classes_test = np.unique(y_test)
+            if len(unique_classes_train) > 10 and model_name == 'tabpfn':
+                print(f'훈련 데이터의 고유 클래스 개수가 {len(unique_classes_train)}로 10개를 초과해, {model_name}을 실행할 수 없습니다. catboost classifier를 실행합니다.')
+                model_name = 'catboost'
+            train_func = getattr(surrogate, f'{model_name}_classification_train')
+        else:
+            train_func = getattr(surrogate, f'{model_name}_train')
     # model = measure_time(train_func, train_loader, val_loader)
     model = train_func(train_loader, val_loader)
     # except AttributeError:
@@ -74,9 +84,13 @@ def main(args, scalers=None):
     print(y_pred.shape)
     print(y_test.shape)
 
-    rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
-
-    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
+    if "classification" in train_func.__name__:
+        acc, prec,rec, f1, auc, logloss = surrogate.eval_classification_model(y_test, y_pred)
+        df_eval = pd.DataFrame({'Accuracy': acc, 'Precision': prec, 'Recall': rec, 'F1-score': f1, 'AUC-ROC': auc, 'Log Loss': logloss, 'target': args.target})
+    else:
+        rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
+        df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
+    
     print(df_eval)
 
     if scalers:
