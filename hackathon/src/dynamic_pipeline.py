@@ -42,7 +42,7 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     df = fill_missing_categorical(df, cat_cols, fill_value='Unknown')
     
     if num_cat_cols:
-        df = fill_missing_categorical(df, num_cat_cols, fill_value='Unknown')
+        df = fill_missing_numerical(df, num_cat_cols, strategy='median')
 
     if text_cols:
         df = fill_missing_categorical(df, text_cols, fill_value='Unknown')
