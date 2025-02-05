@@ -4,7 +4,6 @@ from src.preprocess.detect_features import detect_features
 from src.preprocess.dynamic_encoding import dynamic_encode
 from src.preprocess.dynamic_outlier import dynamic_outlier_removal
 from src.preprocess.dynamic_scaling import dynamic_scaling
-from src.preprocess.geospatial_features import remove_geospatial_columns
 from src.preprocess.missing_values import (
     drop_high_missing_data,
     fill_missing_categorical,
@@ -31,7 +30,6 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     num_cols = feature_info['numerical']
     datetime_cols = feature_info['datetime']
     text_cols = feature_info['text']
-    geospatial_cols = feature_info['geospatial']
     dtype_info = feature_info['dtypes']
     scaler_info = {}
 
@@ -57,10 +55,6 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     # 4. 날짜형 데이터 처리
     if datetime_cols:
         df = remove_datetime_columns(df, datetime_cols)
-
-    # 6. 지리정보형 데이터 처리
-    if geospatial_cols:
-        df = remove_geospatial_columns(df, geospatial_cols)
 
     # 7. 스케일링 (동적 처리)
     df, scaler_info = dynamic_scaling(df, num_cols, scaler_info)

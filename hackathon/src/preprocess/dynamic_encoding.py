@@ -1,5 +1,5 @@
 import pandas as pd
-from src.preprocess.encoding import bert_encode, label_encode
+from src.preprocess.encoding import bert_encode, label_encode, identity_scaler
 from transformers import BertModel, BertTokenizer
 
 
@@ -53,5 +53,10 @@ def dynamic_encode(df: pd.DataFrame, feature_info: dict, scaler: dict) -> pd.Dat
             print(f"{col}: Label Encoding 적용 (범주형 데이터)")
             df, scaler = label_encode(df, [col], scaler)
             print(f"{col}: Label Encoding 적용 완료.")
+
+            # numerical_categorical 데이터 처리: 원본 값을 그대로 유지하고 스케일러 정보 저장
+    if 'numerical_categorical' in feature_info:
+        for col in feature_info['numerical_categorical']:
+            print(f"{col}: 원본 값 그대로 유지 (numerical_categorical)")
 
     return df, scaler
