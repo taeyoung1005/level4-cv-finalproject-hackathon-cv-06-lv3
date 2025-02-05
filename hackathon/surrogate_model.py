@@ -11,6 +11,8 @@ import src.surrogate as surrogate
 from src.utils import Setting, measure_time
 
 import pandas as pd
+import numpy as np
+
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
 def main(args, scalers=None):
@@ -28,7 +30,7 @@ def main(args, scalers=None):
     # 데이터 로드 및 분할
     load_data_func = datasets.load_and_split_data_with_x_col_list
     X_train, X_test, y_train, y_test, x_col_list = load_data_func(args.data_path, args.target)
-    
+
     if model_name == 'tabpfn':
         if X_train.shape[0] > 3000:
             X_train = X_train[:3000]
@@ -57,7 +59,15 @@ def main(args, scalers=None):
     if len(args.target) > 1:
         train_func = getattr(surrogate, f'{model_name}_multi_train')
     else:
-        train_func = getattr(surrogate, f'{model_name}_train')
+        if type(scalers[args.target[0]]).__name__ == 'LabelEncoder':
+            unique_classes_train = np.unique(y_train)
+            unique_classes_test = np.unique(y_test)
+            if len(unique_classes_train) > 10 and model_name == 'tabpfn':
+                print(f'훈련 데이터의 고유 클래스 개수가 {len(unique_classes_train)}로 10개를 초과해, {model_name}을 실행할 수 없습니다. catboost classifier를 실행합니다.')
+                model_name = 'catboost'
+            train_func = getattr(surrogate, f'{model_name}_classification_train')
+        else:
+            train_func = getattr(surrogate, f'{model_name}_train')
     # model = measure_time(train_func, train_loader, val_loader)
     model = train_func(train_loader, val_loader)
     # except AttributeError:
@@ -74,24 +84,55 @@ def main(args, scalers=None):
     print(y_pred.shape)
     print(y_test.shape)
 
-    rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
-
-    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
+    if "classification" in train_func.__name__:
+        acc, prec,rec, f1, auc, logloss = surrogate.eval_classification_model(y_test, y_pred)
+        df_eval = pd.DataFrame({'Accuracy': None, 'Precision': None, 'r2': acc, 'target': args.target})
+    else:
+        rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
+        df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
+    
     print(df_eval)
 
+    print('y_test.shape',y_test.shape)
+    print('y_pred.shape',y_pred.shape)
+    os.makedirs(f'./prj/{args.prj_id}/surrogate_model', exist_ok=True)
+
     if scalers:
+        
         for i in range(len(args.target)):
-            y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1))[:,0]
-            y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1))[:,0]
+            df_rank = pd.DataFrame(y_test)
+            df_rank['y_test'] = y_test[:,i]
+            df_rank['y_pred'] = y_pred[:,i]
+            if type(scalers[args.target[i]]).__name__ == 'LabelEncoder':
+                df_rank['y_test'] = df_rank['y_test'].astype(int)
+                df_rank['y_pred'] = df_rank['y_pred'].astype(int)
+                df_rank['diff'] = (y_test[:,i] != y_pred[:,i]).astype(int)
+                print(df_rank)
+            # else:
+            #     df_rank['diff'] = abs(y_test[:,i] - y_pred[:,i])
+
+            
+            # print(np.unique(y_test[:,i]))
+            # print(scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1)))
+            # y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1)).flatten()
+            # y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1)).flatten()
+            df_rank['y_test'] = scalers[args.target[i]].inverse_transform(df_rank['y_test'].values.reshape(-1,1)).flatten()
+            df_rank['y_pred'] = scalers[args.target[i]].inverse_transform(df_rank['y_pred'].values.reshape(-1,1)).flatten()
+
+            if type(scalers[args.target[i]]).__name__ != 'LabelEncoder':
+                df_rank['diff'] = abs(df_rank['y_test'] - df_rank['y_pred'])
+            
+            df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
+
+            df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
 
     #TODO only for single target -> multi target ranking?
     # print(y_test.shape, y_pred.shape)
     # print(abs(y_test - y_pred).shape)
-    os.makedirs(f'./prj/{args.prj_id}/surrogate_model', exist_ok=True)
-    for i in range(len(args.target)):
-        df_rank = pd.DataFrame({'y_test': y_test[:,i].squeeze(), 'y_pred': y_pred[:,i].squeeze(),'diff': abs(y_test[:,i] - y_pred[:,i]).squeeze()}) # y_pred, y_test rank ! 
-        df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
-        df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
+        
+            # df_rank = pd.DataFrame({'y_test': y_test[:,i].squeeze(), 'y_pred': y_pred[:,i].squeeze(),'diff': abs(y_test[:,i] - y_pred[:,i]).squeeze()}) # y_pred, y_test rank ! 
+            # df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
+            # df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
     # df_rank = pd.DataFrame({'y_test': y_test[:,0].squeeze(), 'y_pred': y_pred[:,0].squeeze(),'diff': abs(y_test[:,0] - y_pred[:,0]).squeeze()}) # y_pred, y_test rank ! 
     # df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
 
