@@ -86,7 +86,7 @@ def main(args, scalers=None):
         df : scaled col이 있는 df 
         """
         df_tmp = df.copy()
-        df_scaled_cols = [i.split('_')[-1] for i in df.columns]
+        df_scaled_cols = ['_'.join(i.split('_')[2:]) for i in df.columns]
         for i in range(len(df_scaled_cols)):
             col_reshaped = df_tmp[df.columns[i]].values.reshape(-1, 1)
             inversed = scalers[df_scaled_cols[i]].inverse_transform(col_reshaped)

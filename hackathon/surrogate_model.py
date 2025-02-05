@@ -86,26 +86,53 @@ def main(args, scalers=None):
 
     if "classification" in train_func.__name__:
         acc, prec,rec, f1, auc, logloss = surrogate.eval_classification_model(y_test, y_pred)
-        df_eval = pd.DataFrame({'Accuracy': acc, 'Precision': prec, 'Recall': rec, 'F1-score': f1, 'AUC-ROC': auc, 'Log Loss': logloss, 'target': args.target})
+        df_eval = pd.DataFrame({'Accuracy': None, 'Precision': None, 'r2': acc, 'target': args.target})
     else:
         rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
         df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
     
     print(df_eval)
 
+    print('y_test.shape',y_test.shape)
+    print('y_pred.shape',y_pred.shape)
+    os.makedirs(f'./prj/{args.prj_id}/surrogate_model', exist_ok=True)
+
     if scalers:
+        
         for i in range(len(args.target)):
-            y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1))[:,0]
-            y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1))[:,0]
+            df_rank = pd.DataFrame(y_test)
+            df_rank['y_test'] = y_test[:,i]
+            df_rank['y_pred'] = y_pred[:,i]
+            if type(scalers[args.target[i]]).__name__ == 'LabelEncoder':
+                df_rank['y_test'] = df_rank['y_test'].astype(int)
+                df_rank['y_pred'] = df_rank['y_pred'].astype(int)
+                df_rank['diff'] = (y_test[:,i] != y_pred[:,i]).astype(int)
+                print(df_rank)
+            # else:
+            #     df_rank['diff'] = abs(y_test[:,i] - y_pred[:,i])
+
+            
+            # print(np.unique(y_test[:,i]))
+            # print(scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1)))
+            # y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1)).flatten()
+            # y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1)).flatten()
+            df_rank['y_test'] = scalers[args.target[i]].inverse_transform(df_rank['y_test'].values.reshape(-1,1)).flatten()
+            df_rank['y_pred'] = scalers[args.target[i]].inverse_transform(df_rank['y_pred'].values.reshape(-1,1)).flatten()
+
+            if type(scalers[args.target[i]]).__name__ != 'LabelEncoder':
+                df_rank['diff'] = abs(df_rank['y_test'] - df_rank['y_pred'])
+            
+            df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
+
+            df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
 
     #TODO only for single target -> multi target ranking?
     # print(y_test.shape, y_pred.shape)
     # print(abs(y_test - y_pred).shape)
-    os.makedirs(f'./prj/{args.prj_id}/surrogate_model', exist_ok=True)
-    for i in range(len(args.target)):
-        df_rank = pd.DataFrame({'y_test': y_test[:,i].squeeze(), 'y_pred': y_pred[:,i].squeeze(),'diff': abs(y_test[:,i] - y_pred[:,i]).squeeze()}) # y_pred, y_test rank ! 
-        df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
-        df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
+        
+            # df_rank = pd.DataFrame({'y_test': y_test[:,i].squeeze(), 'y_pred': y_pred[:,i].squeeze(),'diff': abs(y_test[:,i] - y_pred[:,i]).squeeze()}) # y_pred, y_test rank ! 
+            # df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
+            # df_rank.to_csv(f'./prj/{args.prj_id}/surrogate_model/surrogate_model_{args.target[i]}.csv', index=False)
     # df_rank = pd.DataFrame({'y_test': y_test[:,0].squeeze(), 'y_pred': y_pred[:,0].squeeze(),'diff': abs(y_test[:,0] - y_pred[:,0]).squeeze()}) # y_pred, y_test rank ! 
     # df_rank['rank'] = df_rank['diff'].rank(method='min').astype(int)
 
