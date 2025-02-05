@@ -6,4 +6,4 @@ from .flows_views import FlowsView, FlowCsvAddView, FlowConcatCsvView, FlowProgr
 from .optimize_views import OptimizationView, OptimizationOrderView
 from .surrogate_views import SurrogateMatricView, SurrogateResultView, FeatureImportanceView
 from .search_views import SearchResultView
-from .preprocessing_views import PreprocessingView
+from .processing_views import ProcessingView

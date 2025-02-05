@@ -4,13 +4,13 @@ import argparse
 import logging
 import time
 
-import src.datasets as datasets
-import src.search as search
-import src.surrogate as surrogate
-from src.utils import Setting, measure_time
-from src.datasets.data_loader import load_data
-
 import numpy as np
+
+import hackathon.src.datasets as datasets
+import hackathon.src.search as search
+import hackathon.src.surrogate as surrogate
+from hackathon.src.utils import Setting, measure_time
+from hackathon.src.datasets.data_loader import load_data
 # from src.surrogate.eval_surrogate_model import eval_surrogate_model
 
 def find_top_k_similar_with_user_request(y_user_request, X_train, y_train, k=50):

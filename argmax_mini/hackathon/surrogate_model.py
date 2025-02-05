@@ -70,17 +70,14 @@ def main(args, scalers=None):
 
     rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
 
-    df_eval = pd.DataFrame(
-        {'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
+    df_eval = pd.DataFrame({'rmse': rmse, 'mae': mae, 'r2': r2, 'target': args.target})
 
     if scalers:
         for i in range(len(args.target)):
-            y_test[:, i] = scalers[args.target[i]].inverse_transform(
-                y_test[:, i].reshape(-1, 1))[:, 0]
-            y_pred[:, i] = scalers[args.target[i]].inverse_transform(
-                y_pred[:, i].reshape(-1, 1))[:, 0]
+            y_test[:,i] = scalers[args.target[i]].inverse_transform(y_test[:,i].reshape(-1,1))[:,0]
+            y_pred[:,i] = scalers[args.target[i]].inverse_transform(y_pred[:,i].reshape(-1,1))[:,0]
 
-    # TODO only for single target -> multi target ranking?
+    #TODO only for single target -> multi target ranking?
     # print(y_test.shape, y_pred.shape)
     # print(abs(y_test - y_pred).shape)
 
@@ -98,13 +95,13 @@ def main(args, scalers=None):
         # Select the top 5 smallest and bottom 5 largest differences.
         top5 = df_rank.nsmallest(5, 'diff')
         bottom5 = df_rank.nlargest(5, 'diff')
-
+        
         # Combine the two subsets.
         df_subset = pd.concat([top5, bottom5])
-
+        
         # Compute the rank based on the 'diff' column.
         df_subset['rank'] = df_subset['diff'].rank(method='min').astype(int)
-
+        
         # Append the subset to the list.
         all_rank.append(df_subset)
 
@@ -113,14 +110,16 @@ def main(args, scalers=None):
 
     os.makedirs(f'./temp/surrogate_model', exist_ok=True)
 
+    save_model_func = getattr(surrogate, f'{model_name}_save')
+    model_path = save_model_func(model, f'./temp/surrogate_model/model')
+
     if model_name == 'catboost':
         df_importance = pd.DataFrame({'feature': x_col_list, 'importance': model.get_feature_importance(
         )/model.get_feature_importance().sum()})
 
-    save_model_func = getattr(surrogate, f'{model_name}_save')
-    model_path = save_model_func(model, f'./temp/surrogate_model/model')
-
-    return df_rank, df_eval, df_importance, model_path
+        return df_rank, df_eval, df_importance, model_path
+    else:
+        return df_rank, df_eval, model_path
 
 
 if __name__ == "__main__":
