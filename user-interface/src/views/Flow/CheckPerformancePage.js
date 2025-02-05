@@ -76,15 +76,12 @@ const SurrogatePerformancePage = () => {
               <StatGroup justifyContent="center">
                 <Stat>
                   <StatLabel>
-                    <Text color="gray.400" fontSize="sm" fontFamily="roboto">
+                    <Text color="gray.400" fontSize="sm">
                       RMSE
                     </Text>
                   </StatLabel>
 
-                  <StatNumber
-                    fontSize={{ md: "36px", lg: "42px" }}
-                    fontFamily="roboto"
-                  >
+                  <StatNumber fontSize={{ md: "36px", lg: "42px" }}>
                     {surrogateMatric[0]?.rmse.toFixed(4)}
                   </StatNumber>
                 </Stat>
@@ -122,13 +119,12 @@ const SurrogatePerformancePage = () => {
             >
               <CircularProgressLabel>
                 <Flex direction="column" justify="center" align="center">
-                  <Text color="gray.400" fontSize="sm" fontFamily="roboto">
+                  <Text color="gray.400" fontSize="sm">
                     R-Squared
                   </Text>
                   <Text
                     color="#fff"
                     fontSize={{ md: "36px", lg: "50px" }}
-                    fontFamily="roboto"
                     fontWeight="bold"
                     mb="4px"
                   >
@@ -214,7 +210,6 @@ const SurrogatePerformancePage = () => {
           style: {
             colors: "#fff",
             fontSize: "12px",
-            fontFamily: "Plus Jakarta Display",
           },
         },
       },
@@ -223,12 +218,10 @@ const SurrogatePerformancePage = () => {
         y: { formatter: (val) => `${val}%` },
         style: {
           fontSize: "14px",
-          fontFamily: "Plus Jakarta Display",
         },
         onDatasetHover: {
           style: {
             fontSize: "14px",
-            fontFamily: "Plus Jakarta Display",
           },
         },
       },

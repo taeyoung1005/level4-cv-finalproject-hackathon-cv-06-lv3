@@ -407,7 +407,6 @@ function AnalyzePropertiesPage() {
                     ml={2}
                   />
                 </Flex>
-                )
               </TabPanel>
             </TabPanels>
           </Tabs>
@@ -436,7 +435,7 @@ function AnalyzePropertiesPage() {
           {selectedDatasets && selectedDatasets.length > 0 ? (
             <Grid
               templateColumns="repeat(auto-fit, minmax(150px, 1fr))"
-              gap={4}
+              gap={2}
             >
               {selectedDatasets.map((ds) => (
                 <Card key={ds.csvId} p={2} alignItems="center">

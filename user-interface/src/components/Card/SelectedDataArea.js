@@ -1,22 +1,12 @@
 import { Box, Button, Flex, Grid, Icon, Text, Tooltip } from "@chakra-ui/react";
 import React from "react";
 import { FaTrashAlt } from "react-icons/fa";
+import Card from "./Card";
 
 function SelectedFileCard({ fileName, onDeselect }) {
   return (
-    <Box
-      p="12px"
-      bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%)"
-      borderRadius="20px"
-      display="flex"
-      alignItems="center"
-    >
-      <Flex
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        w="100%"
-      >
+    <Card display="flex" alignItems="center" w="150px" size="xs" p={2}>
+      <Flex direction="row" alignItems="center" justifyContent="space-between">
         <Tooltip label={fileName} aria-label="File Name Tooltip">
           <Text
             color="#fff"
@@ -35,7 +25,7 @@ function SelectedFileCard({ fileName, onDeselect }) {
           </Flex>
         </Button>
       </Flex>
-    </Box>
+    </Card>
   );
 }
 
@@ -44,9 +34,6 @@ function SelectedDataArea({
   onDeselect,
   allDatasets = [],
 }) {
-  console.log("📌 selectedFiles (csvId 배열):", selectedFiles);
-  console.log("📌 allDatasets:", allDatasets);
-
   // ✅ selectedFiles에서 csvId를 기준으로 allDatasets에서 파일명 찾기
   const selectedDatasets = selectedFiles.map((csvId) => {
     const dataset = allDatasets.find((d) => d.csvId === csvId);
@@ -55,10 +42,8 @@ function SelectedDataArea({
       : { csvId, fileName: "Unknown File" };
   });
 
-  console.log("✅ Transformed selectedDatasets:", selectedDatasets);
-
   return (
-    <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4} w="100%">
+    <Flex>
       {selectedDatasets.length > 0 ? (
         selectedDatasets.map((file) => (
           <SelectedFileCard
@@ -72,7 +57,7 @@ function SelectedDataArea({
           No selected datasets.
         </Text>
       )}
-    </Grid>
+    </Flex>
   );
 }
 

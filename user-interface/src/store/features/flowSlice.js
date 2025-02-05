@@ -259,13 +259,6 @@ export const fetchOptimizationData = createAsyncThunk(
       );
       if (!response.ok) {
         throw new Error("Failed to get optimization data");
-        console.log(`init optimization data for ${property}`);
-        const data = {
-          minimum_value: "",
-          maximum_value: "",
-          goal: type === "controllable" ? "No Optimization" : "Fit to Property",
-        };
-        return { flowId, property, type, data };
       }
       const data = await response.json();
       // data 예시: { min: 10, max: 100, goal: "No Optimization" } 혹은 goal이 없으면 기본값으로 대체
@@ -472,6 +465,22 @@ const flowSlice = createSlice({
         state.flows[flowId].concat_csv_id = concatCsvId;
       }
     },
+    updatePropertyCategory: (state, action) => {
+      // action.payload: { flowId, property, newCategory }
+      const { flowId, property, newCategory } = action.payload;
+      // 먼저, 해당 flowId의 properties를 가져오고, 각 카테고리에서 property를 제거
+      const propState = state.properties[flowId];
+      if (propState) {
+        // 삭제: 모든 카테고리에서 해당 property 제거
+        Object.keys(propState).forEach((cat) => {
+          propState[cat] = propState[cat].filter((p) => p !== property);
+        });
+        // 추가: newCategory에 추가 (만약 newCategory가 유효하다면)
+        if (propState[newCategory]) {
+          propState[newCategory].push(property);
+        }
+      }
+    },
     initializeCategories: (state, action) => {
       const { flowId, properties } = action.payload;
 
@@ -586,6 +595,7 @@ const flowSlice = createSlice({
         state.properties[flowId] = {
           numerical: data.numerical,
           categorical: data.categorical,
+          text: data.text,
           unavailable: data.unavailable,
         };
         // API에서 받아온 새로운 카테고리 정보를 newCategories에 저장
@@ -732,6 +742,7 @@ export const {
   initializeFlow,
   setCurrentStep,
   initializeCategories,
+  updatePropertyCategory,
   removeCategory,
   updateCategory,
   updateOptimizationData,

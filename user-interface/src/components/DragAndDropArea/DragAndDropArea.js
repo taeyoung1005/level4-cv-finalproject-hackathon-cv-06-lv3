@@ -17,7 +17,6 @@ const DragAndDropArea = ({ onFilesAdded }) => {
   return (
     <Card
       {...getRootProps()}
-      border="1px dashed #fff"
       borderRadius="md"
       textAlign="center"
       cursor="pointer"
@@ -38,11 +37,11 @@ const DragAndDropArea = ({ onFilesAdded }) => {
         <input {...getInputProps()} />
         {isDragActive ? (
           <Text color="#fff" fontSize="sm" fontWeight="bold">
-            파일을 여기에 드롭하세요
+            Drop here
           </Text>
         ) : (
           <Text color="#fff" fontSize="sm" fontWeight="bold">
-            여기에 파일을 드래그하거나 클릭하여 업로드
+            Drop the file here or click here to upload a file.
           </Text>
         )}
       </CardBody>

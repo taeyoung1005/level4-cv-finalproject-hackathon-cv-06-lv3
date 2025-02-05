@@ -225,7 +225,7 @@ const SetPrioritiesPage = () => {
       color="white"
     >
       {/* 헤더 영역 */}
-      <Flex justifyContent="space-between" alignItems="center" mb={6}>
+      <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
         <IconButton
           icon={<ArrowBackIcon />}
           onClick={() => history.goBack()}

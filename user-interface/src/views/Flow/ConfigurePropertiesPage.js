@@ -465,10 +465,11 @@ const ConfigurePropertiesPage = () => {
   };
 
   const propertyColors = {
-    numerical: "brand.100",
-    categorical: "blue.100",
-    unavailable: "red.100",
-    unknown: "gray.200",
+    numerical: "rgba(111, 81, 219, 0.77)",
+    categorical: "rgba(217, 101, 235, 0.77)",
+    text: "rgba(146, 245, 121, 0.77)",
+    unavailable: "rgba(255, 94, 94, 0.77)",
+    unknown: "gray.100",
   };
 
   /* ------------------------------------------------------

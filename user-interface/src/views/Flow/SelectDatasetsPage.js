@@ -1,15 +1,17 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   Box,
   Flex,
   Grid,
   IconButton,
   Tooltip,
-  Divider,
   Text,
+  useToast,
 } from "@chakra-ui/react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
@@ -23,26 +25,48 @@ import {
   deleteCsvFile,
   fetchCsvFilesByProject,
 } from "store/features/projectSlice";
-import { ArrowForwardIcon, AttachmentIcon, CheckIcon } from "@chakra-ui/icons";
+import {
+  ArrowBackIcon,
+  ArrowForwardIcon,
+  AttachmentIcon,
+  CheckIcon,
+} from "@chakra-ui/icons";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { fetchFlowProperties } from "store/features/flowSlice";
+import { updatePropertyCategory } from "store/features/flowSlice";
 
 const SelectDatasetsPage = () => {
   const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
   const fileInputRef = useRef(null);
+  const toast = useToast();
   const isMounted = useRef(true); // ✅ 컴포넌트 마운트 여부 확인
 
   const [isLoading, setIsLoading] = useState(true);
   // ✅ 선택된 데이터셋을 로컬 상태에서 관리
   const [selectedDatasets, setSelectedDatasets] = useState([]);
+  const [totalSelectedSize, setTotalSelectedSize] = useState(0);
 
-  const reduxState = useSelector((state) => state);
+  // Redux 상태에서 데이터 가져오기
+  const flow = useSelector((state) => state.flows.flows[flowId] || {});
 
-  useEffect(() => {
-    console.log("SelectDatasetsPage Redux state:", reduxState);
-  }, [reduxState]);
+  const projectDatasets = useSelector(
+    (state) => state.projects.datasets[projectId] || []
+  );
+
+  const flowDatasets = useSelector((state) => {
+    return state.flows.flows[flowId]?.csv;
+  });
+
+  const selectedDataset = projectDatasets.filter((ds) =>
+    flowDatasets?.includes(ds.csvId)
+  );
+
+  const SelectedSize = selectedDataset.reduce(
+    (acc, ds) => acc + (ds.size || 0),
+    0
+  );
 
   // ✅ Flow와 프로젝트의 CSV 데이터셋 불러오기
   useEffect(() => {
@@ -55,6 +79,7 @@ const SelectDatasetsPage = () => {
         await dispatch(fetchFlowProperties(flowId));
         if (isMounted) {
           setSelectedDatasets(res.datasets?.map((d) => d.csvId) || []);
+          setTotalSelectedSize(SelectedSize);
         }
       } catch (error) {
         console.error("❌ Failed to fetch flow datasets:", error);
@@ -72,33 +97,61 @@ const SelectDatasetsPage = () => {
     };
   }, [dispatch, projectId, flowId]);
 
-  // Redux 상태에서 데이터 가져오기
-  const flow = useSelector((state) => state.flows.flows[flowId] || {});
-  const properties = useSelector(
-    (state) =>
-      state.flows.properties?.[flowId] || {
-        numerical: [],
-        categorical: [],
-        unavailable: [],
-      }
-  );
-
-  const projectDatasets = useSelector(
-    (state) => state.projects.datasets[projectId] || []
-  );
+  //  setTotalSelectedSize(SelectedSize);
 
   const handleNextStep = () => {
     history.push(`/projects/${projectId}/flows/${flowId}/analyze-properties`);
   };
 
+  const handleGoBack = () => {
+    history.goBack();
+  };
+
   // ✅ 데이터셋 선택
   const handleDatasetSelect = (csvId) => {
+    if (totalSelectedSize >= 1024 * 1024) {
+      toast({
+        title: "Capacity Error",
+        description: `The maximum selectable capacity is 1024MB.`,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        containerStyle: {
+          marginLeft: "280px",
+        },
+      });
+      return;
+    }
+    const dataset = projectDatasets.find((ds) => ds.csvId === csvId);
+    setTotalSelectedSize((prev) => prev + dataset.size);
     setSelectedDatasets((prev) => [...prev, csvId]);
+    toast({
+      title: "Dataset Selected",
+      description: `Dataset Selected successfully`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+      containerStyle: {
+        marginLeft: "280px",
+      },
+    });
   };
 
   // ✅ 데이터셋 선택 해제
   const handleDatasetDeselect = (csvId) => {
+    const dataset = projectDatasets.find((ds) => ds.csvId === csvId);
+    setTotalSelectedSize((prev) => prev - dataset.size);
     setSelectedDatasets((prev) => prev.filter((id) => id !== csvId));
+    toast({
+      title: "Dataset DeSelected",
+      description: `Dataset DeSelected successfully`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+      containerStyle: {
+        marginLeft: "280px",
+      },
+    });
   };
 
   // ✅ 파일 업로드 클릭 핸들러
@@ -113,9 +166,16 @@ const SelectDatasetsPage = () => {
 
     const validFiles = fileArray.filter((file) => {
       if (!allowedFormats.includes(file.type)) {
-        alert(
-          `${file.name} is not a valid format. Only CSV files are allowed.`
-        );
+        toast({
+          title: "Data types are only csv and parquet.",
+          description: `Data types are only csv and parquet.`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+          containerStyle: {
+            marginLeft: "280px",
+          },
+        });
         return false;
       }
       return true;
@@ -131,7 +191,16 @@ const SelectDatasetsPage = () => {
 
     uploadResults.forEach((result, index) => {
       if (result.status === "fulfilled") {
-        console.log(`File uploaded successfully: ${validFiles[index].name}`);
+        toast({
+          title: "File Upload Event",
+          description: `File "${validFiles[index].name}" uploaded successfully.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          containerStyle: {
+            marginLeft: "280px",
+          },
+        });
       } else {
         console.error(
           `Failed to upload file: ${validFiles[index].name}`,
@@ -157,6 +226,17 @@ const SelectDatasetsPage = () => {
   const handleApplySelection = async () => {
     await dispatch(addCsvToFlow({ flowId, csvIds: selectedDatasets }));
     await dispatch(fetchFlowProperties(flowId));
+
+    toast({
+      title: "Saved as flow datasets",
+      description: `Saved as flow datasets`,
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+      containerStyle: {
+        marginLeft: "280px",
+      },
+    });
   };
 
   if (!flow) {
@@ -167,10 +247,244 @@ const SelectDatasetsPage = () => {
     );
   }
 
-  return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
-      <Flex justifyContent="space-between" alignItems="center" mb={6} px={4}>
+  // 예시: 초기 Redux 상태의 properties (numeric, categorical, text, unavailable)
+  const DataPropertiesDragAndDrop = () => {
+    const { flowId } = useParams();
+    const dispatch = useDispatch();
+    const properties = useSelector(
+      (state) =>
+        state.flows.properties?.[flowId] || {
+          numerical: [],
+          categorical: [],
+          text: [],
+          unavailable: [],
+        }
+    );
+
+    // 로컬 상태로 카테고리별 property 배열을 관리
+    const [categoriesState, setCategoriesState] = useState({
+      numerical: properties.numerical,
+      categorical: properties.categorical,
+      text: properties.text,
+      unavailable: properties.unavailable,
+    });
+
+    // Redux 상태 변경 시 로컬 상태 동기화 (필요하다면)
+    useEffect(() => {
+      setCategoriesState({
+        numerical: properties.numerical,
+        categorical: properties.categorical,
+        text: properties.text,
+        unavailable: properties.unavailable,
+      });
+    }, [properties]);
+
+    // onDragEnd 핸들러
+    // onDragEnd 핸들러
+    const onDragEnd = (result) => {
+      const { source, destination } = result;
+      if (!destination) return;
+
+      // 같은 위치면 아무것도 하지 않음
+      if (
+        source.droppableId === destination.droppableId &&
+        source.index === destination.index
+      )
+        return;
+
+      const sourceCategory = source.droppableId;
+      const destCategory = destination.droppableId;
+
+      // 같은 카테고리 내 이동 (순서 변경)
+      if (sourceCategory === destCategory) {
+        const newItems = Array.from(categoriesState[sourceCategory]);
+        const [removed] = newItems.splice(source.index, 1);
+        newItems.splice(destination.index, 0, removed);
+        setCategoriesState({
+          ...categoriesState,
+          [sourceCategory]: newItems,
+        });
+
+        return;
+      }
+
+      // 다른 카테고리로 이동
+      const sourceItems = Array.from(categoriesState[sourceCategory]);
+      const [removed] = sourceItems.splice(source.index, 1);
+      const destItems = Array.from(categoriesState[destCategory]);
+      // 중복 추가 방지
+      if (destItems.includes(removed)) return;
+      destItems.splice(destination.index, 0, removed);
+
+      setCategoriesState({
+        ...categoriesState,
+        [sourceCategory]: sourceItems,
+        [destCategory]: destItems,
+      });
+
+      // Redux 업데이트: property의 카테고리를 destCategory로 업데이트
+      dispatch(
+        updatePropertyCategory({
+          flowId,
+          property: removed,
+          newCategory: destCategory,
+        })
+      );
+
+      // Toast 메시지: 어디서 어디로 이동했는지
+      toast({
+        title: "Property Updated",
+        description: `Moved "${removed}" from ${sourceCategory} to ${destCategory}.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        containerStyle: {
+          marginLeft: "280px",
+        },
+      });
+    };
+
+    // Draggable property 컴포넌트
+    const DraggableProperty = ({ property, index }) => {
+      return (
+        <Draggable draggableId={property} index={index}>
+          {(provided, snapshot) => {
+            const child = (
+              <Tooltip label={property} aria-label="Property Tooltip">
+                <Card
+                  ref={provided.innerRef}
+                  {...provided.draggableProps}
+                  {...provided.dragHandleProps}
+                  display="inline-flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  px={2}
+                  py={1}
+                  ml={1}
+                  mb={1}
+                  //   borderRadius="md"
+                  color="gray.300"
+                  fontSize="md"
+                  cursor="pointer"
+                  width="auto"
+                  whiteSpace="nowrap"
+                >
+                  <Text fontWeight="bold">{property}</Text>
+                </Card>
+              </Tooltip>
+            );
+            return snapshot.isDragging
+              ? createPortal(child, document.body)
+              : child;
+          }}
+        </Draggable>
+      );
+    };
+
+    // Droppable 영역 컴포넌트
+    const DroppableCategory = ({
+      categoryName,
+      items,
+      headerColor,
+      bgColor,
+    }) => {
+      return (
         <Box>
+          <Text
+            mb={2}
+            fontSize="md"
+            fontWeight="bold"
+            color={headerColor || "white"}
+            textAlign="center"
+          >
+            {categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
+          </Text>
+          <Droppable droppableId={categoryName}>
+            {(provided) => (
+              <Box
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                minH="350px"
+                bg={bgColor || "transparent"}
+                p={2}
+                borderRadius="md"
+              >
+                {items.length > 0 ? (
+                  items.map((prop, index) => (
+                    <DraggableProperty
+                      key={prop}
+                      property={prop}
+                      index={index}
+                    />
+                  ))
+                ) : (
+                  <Text color="gray.500" textAlign="center" fontSize="xs">
+                    No {categoryName} properties.
+                  </Text>
+                )}
+                {provided.placeholder}
+              </Box>
+            )}
+          </Droppable>
+        </Box>
+      );
+    };
+
+    return (
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Card>
+          <CardHeader>
+            <Flex flexDirection="column">
+              <Text color="#fff" fontSize="lg" fontWeight="bold">
+                Data Properties
+              </Text>
+              <Text color="gray.400" fontSize="xs" fontWeight="bold">
+                Drag and Drop to change property category
+              </Text>
+            </Flex>
+          </CardHeader>
+          <CardBody mt={4}>
+            <Grid templateColumns="repeat(4, 1fr)" gap={4}>
+              <DroppableCategory
+                categoryName="numerical"
+                items={categoriesState.numerical}
+                headerColor="rgba(111, 81, 219, 0.77)"
+                bgColor="rgba(111, 81, 219, 0.1)"
+              />
+              <DroppableCategory
+                categoryName="categorical"
+                items={categoriesState.categorical}
+                headerColor="rgba(217, 101, 235, 0.77)"
+                bgColor="rgba(217, 101, 235, 0.1)"
+              />
+              <DroppableCategory
+                categoryName="text"
+                items={categoriesState.text}
+                headerColor="rgba(146, 245, 121, 0.77)"
+                bgColor="rgba(146, 245, 121, 0.1)"
+              />
+              <DroppableCategory
+                categoryName="unavailable"
+                items={categoriesState.unavailable}
+                headerColor="rgba(255, 94, 94, 0.77)"
+                bgColor="rgba(255, 94, 94, 0.1)"
+              />
+            </Grid>
+          </CardBody>
+        </Card>
+      </DragDropContext>
+    );
+  };
+
+  return (
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
+      <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
+        <IconButton
+          icon={<ArrowBackIcon />}
+          onClick={handleGoBack}
+          colorScheme="blue"
+        />
+        <Flex direction="column" align="center">
           <Text fontSize="xl" fontWeight="bold" color="white">
             Select Datasets
           </Text>
@@ -178,16 +492,16 @@ const SelectDatasetsPage = () => {
             Please select the datasets you want to analyze. You can upload new
             datasets or choose from the existing ones.
           </Text>
-        </Box>
+        </Flex>
 
         <IconButton
           icon={<ArrowForwardIcon />}
-          colorScheme="red"
+          colorScheme="blue"
           aria-label="Next Step"
           onClick={handleNextStep}
         />
       </Flex>
-      <Grid templateColumns="1.8fr 1fr" h="calc(80vh - 50px)" gap={4}>
+      <Grid templateColumns="1fr 1fr" h="calc(80vh - 80px)" gap={4}>
         <Card w="100%">
           <CardHeader
             display="flex"
@@ -216,7 +530,7 @@ const SelectDatasetsPage = () => {
               />
             </Flex>
           </CardHeader>
-          <Divider borderColor="#fff" mb={4} />
+
           <CardBody h="100%" display="flex" flexDirection="column" gap={4}>
             <Box flex="2" overflowY="auto" w="100%">
               <Grid templateColumns="1fr 1fr" gap={4}>
@@ -225,7 +539,7 @@ const SelectDatasetsPage = () => {
                     key={dataset.csvId}
                     fileName={dataset.csv}
                     fileType="csv"
-                    fileSize={`${dataset.size} MB`}
+                    fileSize={`${(dataset.size / 1024).toFixed(2)} MB`}
                     isSelected={selectedDatasets.includes(dataset.csvId)}
                     onSelect={() =>
                       selectedDatasets.includes(dataset.csvId)
@@ -243,134 +557,41 @@ const SelectDatasetsPage = () => {
           </CardBody>
         </Card>
         {/* Flow Data Columns */}
-        <Grid templateRows="1.5fr 1fr" gap={4}>
-          <Card>
-            <CardHeader mb="16px">
-              <Text color="#fff" fontSize="lg" fontWeight="bold">
-                Data Properties
-              </Text>
-            </CardHeader>
-            <Divider borderColor="#fff" mb={1} />
-            <CardBody
-              maxH="250px"
-              overflowY="auto"
-              css={{
-                "&::-webkit-scrollbar": {
-                  width: "0px",
-                },
-              }}
-            >
-              <Grid templateColumns="1fr 1fr 1fr" gap={3} mt={2}>
-                {/* Numerical Properties */}
-                <Box textAlign={"center"}>
-                  <Text color="cyan.400" fontSize="md" fontWeight="bold" mb={2}>
-                    Numerical
-                  </Text>
-                  {properties.numerical?.length > 0 ? (
-                    properties.numerical.map((prop, index) => (
-                      <Tooltip
-                        key={index}
-                        label={prop}
-                        aria-label="Property Tooltip"
-                      >
-                        <Text
-                          key={index}
-                          color="gray.300"
-                          maxWidth="180px" // ✅ 최대 너비 설정
-                          isTruncated // ✅ 넘치면 ... 처리
-                          noOfLines={1} // ✅ 한 줄로 제한
-                          mb={1}
-                        >
-                          • {prop}
-                        </Text>
-                      </Tooltip>
-                    ))
-                  ) : (
-                    <Text color="gray.500">No numerical properties</Text>
-                  )}
-                </Box>
+        <Grid templateRows="3fr 1fr" gap={4}>
+          <DataPropertiesDragAndDrop />
 
-                {/* Categorical Properties */}
-                <Box textAlign={"center"}>
-                  <Text
-                    color="orange.400"
-                    fontSize="md"
-                    fontWeight="bold"
-                    mb={2}
-                  >
-                    Categorical
-                  </Text>
-                  {properties.categorical?.length > 0 ? (
-                    properties.categorical.map((prop, index) => (
-                      <Tooltip
-                        key={index}
-                        label={prop}
-                        aria-label="Property Tooltip"
-                      >
-                        <Text
-                          key={index}
-                          color="gray.300"
-                          maxWidth="180px" // ✅ 최대 너비 설정
-                          isTruncated // ✅ 넘치면 ... 처리
-                          noOfLines={1} // ✅ 한 줄로 제한
-                          mb={1}
-                        >
-                          • {prop}
-                        </Text>
-                      </Tooltip>
-                    ))
-                  ) : (
-                    <Text color="gray.500">No categorical properties</Text>
-                  )}
-                </Box>
-
-                {/* Unavailable Properties */}
-                <Box textAlign={"center"}>
-                  <Text color="red.400" fontSize="md" fontWeight="bold" mb={2}>
-                    Unavailable
-                  </Text>
-                  {properties.unavailable?.length > 0 ? (
-                    properties.unavailable.map((prop, index) => (
-                      <Tooltip
-                        key={index}
-                        label={prop}
-                        aria-label="Property Tooltip"
-                      >
-                        <Text
-                          key={index}
-                          color="gray.300"
-                          maxWidth="180px" // ✅ 최대 너비 설정
-                          isTruncated // ✅ 넘치면 ... 처리
-                          noOfLines={1} // ✅ 한 줄로 제한
-                          mb={1}
-                        >
-                          • {prop}
-                        </Text>
-                      </Tooltip>
-                    ))
-                  ) : (
-                    <Text color="gray.500">No unavailable properties</Text>
-                  )}
-                </Box>
-              </Grid>
-            </CardBody>
-          </Card>
           {/* 선택된 데이터셋 카드 */}
           <Card>
             <CardHeader mb="16px" justifyContent="space-between">
               <Text color="#fff" fontSize="lg" fontWeight="bold">
                 Selected Data
               </Text>
-              <IconButton
-                size="sm"
-                bg="green.500"
-                icon={<CheckIcon h="20px" w="20px" color="#fff" />}
-                colorScheme="green"
-                aria-label="Apply Selection"
-                onClick={handleApplySelection}
-              />
+              <Box>
+                <Flex alignItems="center" justifyContent="space-between">
+                  <Flex alignItems="center">
+                    <Text color="#fff" fontSize="md">
+                      Available Capacity:
+                    </Text>
+                    <Text color="gray.400" fontSize="md" ml={3}>
+                      {(parseFloat(totalSelectedSize) / 1024).toFixed(2)}
+                    </Text>
+                    <Text color="#fff" fontSize="md" ml={2}>
+                      / 1024 MB
+                    </Text>
+                  </Flex>
+                  <IconButton
+                    size="sm"
+                    bg="cyan.200"
+                    ml={4}
+                    icon={<CheckIcon h="16px" w="16px" color="#fff" />}
+                    colorScheme="cyan"
+                    aria-label="Apply Selection"
+                    onClick={handleApplySelection}
+                  />
+                </Flex>
+              </Box>
             </CardHeader>
-            <Divider borderColor="#fff" mb={4} />
+
             <CardBody>
               <SelectedDataArea
                 selectedFiles={selectedDatasets} // ✅ 이제 csvId 배열만 전달
