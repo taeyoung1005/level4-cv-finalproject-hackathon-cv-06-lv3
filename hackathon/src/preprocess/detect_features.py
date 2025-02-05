@@ -35,8 +35,8 @@ def detect_features(df: pd.DataFrame) -> dict:
         # 2. 수치형 컬럼 분류
         if np.issubdtype(series.dtype, np.number):
             unique_vals = series.nunique(dropna=True)
-            # 유니크 값이 20 미만이면 범주형 숫자로 처리
-            if unique_vals < 20 or (unique_vals / len(series) < 0.05):
+            # 유니크 값이 10 미만이면 범주형 숫자로 처리
+            if unique_vals < 10 and (unique_vals / len(series) < 0.005):
                 numerical_categorical.append(col)  # 숫자형이지만 범주형으로 사용됨
             else:
                 numerical.append(col)  # 일반 연속형 숫자 데이터
