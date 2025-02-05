@@ -11,6 +11,7 @@ from src.preprocess.missing_values import (
     fill_missing_numerical,
 )
 from src.preprocess.text_processing import process_text
+from src.preprocess.processing_metadata import get_removed_columns
 
 
 def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
@@ -64,9 +65,13 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     # 7. 스케일링 (동적 처리)
     df, scaler_info = dynamic_scaling(df, num_cols, scaler_info)
 
+    # 제거된 컬럼 정보 가져오기
+    removed_cols = get_removed_columns()
+
     # 전처리 완료된 데이터프레임 반환
     return {
         'processed_df': df,
         'dtypes': dtype_info,
-        'scalers': scaler_info
+        'scalers': scaler_info,
+        'removed_columns': removed_cols
     }
