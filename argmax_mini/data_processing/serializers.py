@@ -63,15 +63,6 @@ class FeatureImportanceModelSerializer(serializers.ModelSerializer):
 
 
 class SearchResultModelSerializer(serializers.ModelSerializer):
-    def validate_column(self, value):
-        concat_column = models.ConcatColumnModel.objects.filter(id=value)
-        if not concat_column.exists():
-            raise serializers.ValidationError("해당 컬럼이 존재하지 않습니다.")
-
-        if concat_column.column_type == 'unavailable' or concat_column.property_type == 'environmental':
-            raise serializers.ValidationError("해당 컬럼은 사용할 수 없습니다.")
-        return value
-
     class Meta:
         model = models.SearchResultModel
         fields = '__all__'
