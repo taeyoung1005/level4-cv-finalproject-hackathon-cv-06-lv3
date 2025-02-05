@@ -26,7 +26,8 @@ class HistogramDataTests(APITestCase):
         - csv 파일 업로드를 위한 URL과 히스토그램 데이터를 가져오는 URL을 설정합니다.
         - ./features 폴더에 있는 csv 파일들을 읽어옵니다.
         """
-        self.upload_url = reverse('data_processing:concat-columns')
+        self.upload_url = reverse(
+            'data_processing:concat-columns-properties')
         self.histogram_url = reverse('data_processing:histograms')
         self.histogram_all_url = reverse('data_processing:histograms-all')
         self.features_dir = os.path.join(

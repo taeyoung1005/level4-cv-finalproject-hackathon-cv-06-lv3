@@ -41,8 +41,14 @@ class SurrogateMatricView(APIView):
             return Response({"error": "File not found"}, status=404)
 
         surrogate_matric = SurrogateMatricModel.objects.filter(flow_id=flow_id)
+        serialized_data = SurrogateMatricModelSerializer(
+            surrogate_matric, many=True).data
+        for item, instance in zip(serialized_data, surrogate_matric):
+            item['column_name'] = instance.column.column_name
+            item['column_type'] = instance.column.column_type
+            item['property_type'] = instance.column.property_type
 
-        return Response({"surrogate_matric": SurrogateMatricModelSerializer(surrogate_matric, many=True).data}, status=200)
+        return Response({"surrogate_matric": serialized_data}, status=200)
 
 
 class SurrogateResultView(APIView):
@@ -77,8 +83,14 @@ class SurrogateResultView(APIView):
             return Response({"error": "File not found"}, status=404)
 
         surrogate_result = SurrogateResultModel.objects.filter(flow=flow_id)
+        serialized_data = SurrogateResultModelSerializer(
+            surrogate_result, many=True).data
+        for item, instance in zip(serialized_data, surrogate_result):
+            item['column_name'] = instance.column.column_name
+            item['column_type'] = instance.column.column_type
+            item['property_type'] = instance.column.property_type
 
-        return Response({"surrogate_result": SurrogateResultModelSerializer(surrogate_result, many=True).data}, status=200)
+        return Response({"surrogate_result": serialized_data}, status=200)
 
 
 class FeatureImportanceView(APIView):
@@ -115,4 +127,13 @@ class FeatureImportanceView(APIView):
         surrogate_feature_importance = FeatureImportanceModel.objects.filter(
             flow=flow_id)
 
-        return Response({"surrogate_feature_importance": FeatureImportanceModelSerializer(surrogate_feature_importance, many=True).data}, status=200)
+        serialized_data = FeatureImportanceModelSerializer(
+            surrogate_feature_importance, many=True).data
+
+        # Add 'column_name' for each item by iterating over both the serialized data and the queryset
+        for item, instance in zip(serialized_data, surrogate_feature_importance):
+            item['column_name'] = instance.column.column_name
+            item['column_type'] = instance.column.column_type
+            item['property_type'] = instance.column.property_type
+
+        return Response({"feature_importance": serialized_data}, status=200)

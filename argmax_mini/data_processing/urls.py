@@ -16,7 +16,10 @@ urlpatterns = [
          name='histograms-all'),
 
     path('columns/', views.ColumnView.as_view(), name='columns'),
-    path('concat-columns/', views.ConcatColumnView.as_view(), name='concat-columns'),
+    path('concat-columns/properties/', views.ConcatColumnPropertiesView.as_view(),
+         name='concat-columns-properties'),
+    path('concat-columns/types/', views.ConcatColumnTypeView.as_view(),
+         name='concat-columns-types'),
 
     path('flows/', views.FlowsView.as_view(), name='flows'),
     path('flows/csv-add/', views.FlowCsvAddView.as_view(), name='flow_add_csv'),

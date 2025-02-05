@@ -1,3 +1,5 @@
+from data_processing.serializers import SurrogateResultModelSerializer, SurrogateMatricModelSerializer, FeatureImportanceModelSerializer, SearchResultModelSerializer
+from data_processing.models import FlowModel, ConcatColumnModel
 import os
 import sys
 
@@ -6,12 +8,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 import pandas as pd
 from tqdm import tqdm
 
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))) + "/argmax_mini")
+sys.path.append(os.path.dirname(os.path.abspath(
+    os.path.dirname(__file__))) + "/argmax_mini")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'argmax_mini.settings')
 django.setup()
 
-from data_processing.models import FlowModel, ConcatColumnModel
-from data_processing.serializers import SurrogateResultModelSerializer, SurrogateMatricModelSerializer, FeatureImportanceModelSerializer, SearchResultModelSerializer
 
 def insert_surrogate_matric(csv_file, flow_id):
     '''
@@ -32,15 +33,17 @@ def insert_surrogate_matric(csv_file, flow_id):
         # column_name이 columns에 있는지 확인
         column = columns.get(row['column_name'])
         if not column:
-            print(f"Column {row['column_name']} not found for Flow ID {flow_id}")
+            print(
+                f"Column {row['column_name']} not found for Flow ID {flow_id}")
             continue
-        
+
         # 임시 model 파일 생성
         model_path = f"./surrogate_model.pkl"
         with open(model_path, 'wb') as f:
             f.write('test'.encode())
 
-        model_file = SimpleUploadedFile(name='surrogate_model.pkl', content=open(model_path, 'rb').read())
+        model_file = SimpleUploadedFile(
+            name='surrogate_model.pkl', content=open(model_path, 'rb').read())
 
         # 시리얼라이저 생성 및 저장
         serializer = SurrogateMatricModelSerializer(data={
@@ -76,7 +79,8 @@ def insert_surrogate_result(csv_file, flow_id):
         # column_name이 columns에 있는지 확인
         column = columns.get(row['column_name'])
         if not column:
-            print(f"Column {row['column_name']} not found for Flow ID {flow_id}")
+            print(
+                f"Column {row['column_name']} not found for Flow ID {flow_id}")
             continue
 
         # 시리얼라이저 생성 및 저장
@@ -93,6 +97,7 @@ def insert_surrogate_result(csv_file, flow_id):
             print(f"Error saving row {index}: {serializer.errors}")
 
     print("Surrogate Result data inserted successfully")
+
 
 def insert_feature_importance(csv_file, flow_id):
     '''
@@ -112,7 +117,8 @@ def insert_feature_importance(csv_file, flow_id):
         # column_name이 columns에 있는지 확인
         column = columns.get(row['column_name'])
         if not column:
-            print(f"Column {row['column_name']} not found for Flow ID {flow_id}")
+            print(
+                f"Column {row['column_name']} not found for Flow ID {flow_id}")
             continue
 
         # 시리얼라이저 생성 및 저장
@@ -127,6 +133,7 @@ def insert_feature_importance(csv_file, flow_id):
             print(f"Error saving row {index}: {serializer.errors}")
 
     print("Feature Importance data inserted successfully")
+
 
 def insert_search_result(csv_file, flow_id, column_name):
     '''
@@ -154,6 +161,7 @@ def insert_search_result(csv_file, flow_id, column_name):
 # insert_surrogate_result('/Users/parktaeyeong/Downloads/surrogate_output.csv', 3)
 # insert_feature_importance('/Users/parktaeyeong/Downloads/feature_importance.csv', 3)
 
-# for column_name in ['age', 'ash', 'cement', 'coarseagg', 'fineagg', 'slag', 'water']:
-for column_name in ['strength']:
-    insert_search_result(f'/Users/parktaeyeong/Desktop/{column_name}.csv', 3, column_name)
+
+for column_name in ['age', 'ash', 'cement', 'coarseagg', 'fineagg', 'slag', 'water', 'strength']:
+    insert_search_result(
+        f'/Users/parktaeyeong/Desktop/{column_name}.csv', 1, column_name)

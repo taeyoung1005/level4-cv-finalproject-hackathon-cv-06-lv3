@@ -28,15 +28,17 @@ def flow_progress(flow, progress):
 
 
 def update_model_instances(flow, model_cls, df, column_field, defaults_mapping):
+    model_cls.objects.filter(flow=flow).delete()
     for _, row in df.iterrows():
         column_instance = ConcatColumnModel.objects.get(
             flow=flow, column_name=row[column_field])
         defaults = {field: row[source_field]
                     for field, source_field in defaults_mapping.items()}
-        model_cls.objects.update_or_create(
+
+        model_cls.objects.create(
             flow=flow,
             column=column_instance,
-            defaults=defaults
+            **defaults
         )
 
 
@@ -88,8 +90,7 @@ class ProcessingView(APIView):
         # Read the concatenated CSV and perform preprocessing.
         concat_df = pd.read_csv(flow.concat_csv)
         flow_progress(flow, 'Preprocessing started')
-        df, df_scaled, dtype_info, scaler_info = preprocess_dynamic(
-            concat_df, cat_cols, num_cols, text_cols)
+        df, df_scaled, dtype_info, scaler_info = preprocess_dynamic(concat_df)
 
         # Save the preprocessed CSV.
         preprocessed_filename = f'{flow.flow_name}_preprocessed.csv'
@@ -137,13 +138,16 @@ class ProcessingView(APIView):
         shutil.rmtree('./temp')
 
         # Update or create SurrogateResultModel instances.
-        update_model_instances(flow, SurrogateResultModel, df_rank, 'column_name', {'ground_truth': 'y_test', 'predicted': 'y_pred', 'rank': 'rank'})
+        update_model_instances(flow, SurrogateResultModel, df_rank, 'column_name', {
+                               'ground_truth': 'y_test', 'predicted': 'y_pred', 'rank': 'rank'})
 
         # Update or create SurrogateMatricModel instances.
-        update_model_instances(flow, SurrogateMatricModel, df_eval, 'target', {'rmse': 'rmse', 'r_squared': 'r2', 'mae': 'mae'})
+        update_model_instances(flow, SurrogateMatricModel, df_eval, 'target', {
+                               'rmse': 'rmse', 'r_squared': 'r2', 'mae': 'mae'})
 
         # Update or create FeatureImportanceModel instances.
-        update_model_instances(flow, FeatureImportanceModel, df_importance, 'feature', {'importance': 'importance'})
+        update_model_instances(flow, FeatureImportanceModel, df_importance, 'feature', {
+                               'importance': 'importance'})
 
         # flow_progress(flow, 'Search Model started')
         # flow_progress(flow, 'Search Model completed')

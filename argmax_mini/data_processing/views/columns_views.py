@@ -44,7 +44,7 @@ class ColumnView(APIView):
         return Response({"column_names": list(column_names)}, status=200)
 
 
-class ConcatColumnView(APIView):
+class ConcatColumnPropertiesView(APIView):
     '''
     concat된 csv 파일의 컬럼 속성 조회 및 수정
     '''
@@ -156,4 +156,111 @@ class ConcatColumnView(APIView):
         return Response(
             {"column_name": column.column_name,
              "property_type": column.property_type},
+            status=200)
+
+class ConcatColumnTypeView(APIView):
+    '''
+    concat된 csv 파일의 컬럼 타입 조회 및 수정
+    '''
+    parser_classes = [JSONParser]
+
+    @swagger_auto_schema(
+        operation_description="concat된 csv 파일의 컬럼 타입 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "flow_id",
+                openapi.IN_QUERY,
+                description="Flow ID",
+                type=openapi.TYPE_INTEGER,
+                required=True,
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="Column columns retrieved successfully"),
+            400: openapi.Response(description="Invalid file ID"),
+            404: openapi.Response(description="File not found"),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        '''
+        컬럼 타입 조회
+        '''
+        column_type = ConcatColumnModel.COLUMN_TYPE_CHOICES
+        flow_id = request.GET.get("flow_id")
+
+        if not flow_id or not flow_id.isdigit():
+            return Response({"error": "No flow_id provided"}, status=400)
+
+        if not ConcatColumnModel.objects.filter(flow=flow_id).exists():
+            return Response({"error": "File not found"}, status=404)
+
+        context = {}
+
+        for i in column_type:
+            # QuerySet을 list로 변환
+            context[i[0]] = list(ConcatColumnModel.objects.filter(
+                flow=flow_id,
+                column_type=i[0]).values_list('column_name', flat=True))
+
+        return Response(context, status=200)
+
+    @swagger_auto_schema(
+        operation_description="concat된 csv파일의 column_type 속성 수정",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'flow_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Flow ID"
+                ),
+                'column_name': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="수정하려는 컬럼의 이름"
+                ),
+                'column_type': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["numerical", "categorical", "text",
+                          "unavailable"],  # 선택 가능한 옵션
+                    description="컬럼의 새로운 타입 (선택 가능)"
+                ),
+            }
+        ),
+        request_body_required=True,
+        responses={
+            200: openapi.Response(description="Column columns updated successfully"),
+            400: openapi.Response(description="Invalid request body"),
+            404: openapi.Response(description="Column or File not found"),
+        },
+    )
+    def put(self, request, *args, **kwargs):
+        '''
+        column_type 속성 수정
+        '''
+        column_name = str(request.data.get("column_name"))
+        column_type = str(request.data.get("column_type"))
+        flow_id = str(request.data.get("flow_id"))
+
+        if column_name == 'None' or column_type == 'None' or flow_id == 'None':
+            return Response(
+                {"error": "Both column_name and column_type are required"},
+                status=400)
+
+        if not flow_id.isdigit():
+            return Response({"error": "No flow_id provided"}, status=400)
+
+        if not ConcatColumnModel.objects.filter(flow=flow_id).exists():
+            return Response({"error": "File not found"}, status=404)
+
+        column = ConcatColumnModel.objects.filter(
+            column_name=column_name, flow=flow_id).first()
+
+        if not column:
+            return Response({"error": "Column not found"}, status=404)
+
+        column.column_type = column_type
+        column.save()
+
+        return Response(
+            {"column_name": column.column_name,
+             "column_type": column.column_type},
             status=200)

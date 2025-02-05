@@ -98,12 +98,13 @@ class ColumnViewTests(APITestCase):
         self.assertEqual(response.json()["error"], "No csv_id provided")
 
 
-class ConcatColumnViewTests(APITestCase):
+class ConcatColumnPropertiesViewTests(APITestCase):
     def setUp(self):
         """
         테스트를 위한 데이터 초기화
         """
-        self.columns_url = reverse('data_processing:concat-columns')
+        self.columns_url = reverse(
+            'data_processing:concat-columns-properties')
         self.features_dir = os.path.join(
             os.path.dirname(__file__), './features')
 

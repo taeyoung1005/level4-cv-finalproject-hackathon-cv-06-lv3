@@ -93,6 +93,8 @@ def main(args, scalers=None):
             if type(scalers[args.target[i]]).__name__ != 'LabelEncoder':
                 df_rank['diff'] = abs(df_rank['y_test'] - df_rank['y_pred'])
 
+            df_rank['column_name'] = args.target[i]
+
             top5 = df_rank.nsmallest(5, 'diff')
             bottom5 = df_rank.nlargest(5, 'diff')
 
