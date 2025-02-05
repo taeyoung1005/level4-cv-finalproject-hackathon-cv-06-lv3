@@ -15,7 +15,7 @@ def detect_features(df: pd.DataFrame) -> dict:
     반환:
       dict: 각 타입별 컬럼 목록과 원본 dtype 정보 포함
     """
-    numerical, categorical, numerical_categorical, datetime_cols, text = [], [], [], [], []
+    numerical, categorical, datetime_cols, text = [], [], [], []
     
     dtype_info = df.dtypes.apply(lambda x: x.name).to_dict()
 
@@ -37,7 +37,7 @@ def detect_features(df: pd.DataFrame) -> dict:
             unique_vals = series.nunique(dropna=True)
             # 유니크 값이 10 미만이면 범주형 숫자로 처리
             if unique_vals < 10 and (unique_vals / len(series) < 0.005):
-                numerical_categorical.append(col)  # 숫자형이지만 범주형으로 사용됨
+                categorical.append(col)  # 숫자형이지만 범주형으로 사용됨
             else:
                 numerical.append(col)  # 일반 연속형 숫자 데이터
             continue
@@ -57,7 +57,6 @@ def detect_features(df: pd.DataFrame) -> dict:
     feature_info = {
         'numerical': numerical,
         'categorical': categorical,
-        'numerical_categorical': numerical_categorical,  # 새롭게 추가한 숫자형 범주 데이터
         'datetime': datetime_cols,
         'text': text,
         'dtypes': dtype_info

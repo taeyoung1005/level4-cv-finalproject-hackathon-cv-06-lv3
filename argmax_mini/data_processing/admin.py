@@ -32,7 +32,7 @@ class SearchResultModelAdmin(admin.ModelAdmin):
 
 
 class SurrogateMatricModelAdmin(admin.ModelAdmin):
-    list_display = ('flow', 'column', 'r_squared', 'rmse')
+    list_display = ('flow', 'column', 'r_squared', 'rmse', 'mae')
 
 
 class SurrogateResultModelAdmin(admin.ModelAdmin):

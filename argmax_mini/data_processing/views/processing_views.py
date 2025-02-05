@@ -140,11 +140,12 @@ class ProcessingView(APIView):
         update_model_instances(flow, SurrogateResultModel, df_rank, 'column_name', {'ground_truth': 'y_test', 'predicted': 'y_pred', 'rank': 'rank'})
 
         # Update or create SurrogateMatricModel instances.
-        update_model_instances(flow, SurrogateMatricModel, df_eval, 'target', {'rmse': 'rmse', 'r_squared': 'r2'})
+        update_model_instances(flow, SurrogateMatricModel, df_eval, 'target', {'rmse': 'rmse', 'r_squared': 'r2', 'mae': 'mae'})
 
         # Update or create FeatureImportanceModel instances.
         update_model_instances(flow, FeatureImportanceModel, df_importance, 'feature', {'importance': 'importance'})
 
-        flow_progress(flow, 'Search Model started')
+        # flow_progress(flow, 'Search Model started')
+        # flow_progress(flow, 'Search Model completed')
 
         return Response({"message": "Processing completed successfully"}, status=200)

@@ -256,17 +256,26 @@ class FlowCsvAddView(APIView):
                 column__flow=flow_id).delete()
 
         for column_name in concat_df.columns:
-            # 컬럼 정보 저장
-            if pd.api.types.is_numeric_dtype(concat_df[column_name]):
-                column_type = "numerical"
-            elif pd.api.types.is_string_dtype(concat_df[column_name]):
+            series = concat_df[column_name]
+
+            if np.issubdtype(series.dtype, np.number):
+                unique_vals = series.nunique(dropna=True)
+                column_type = "categorical" if unique_vals < 10 and (
+                    unique_vals / len(series) < 0.005) else "numerical"
+            elif series.dtype == 'object' or pd.api.types.is_categorical_dtype(series):
+                avg_length = series.dropna().astype(str).apply(len).mean()
+                column_type = "text" if avg_length > 50 else "categorical"
+            elif any(keyword in column_name.lower() for keyword in ['date', 'time']):
+                parsed = pd.to_datetime(
+                    series, errors='coerce', infer_datetime_format=True)
+                if parsed.notnull().sum() / len(series) >= 0.7:
+                    column_type = "unavailable"
+            else:
                 column_type = "categorical"
-                if any(x in column_name.lower() for x in ['address', 'description']):
-                    column_type = "text"
 
             missing_values_ratio = round(
-                concat_df[column_name].isnull().mean() * 100, 2)
-            if missing_values_ratio > 50 or any(x in column_name.lower() for x in ['latitude', 'longitude']) or pd.api.types.is_datetime64_any_dtype(concat_df[column_name]):
+                series.isnull().mean() * 100, 2)
+            if missing_values_ratio > 50:
                 column_type = "unavailable"
 
             concat_column_serializer = ConcatColumnModelSerializer(data={
