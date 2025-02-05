@@ -1,7 +1,7 @@
 import React from "react";
 import Chart from "react-apexcharts";
 
-function PieChart({ data }) {
+function PieChart({ data, colorsArray }) {
   // data: [{ label: 'Numeric', value: 10 }, { label: 'Categorical', value: 5 }, ...]
   const series = data.map((item) => item.value);
   const options = {
@@ -9,19 +9,17 @@ function PieChart({ data }) {
       type: "pie",
     },
     labels: data.map((item) => item.label),
-    legend: {
-      position: "bottom",
-      labels: {
-        colors: "#fff",
-        fontSize: "12px",
-        fontFamily: "Plus Jakarta Display",
-      },
+    stroke: {
+      show: false, // 또는 width: 0,
     },
+    legend: {
+      show: false,
+    },
+    colors: colorsArray,
     dataLabels: {
       style: {
         colors: ["#fff"],
         fontSize: "12px",
-        fontFamily: "Plus Jakarta Display",
       },
     },
     tooltip: {

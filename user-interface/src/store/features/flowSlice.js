@@ -552,7 +552,7 @@ const flowSlice = createSlice({
         if (!state.flows[flowId]) {
           state.flows[flowId] = { datasets: [] };
         }
-        state.flows[flowId].datasets = datasets.map((p) => p.csvId);
+        state.flows[flowId].datasets = datasets.csvs;
       })
       .addCase(fetchFlowDatasets.rejected, (state, action) => {
         console.error("❌ Failed to fetch flow datasets:", action.payload);
