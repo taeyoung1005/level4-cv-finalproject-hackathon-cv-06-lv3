@@ -47,14 +47,46 @@ def cx_simulated_binary_w_cx_uniform(ind1, ind2, eta, indpb, is_nominal):
 
 
 # def mutGaussian_mutUniformInt(ind, mu, sigma, indpb, is_nominal):
+#     """
+#     is_nominal : 변수가 범주형인지 여부
+#     mu : 변수 평균 if 변수가 연속형 else 변수 최솟값
+#     sigma : 변수 표준편차 if 변수가 연속형 else 변수 최댓값
+#     """
+#     is_nominal = np.array(is_nominal, dtype=bool)
 
-
+#     for i in range(len(ind)):
+#         if is_nominal[i]:
+#             if random.random() < indpb:
+#                 ind[i] = random.randint(mu[i], sigma[i])
+#         else:
+#             if random.random() < indpb:
+#                 ind[i] = random.gauss(mu[i], sigma[i])
+#     return ind
 #     pass 
 #     for i, xl, xu in zip(range(size), low, up):
 #         if random.random() < indpb:
 #             individual[i] = random.randint(xl, xu)
 
 #     return individual,
+def mutGaussian_mutUniformInt(ind, mu, sigma, indpb, is_nominal):
+    """
+    is_nominal : 변수가 범주형인지 여부
+    mu : 변수 평균 if 변수가 연속형 else 변수 최솟값
+    sigma : 변수 표준편차 if 변수가 연속형 else 변수 최댓값
+    """
+
+    is_nominal = np.array(is_nominal, dtype=bool)
+
+    mask = np.random.rand(len(ind)) < indpb
+
+    cat_indices = np.where(is_nominal & mask)[0] # 범주 + 변이
+    ind[cat_indices] = np.random.randint(mu[cat_indices], sigma[cat_indices] + 1)
+
+    cont_indices = np.where(~is_nominal & mask)[0]
+    ind[cont_indices] += np.random.normal(mu[cont_indices], sigma[cont_indices])
+
+    return ind,
+
 
 def lexicographic_selection(population,k):
     """
@@ -128,7 +160,9 @@ def k_means_selection(population, k):
     # print(len(selected))
     return selected
 
-def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_names, control_var_names, optmize_dict, importance, bounds, scalers, user_request_target):
+def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
+                          all_var_names, control_var_names, optmize_dict, importance,\
+                            bounds, scalers, user_request_target):
     """
     # all_var_names : target 변수 제외 모든 변수 이름 [numpy X와 같은 순서]
     # control_var_names : control 변수 이름 
@@ -139,6 +173,11 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
 
     # bounds 
     """
+    is_norminal = [False]*len(control_var_names)
+    for i, key in enumerate(control_var_names):
+        if type(scalers[key]).__name__ == 'LabelEncoder':
+            is_norminal[i] = True
+    print("is_norminal",is_norminal)
 
     # 제어 변수 인덱스 결정 및 중요도 순 정렬
 
@@ -187,14 +226,22 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
     #     return np.random.randn(n_features) * std_dev + mean
 
     # TODO min max optimize 고려 해서 초기값 생성 
-    def generate_individual():
+    def generate_individual(is_nominal):
+        is_nominal = np.array(is_nominal, dtype=bool)
+
+        individual = np.where(
+        is_nominal,
+        np.random.randint(x_min, x_max + 1),  # 범주형이면 randint 사용
+        np.random.uniform(x_min, x_max)       # 연속형이면 uniform 사용
+        )
+        return individual
         # return np.random.uniform(x_min[control_index], x_max[control_index])
-        return np.random.uniform(x_min, x_max)
+        # return np.random.uniform(x_min, x_max)
 
 
 
     toolbox = base.Toolbox()
-    toolbox.register('attr_float', generate_individual)
+    toolbox.register('attr_float', generate_individual, is_nominal=is_norminal)
     # min_max 차원이 8개이기에 n을 1로 설정 하면 8개의 변수를 가진 ind 생성!
     toolbox.register('individual', tools.initIterate, creator.Individual, toolbox.attr_float)
     toolbox.register('population', tools.initRepeat, list, toolbox.individual)
@@ -239,10 +286,22 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         # print(population[0].shape)
         ETA_CX = 2.0
         sigma_list = [(ub - lb)/(6.0) for (lb,ub) in zip(x_min, x_max)]
-        toolbox.register('mate', tools.cxSimulatedBinary, eta=ETA_CX)
-        toolbox.register('mutate', tools.mutGaussian, mu=[0.0]*(len(x_min)), sigma=sigma_list, indpb=INDPB)
+        # toolbox.register('mate', tools.cxSimulatedBinary, eta=ETA_CX)
+        # toolbox.register('mutate', tools.mutGaussian, mu=[0.0]*(len(x_min)), sigma=sigma_list, indpb=INDPB)
+        toolbox.register('mate', cx_simulated_binary_w_cx_uniform\
+                         , eta=ETA_CX, indpb=INDPB, is_nominal=is_norminal)
+        
+        mu = [0.0]*(len(x_min))
+        for i in range(len(is_norminal)):
+            if is_norminal[i]:
+                mu[i] = x_min[i]
+                sigma_list[i] = x_max[i]
+        mu = np.array(mu)
+        sigma_list = np.array(sigma_list)
+        toolbox.register('mutate', mutGaussian_mutUniformInt, mu=mu, sigma=sigma_list,\
+                          indpb=INDPB, is_nominal=is_norminal)
 
-        for gen in range(1,3):    
+        for gen in range(1,100):    
 
             offspring = algorithms.varAnd(population, toolbox, cxpb, mutpb)
 
@@ -266,15 +325,23 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,all_var_name
         #     df.to_csv(f'k_means_search_{idx}.csv')
         population = tools.selBest(population, k=1)
         # gt_x = X_test[idx]
-        print(population[0])
+        # print(population[0])
         # expanded_gt_x = np.tile(gt_x, (len(population), 1))
         # differences = population - expanded_gt_x
         # distances = np.linalg.norm(differences, axis=1)
         # res_idx = np.argmin(distances)
         # x_pred = population[res_idx]
+        # for i in range(len(control_index)):
+        #     if is_norminal[i]:
+        #         res[f"pred_x_{control_var_names[i]}"].append(np.array(population[0][i], dtype=int))
+        #     else:
+        #         res[f"pred_x_{control_var_names[i]}"].append(np.array(population[0][i], dtype=float))
         for i in range(len(control_index)):
-            res[f"pred_x_{control_var_names[i]}"].append(np.array(population[0][i], dtype=float))
-        
+            if is_norminal[i]:
+                res[f"pred_x_{control_var_names[i]}"].append(int(population[0][i]))
+            else:
+                res[f"pred_x_{control_var_names[i]}"].append(float(population[0][i]))
+
         # res["pred_y"].append(population[0].fitness.values[0].reshape(-1))
         # res["test_x"].append(gt_x)
         # res["test_y"].append(gt_y.reshape(-1,1))
