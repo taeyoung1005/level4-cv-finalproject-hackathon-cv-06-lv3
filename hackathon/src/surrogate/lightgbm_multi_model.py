@@ -7,7 +7,7 @@ from sklearn.multioutput import MultiOutputRegressor
 
 def lightgbm_multi_train(train_data: tuple, val_data: tuple, params: dict = None):
     """
-    LightGBM 다중 출력 회귀 모델을 학습하는 함수.
+    LightGBM 다중 출력 회귀 모델을 학습하는 함수
 
     Parameters:
         train_data (tuple): 훈련 데이터 (X_train, y_train)
@@ -47,7 +47,7 @@ def lightgbm_multi_train(train_data: tuple, val_data: tuple, params: dict = None
 
 def lightgbm_multi_predict(model, X_test: np.ndarray) -> np.ndarray:
     """
-    학습된 LightGBM 다중 출력 회귀 모델을 사용하여 예측 수행.
+    학습된 LightGBM 다중 출력 회귀 모델을 사용하여 예측 수행
 
     Parameters:
         model (MultiOutputRegressor): 학습된 다중 출력 회귀 모델
