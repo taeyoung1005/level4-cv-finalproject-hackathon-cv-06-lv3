@@ -71,6 +71,7 @@ def catboost_predict(model, X_test: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: 예측된 출력 값
     """
+
     y_pred = model.predict(X_test)  # 모델을 사용하여 예측 수행
 
     # 예측 결과가 1차원 배열이면 2차원으로 변환

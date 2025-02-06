@@ -1,7 +1,7 @@
 import numpy as np
 from tabpfn import TabPFNClassifier
 import warnings
-
+import pickle
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -42,3 +42,11 @@ def tabpfn_classification_predict(model, X_test: np.ndarray) -> np.ndarray:
     """
     y_pred = model.predict(X_test)
     return y_pred
+
+def tabpfn_classification_save(model, path):
+    with open(path + '.pkl', 'wb') as f:
+        pickle.dump(model, f)
+
+def tabpfn_classification_load(path):
+    with open(path + '.pkl', 'rb') as f:   
+        return pickle.load(f)

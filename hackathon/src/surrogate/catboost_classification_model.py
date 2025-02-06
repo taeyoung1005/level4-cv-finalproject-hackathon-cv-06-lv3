@@ -59,10 +59,19 @@ def catboost_classification_predict(model, X_test: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: 예측된 클래스 레이블
     """
-    y_pred = model.predict(X_test)
-
+    y_pred_prob = model.predict(X_test, prediction_type='Probability')
+    # print(y_pred_prob)
+    y_pred = np.argmax(y_pred_prob, axis=1)
     # 예측 결과가 1차원 배열이면 2차원으로 변환
     if y_pred.ndim == 1:
         y_pred = y_pred.reshape(-1, 1)
+    # print(y_pred)
+    return y_pred   
 
-    return y_pred
+def catboost_classification_save(model, path):
+    model.save_model(path+'.cbm', format='cbm')
+
+def catboost_classification_load(path):
+    model = CatBoostClassifier()
+    model.load_model(path+'.cbm')
+    return model

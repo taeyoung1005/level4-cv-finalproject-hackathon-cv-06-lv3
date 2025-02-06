@@ -118,12 +118,30 @@ def main(args, scalers=None):
     logging.info(f"y_train.shape: {y_train.shape}")
     logging.info(f"y_test.shape: {y_test.shape}")
     
-    model_load_func = getattr(surrogate, f'{model_name}_load')
+    if len(args.target) > 1:
+        model_load_func = getattr(surrogate, f'{model_name}_multi_load')
+    else:
+        if type(scalers[args.target[0]]).__name__ == 'LabelEncoder':
+            unique_classes_train = np.unique(y_train)
+            if len(unique_classes_train) > 10 and model_name == 'tabpfn':
+                print(f'훈련 데이터의 고유 클래스 개수가 {len(unique_classes_train)}로 10개를 초과해, {model_name}을 실행할 수 없습니다. catboost classifier를 실행합니다.')
+                model_name = 'catboost'
+            print(f'{model_name} classifier load')
+            model_load_func = getattr(surrogate, f'{model_name}_classification_load')
+        else:
+            model_load_func = getattr(surrogate, f'{model_name}_load')
     model = model_load_func(f'./prj/{args.prj_id}/surrogate_model/model')
     print(model)
     
-
-    predict_func = getattr(surrogate, f'{model_name}_predict')
+    #TODO predict func 수정 
+    # 현재 분류, 다중 회귀, 회귀 모델의 pred function이 동일하여 회귀 모델의 pred function을 사용
+    if len(args.target) > 1:
+        predict_func = getattr(surrogate, f'{model_name}_multi_predict')
+    else:
+        if type(scalers[args.target[0]]).__name__ == 'LabelEncoder':
+            predict_func = getattr(surrogate, f'{model_name}_classification_predict')
+        else:
+            predict_func = getattr(surrogate, f'{model_name}_predict')
     # y_pred = predict_func(model, X_test)
 
     # 사용자 요청 
