@@ -183,17 +183,23 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
 
     control_set = set(control_var_names)  
     control_index = [i for i, v in enumerate(all_var_names) if v in control_set] # var 중에 control
-    print(control_index)
-    control_index_to_pop_idx = {v: i+1 for i, v in enumerate(control_index)}
-
+    
+    # pop idx : control variable만 0부터 재정렬한 idx 
+    control_index_to_pop_idx = {v: i for i, v in enumerate(control_index)}
+    
     # control중 importance 순서    
     sorted_control_index_by_importance = sorted([i for i in control_index if all_var_names[i] in importance.keys()], key=lambda x: importance[all_var_names[x]])
     # poppulation 열 index를 중요도 순서로 정렬 
     sorted_pop_idx_by_importance = [control_index_to_pop_idx[i] for i in sorted_control_index_by_importance] 
+    # optimize를 importance 순서로 정렬 
+    # sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
+    sorted_optimize_dict_by_importance = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in sorted_control_index_by_importance}
 
-    # optimize를 vars 순서로 정렬 
-    sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
 
+    # population 변수 인덱스와 optimize 매핑  
+    pop_index_to_optimize = {control_index_to_pop_idx[i]: optmize_dict[all_var_names[i]] for i in sorted_control_index_by_importance}
+    # print('control_index_to_optimize',control_index_to_optimize)
+    print('pop_index_to_optimize',pop_index_to_optimize)
     scale_factor_x = np.std(X_train, axis=0)
     rounding_digits_x = np.clip(np.ceil(-np.log10(scale_factor_x/100)), 2, 10).astype(int)[sorted_control_index_by_importance]
     
@@ -210,12 +216,13 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
         x_max = np.array([value[1] for key, value in bounds.items()]).squeeze()
     else:
         x_min,x_max = np.min(X_train, axis=0)[control_index], np.max(X_train, axis=0)[control_index]
-
+        
     print("x_min : ",x_min)
     print("x_max : ",x_max)
     n_features = X_train.shape[1]
     weights =  (1.0,) * y_test.shape[-1]
-    weights += tuple(1.0 if opt == 'maximize' else -1.0 for opt in sorted_optimize_dict_by_vars_idx.values())
+    weights += tuple(1.0 if opt == 'maximize' else -1.0 for opt in sorted_optimize_dict_by_importance.values())
+    print('weights',weights)
     creator.create('FitnessMax', base.Fitness, weights=weights) # model pred + control optim
     creator.create('Individual', np.ndarray, fitness=creator.FitnessMax)
 
@@ -225,8 +232,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
     #     std_dev = (x_max - x_min) / 6  # 99.7% 확률로 x_min과 x_max 사이에 생성 std 3! 
     #     return np.random.randn(n_features) * std_dev + mean
 
-    # TODO min max optimize 고려 해서 초기값 생성 
-    def generate_individual(is_nominal):
+    def generate_individual(is_nominal,pop_index_to_optimize):
         is_nominal = np.array(is_nominal, dtype=bool)
 
         individual = np.where(
@@ -234,6 +240,16 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
         np.random.randint(x_min, x_max + 1),  # 범주형이면 randint 사용
         np.random.uniform(x_min, x_max)       # 연속형이면 uniform 사용
         )
+        # min max optimize 고려 해서 초기값 생성 보류 
+        scale_factor = (x_max - x_min) / 3*5  # 범위 조절 (x_max - x_min)/3 -> 분모 범위내에서 샘플 95% 확률로 포함 
+        for i in pop_index_to_optimize.keys():
+            if pop_index_to_optimize[i] == 'maximize':
+                individual[i] = x_max[i] - np.random.exponential(scale_factor[i])
+            else:
+                individual[i] = x_min[i] + np.random.exponential(scale_factor[i])
+            
+            individual[i] = np.clip(individual[i], x_min[i], x_max[i])
+
         return individual
         # return np.random.uniform(x_min[control_index], x_max[control_index])
         # return np.random.uniform(x_min, x_max)
@@ -241,7 +257,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
 
 
     toolbox = base.Toolbox()
-    toolbox.register('attr_float', generate_individual, is_nominal=is_norminal)
+    toolbox.register('attr_float', generate_individual, is_nominal=is_norminal, pop_index_to_optimize=pop_index_to_optimize)
     # min_max 차원이 8개이기에 n을 1로 설정 하면 8개의 변수를 가진 ind 생성!
     toolbox.register('individual', tools.initIterate, creator.Individual, toolbox.attr_float)
     toolbox.register('population', tools.initRepeat, list, toolbox.individual)
@@ -267,7 +283,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
             fit_res.append(-(y_pred - user_request_target.reshape(1,-1))**2)
             
             for i in sorted_pop_idx_by_importance:
-                    fit_res.append(population[:,i-1:i])
+                    fit_res.append(population[:,i:i+1])
             fit_res = np.concatenate(fit_res, axis=1)
             fit_res = vectorized_round(fit_res, rounding_digits)
             return fit_res
