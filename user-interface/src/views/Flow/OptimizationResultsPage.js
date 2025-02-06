@@ -42,6 +42,23 @@ const OptimizationResultsPage = () => {
 
   const [loading, setLoading] = useState(true);
 
+  const getGoalColor = (goal) => {
+    switch (goal) {
+      case "No Optimization":
+        return "gray.100";
+      case "Maximize":
+        return "green.100";
+      case "Minimize":
+        return "red.100";
+      case "Fit to Range":
+        return "orange.100";
+      case "Fit to Property":
+        return "purple.100";
+      default:
+        return "gray.100";
+    }
+  };
+
   // 페이징 관련 state: 2x2 그리드를 사용하므로 한 페이지에 4개 카드
   const pageSize = 4;
   const [currentPage, setCurrentPage] = useState(1);
@@ -213,7 +230,11 @@ const OptimizationResultsPage = () => {
               boxShadow="sm"
               w="140px"
             >
-              <Text fontSize="sm" color="gray.200" textAlign="center">
+              <Text
+                fontSize="sm"
+                color={optData ? getGoalColor(optData.goal) : "gray.400"}
+                textAlign="center"
+              >
                 {optData ? optData.goal || "-" : "Loading..."}
               </Text>
             </Card>

@@ -121,6 +121,7 @@ function DroppableList({
         >
           {propertiesList.map((prop, index) => {
             const originalCat = getOriginalCategory(prop);
+            console.log(prop, originalCat);
             const bgColor = propertyColors[originalCat] || "gray.500";
             const isDisabled = originalCat === "unavailable" && isLeftSide;
 
@@ -154,15 +155,17 @@ function LeftDatasetProperties({
   // 왼쪽에 표시할 카테고리 목록 (예: ["numerical", "categorical", "unavailable"])
   const categories = Object.keys(datasetProperties);
 
+  console.log("!!!!!!!!", categories);
+
   // 4단계로 점차 진해지는 그라데이션 배열
   const gradients = [
     "linear-gradient(125deg, rgba(74,81,114,0.5) 0%, rgba(81, 97, 127, 0.9) 20%, rgba(13,23,67,1) 100%)",
 
     "linear-gradient(125deg, rgba(74,81,114,0.4) 0%, rgba(58, 70, 92, 0.8) 20%, rgba(13,23,67,0.8) 100%)",
 
-    "linear-gradient(125deg, rgba(74,81,114,0.3) 0%, rgba(40, 48, 62, 0.6) 20%, rgba(13,23,67,0.6) 100%)",
+    "linear-gradient(125deg, rgba(74,81,114,0.4) 0%, rgba(40, 48, 62, 0.8) 20%, rgba(13,23,67, 0.8) 100%)",
 
-    "linear-gradient(125deg, rgba(74,81,114,0.2) 0%, rgba(56, 67, 88,0.4) 20%, rgba(13,23,67,0.4) 100%)",
+    "linear-gradient(125deg, rgba(74,81,114,0.2) 0%, rgba(56, 67, 88, 0.4) 20%, rgba(13,23,67,0.4) 100%)",
   ];
 
   return (
@@ -319,6 +322,7 @@ const ConfigurePropertiesPage = () => {
       state.flows.properties?.[flowId] || {
         numerical: [],
         categorical: [],
+        text: [],
         unavailable: [],
       }
   );
@@ -332,6 +336,7 @@ const ConfigurePropertiesPage = () => {
   const [datasetProperties, setDatasetProperties] = useState({
     numerical: [],
     categorical: [],
+    text: [],
     unavailable: [],
   });
   const [categorizedProperties, setCategorizedProperties] = useState({
@@ -355,6 +360,7 @@ const ConfigurePropertiesPage = () => {
     const updatedDatasetProps = {
       numerical: properties.numerical.filter((p) => !newCategories[p]),
       categorical: properties.categorical.filter((p) => !newCategories[p]),
+      text: properties.text.filter((p) => !newCategories[p]),
       unavailable: properties.unavailable.filter((p) => !newCategories[p]),
     };
 
@@ -460,14 +466,15 @@ const ConfigurePropertiesPage = () => {
   const getOriginalCategory = (prop) => {
     if (properties.numerical.includes(prop)) return "numerical";
     if (properties.categorical.includes(prop)) return "categorical";
+    if (properties.text.includes(prop)) return "text";
     if (properties.unavailable.includes(prop)) return "unavailable";
-    return "unknown";
+    return "unavilable";
   };
 
   const propertyColors = {
     numerical: "rgba(111, 81, 219, 0.77)",
     categorical: "rgba(217, 101, 235, 0.77)",
-    text: "rgba(146, 245, 121, 0.77)",
+    text: "rgba(0, 202, 178, 0.77)",
     unavailable: "rgba(255, 94, 94, 0.77)",
     unknown: "gray.100",
   };

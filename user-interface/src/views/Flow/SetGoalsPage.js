@@ -30,6 +30,7 @@ import {
   fetchPropertyHistograms,
   postOptimizationData,
 } from "store/features/flowSlice";
+import PieChart from "components/Charts/PieChart";
 
 const SetGoalsPage = () => {
   const { projectId, flowId } = useParams();
@@ -63,6 +64,14 @@ const SetGoalsPage = () => {
     [properties]
   );
 
+  const getPropertyType = (property, types) => {
+    if (types.numerical.includes(property)) return "numerical";
+    if (types.categorical.includes(property)) return "categorical";
+    if (types.text.includes(property)) return "text";
+    if (types.unavailable.includes(property)) return "unavailable";
+    return "numerical"; // 기본값
+  };
+
   // 페이징
   const [currentControllablePage, setCurrentControllablePage] = useState(1);
   const [currentOutputPage, setCurrentOutputPage] = useState(1);
@@ -79,6 +88,16 @@ const SetGoalsPage = () => {
   // fetch 중복 방지
   const attemptedFetchRef = useRef({});
   const histogramFetchRef = useRef({});
+
+  function combineCategories(data, limit = 15) {
+    if (data.length <= limit) return data;
+    // 상위 (limit - 1)개를 선택하고, 나머지는 others로 합침.
+    const topCategories = data.slice(0, limit - 1);
+    const othersValue = data
+      .slice(limit - 1)
+      .reduce((acc, item) => acc + item.value, 0);
+    return [...topCategories, { label: "Others", value: othersValue }];
+  }
 
   // ------------------------------------------------------------
   // (A) 첫 번째 useEffect:
@@ -216,140 +235,122 @@ const SetGoalsPage = () => {
       console.log(histograms[prop], hData, oData);
       if (!hData || !oData) return;
 
+      const propertyType = getPropertyType(prop, types) || "numerical";
+
       try {
-        const binEdges = JSON.parse(hData.bin_edges);
-        const counts = JSON.parse(hData.counts);
-        if (binEdges.length < 2) return;
-
-        const diff =
-          parseFloat(binEdges[binEdges.length - 1] - binEdges[0]) * 0.1;
-        const minX = parseFloat(oData.minimum_value || binEdges[0] - diff);
-        const maxX = parseFloat(
-          oData.maximum_value || binEdges[binEdges.length - 1] + diff
-        );
-
-        const total = counts.reduce((sum, val) => sum + val, 0);
-        const avgValue = total / counts.length;
-        const colorsArray = counts.map((val) =>
-          val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
-        );
-
-        setLocalValues((prev) => ({
-          ...prev,
-          [prop]: {
-            min: minX,
-            max: maxX,
-          },
-        }));
-
-        const newChart = {
-          barChartData: [
-            {
-              name: prop,
-              data: binEdges.map((edge, i) => ({
-                x: edge, // bin의 실제 숫자 위치
-                y: counts[i], // 그 bin의 카운트
-              })),
-            },
-          ],
-          barChartOptions: {
-            chart: {
+        // numeric인 경우 BarChart 데이터 생성
+        if (propertyType === "numerical") {
+          const binEdges = JSON.parse(hData.bin_edges);
+          const counts = JSON.parse(hData.counts);
+          if (binEdges.length < 2) return;
+          const diff =
+            (parseFloat(binEdges[binEdges.length - 1]) -
+              parseFloat(binEdges[0])) *
+            0.1;
+          const minX = parseFloat(oData?.minimum_value || binEdges[0] - diff);
+          const maxX = parseFloat(
+            oData?.maximum_value || binEdges[binEdges.length - 1] + diff
+          );
+          const total = counts.reduce((sum, val) => sum + val, 0);
+          const avgValue = total / counts.length;
+          const colorsArray = counts.map((val) =>
+            val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
+          );
+          setChartData((prev) => ({
+            ...prev,
+            [prop]: {
               type: "bar",
-              toolbar: { show: false },
-              zoom: {
-                enabled: false, // 드래그 줌 비활성화
-              },
-            },
-            plotOptions: {
-              bar: { distributed: true, borderRadius: 8, columnWidth: "10px" },
-            },
-            dataLabels: { enabled: false },
-            legend: { show: false },
-            xaxis: {
-              type: "numeric",
-              min: Math.min(minX, parseFloat(binEdges[0])) - diff * 0.5,
-              max:
-                Math.max(maxX, parseFloat(binEdges[binEdges.length - 1])) +
-                diff * 0.5,
-              labels: {
-                show: true,
-                style: {
-                  colors: "#fff",
-                  fontSize: "12px",
-                },
-              },
-            },
-            yaxis: {
-              show: true,
-              labels: {
-                show: true,
-                style: {
-                  colors: "#fff",
-                  fontSize: "12px",
-                },
-              },
-            },
-            tooltip: {
-              theme: "dark",
-              y: { formatter: (val) => `${parseInt(val)}` },
-              style: { fontSize: "14px" },
-            },
-            colors: colorsArray,
-            annotations: {
-              yaxis: [
+              barChartData: [
                 {
-                  y: avgValue,
-                  borderColor: "yellow",
-                  label: {
-                    position: "left",
-                    offsetX: 35,
-                    style: {
-                      color: "#fff",
-                      background: "#0c0c0c",
-                      fontSize: "8px",
-                    },
-                  },
+                  name: prop,
+                  data: binEdges.map((edge, i) => ({
+                    x: parseFloat(edge),
+                    y: counts[i],
+                  })),
                 },
               ],
-              xaxis: [
-                {
-                  x: minX,
-                  borderColor: "#00E396",
-                  label: {
-                    style: {
-                      color: "#fff",
-                      background: "#00E396",
-                      fontSize: "10px",
-                    },
+              barChartOptions: {
+                chart: {
+                  type: "bar",
+                  toolbar: { show: false },
+                  zoom: { enabled: false },
+                },
+                plotOptions: {
+                  bar: {
+                    distributed: true,
+                    borderRadius: 8,
+                    columnWidth: "10px",
                   },
                 },
-                {
-                  x: maxX,
-                  borderColor: "#FF4560",
-                  label: {
-                    //text: `Max: ${maxX.toFixed(2)}`,
-                    style: {
-                      color: "#fff",
-                      background: "#FF4560",
-                      fontSize: "10px",
-                      fontFamily: "Plus Jakarta Display",
-                    },
+                dataLabels: { enabled: false },
+                legend: { show: false },
+                xaxis: {
+                  type: "numeric",
+                  min: Math.min(minX, parseFloat(binEdges[0])) - diff * 0.5,
+                  max:
+                    Math.max(maxX, parseFloat(binEdges[binEdges.length - 1])) +
+                    diff * 0.5,
+                  labels: {
+                    style: { colors: "#fff", fontSize: "10px" },
+                    rotate: -45, // 라벨을 -45도 회전
+                    rotateAlways: true,
                   },
                 },
-              ],
+                yaxis: {
+                  labels: { style: { colors: "#fff", fontSize: "12px" } },
+                },
+                tooltip: {
+                  theme: "dark",
+                  y: { formatter: (val) => `${parseInt(val)}` },
+                  style: { fontSize: "14px" },
+                },
+                colors: colorsArray,
+                annotations: {
+                  yaxis: [
+                    {
+                      y: avgValue,
+                      borderColor: "yellow",
+                      label: {
+                        position: "left",
+                        offsetX: 35,
+                        style: {
+                          color: "#fff",
+                          background: "#0c0c0c",
+                          fontSize: "8px",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
             },
-          },
-        };
+          }));
+        } else if (propertyType === "categorical") {
+          // categorical인 경우 PieChart 데이터 생성
+          const binEdges = JSON.parse(hData.bin_edges);
+          const counts = JSON.parse(hData.counts);
+          // PieChart data: 각 bin을 항목으로, label은 binEdges, value는 counts
+          let pieData = binEdges.map((edge, i) => ({
+            label: edge,
+            value: counts[i] || 0,
+          }));
 
-        setChartData((prev) => ({
-          ...prev,
-          [prop]: newChart,
-        }));
+          pieData = combineCategories(pieData, 15);
+
+          setChartData((prev) => ({
+            ...prev,
+            [prop]: {
+              type: "pie",
+              pieChartData: pieData,
+              pieChartOptions: {},
+            },
+          }));
+        }
       } catch (err) {
-        console.error("Error making chart data:", err);
+        console.error("Error making chart data for property:", err);
       }
     };
-
+    console.log(chartData, "!!!");
     // 현재 페이지 property들에 대해 차트 세팅
     updateChartDataForProperty(controllableProp);
     updateChartDataForProperty(outputProp);
@@ -363,6 +364,8 @@ const SetGoalsPage = () => {
     controllableProperties,
     outputProperties,
   ]);
+
+  console.log(optimizationData);
 
   // ------------------------------------------------------------
   // 나머지 부분(카드 렌더링, handleNextStep 등)은 기존과 동일
@@ -470,15 +473,27 @@ const SetGoalsPage = () => {
       goal: category === "output" ? "Fit to Property" : "No Optimization",
     };
     const editing = isEditing[property] || false;
-    const propertyChartData = chartData[property] || {
+    const currentType = getPropertyType(property, types) || "numerical"; // "categorical"일 수도 있음
+
+    const chartForProperty = chartData[property] || {
       barChartData: [],
       barChartOptions: {},
     };
 
+    const chartComponent =
+      currentType === "categorical" ? (
+        <PieChart data={chartForProperty.pieChartData || []} />
+      ) : (
+        <BarChart
+          barChartData={chartForProperty.barChartData || []}
+          barChartOptions={chartForProperty.barChartOptions || {}}
+        />
+      );
+
     const optimizationOptions =
-      category === "controllable"
-        ? ["No Optimization", "Maximize", "Minimize", "Fit to Range"]
-        : ["Maximize", "Minimize", "Fit to Range", "Fit to Property"];
+      currentType === "categorical" || category === "output"
+        ? ["Maximize", "Minimize", "Fit to Range", "Fit to Property"]
+        : ["No Optimization", "Maximize", "Minimize", "Fit to Range"];
 
     return (
       <Card w="100%" h="calc(80vh - 140px)">
@@ -507,232 +522,324 @@ const SetGoalsPage = () => {
         </CardHeader>
         <Divider borderColor="gray.600" />
         <CardBody display="flex" flexDirection="column" alignItems="center">
-          <Box w="100%">
-            <BarChart
-              barChartData={propertyChartData.barChartData}
-              barChartOptions={propertyChartData.barChartOptions}
-            />
-          </Box>
+          {currentType !== "categorical" && (
+            <Box w="100%" h="310px">
+              {chartComponent}
+            </Box>
+          )}
+          {currentType === "categorical" && (
+            <Box h="300px" mt={4}>
+              {chartComponent}
+            </Box>
+          )}
+          {/* Target 입력 */}
+          {propertyData.goal === "Fit to Property" ? (
+            <Box w="50%" mt={4}>
+              <Text fontSize="xs" color="gray.300" textAlign="center">
+                Target Value
+              </Text>
+              <Input
+                value={
+                  localValues[property]?.target ?? propertyData.target ?? ""
+                }
+                isReadOnly={!editing}
+                color="rgba(144, 0, 227, 0.5)"
+                textAlign="center"
+                onChange={(e) =>
+                  setLocalValues((prev) => ({
+                    ...prev,
+                    [property]: {
+                      ...prev[property],
+                      target: e.target.value,
+                    },
+                  }))
+                }
+                onFocus={() =>
+                  setIsEditing((prev) => ({ ...prev, [property]: true }))
+                }
+                onBlur={() => {
+                  setIsEditing((prev) => ({ ...prev, [property]: false }));
+                  const newValRaw = localValues[property]?.target;
 
-          {/* Min/Max 입력 */}
-          <Box w="100%" mt={4}>
-            <Flex alignItems="center" gap={4}>
-              <Box w="100%">
-                <Text fontSize="xs" color="gray.300" textAlign="center" mb={1}>
-                  Min
-                </Text>
-                <Input
-                  value={
-                    localValues[property]?.min ?? propertyData.minimum_value
-                  }
-                  isReadOnly={!editing}
-                  color="rgba(0, 227, 150, 0.5)"
-                  textAlign="center"
-                  onChange={(e) =>
-                    setLocalValues((prev) => ({
-                      ...prev,
-                      [property]: { ...prev[property], min: e.target.value },
-                    }))
-                  }
-                  onFocus={() =>
-                    setIsEditing((prev) => ({ ...prev, [property]: true }))
-                  }
-                  onBlur={() => {
-                    setIsEditing((prev) => ({ ...prev, [property]: false }));
-
-                    const newValRaw = localValues[property]?.min;
+                  if (currentType === "numerical") {
+                    // 숫자 타입 검증
                     let newVal = parseFloat(newValRaw);
-
-                    // 현재 Max값(비교용). 숫자로 변환
-                    const currentMax = parseFloat(propertyData.maximum_value);
-
-                    // (1) 숫자가 아니면 → 이전 값으로 복구 + 에러
                     if (isNaN(newVal)) {
-                      // 로컬 상태 되돌리기
                       setLocalValues((prev) => ({
                         ...prev,
                         [property]: {
                           ...prev[property],
-                          min: propertyData.minimum_value,
+                          target: propertyData.target || "",
                         },
                       }));
                       toast({
                         title: "Invalid value",
-                        description: "Please enter a numeric value for Min.",
+                        description: "Please enter a numeric value for Target.",
                         status: "error",
                         duration: 1000,
                         isClosable: true,
-                        position: "bottom",
-                        containerStyle: {
-                          marginLeft: "280px",
-                        },
                       });
                       return;
                     }
+                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+                    setLocalValues((prev) => ({
+                      ...prev,
+                      [property]: { ...prev[property], target: formatted },
+                    }));
+                    dispatch(
+                      updateOptimizationData({
+                        flowId,
+                        property,
 
-                    // (2) 새로 입력한 Min >= 기존 Max → 에러
-                    if (newVal >= currentMax) {
+                        newData: {
+                          minimum_value: parseFloat(formatted),
+                          maximum_value: parseFloat(formatted),
+                        },
+                        category,
+                      })
+                    );
+                    toast({
+                      title: "Optimization target updated.",
+                      description: `Target value updated to ${newVal}.`,
+                      status: "success",
+                      duration: 1000,
+                      isClosable: true,
+                    });
+                  } else if (currentType === "categorical") {
+                    // 범주형 타입 검증
+                    // chartForProperty.pieChartData에 실제 카테고리 값들이 있다고 가정
+                    const allowedValues = (
+                      chartForProperty.pieChartData || []
+                    ).map((item) => item.label);
+                    if (allowedValues.includes(newValRaw)) {
+                      // 여기서 target 대신에 minimum_value(또는 maximum_value)로 저장할 수 있음.
+                      // 예시로 minimum_value를 업데이트하는 식으로 처리:
+                      dispatch(
+                        updateOptimizationData({
+                          flowId,
+                          property,
+                          newData: {
+                            minimum_value: newValRaw,
+                            maximum_value: newValRaw,
+                          },
+                          category,
+                        })
+                      );
+                      toast({
+                        title: "Optimization value updated.",
+                        description: `Target value updated to ${newValRaw}.`,
+                        status: "success",
+                        duration: 1000,
+                        isClosable: true,
+                      });
+                    } else {
+                      // 유효하지 않으면 이전 값으로 복구
                       setLocalValues((prev) => ({
                         ...prev,
                         [property]: {
                           ...prev[property],
-                          min: propertyData.minimum_value,
+                          target: propertyData.target || "",
                         },
                       }));
                       toast({
-                        title: "Invalid range",
+                        title: "Invalid value",
                         description:
-                          "Min cannot be greater than or equal to Max.",
+                          "Please enter one of the allowed category values: " +
+                          allowedValues.join(", "),
                         status: "error",
                         duration: 1000,
                         isClosable: true,
-                        position: "bottom",
-                        containerStyle: {
-                          marginLeft: "280px",
-                        },
                       });
-                      return;
                     }
-
-                    // (3) 정상적인 숫자이면서 Max보다 작다면 → store에 업데이트
-                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
-                    setLocalValues((prev) => ({
-                      ...prev,
-                      [property]: { ...prev[property], min: formatted },
-                    }));
-
-                    dispatch(
-                      updateOptimizationData({
-                        flowId,
-                        property,
-                        newData: { minimum_value: parseFloat(formatted) },
-                        category,
-                      })
-                    );
-
-                    toast({
-                      title: "Optimization range updated.",
-                      description: `Min value has been updated to ${newVal}.`,
-                      status: "success",
-                      duration: 1000,
-                      isClosable: true,
-                      position: "bottom",
-                      containerStyle: {
-                        marginLeft: "280px",
-                      },
-                    });
-                  }}
-                />
-              </Box>
-              <Box w="100%">
-                <Text fontSize="xs" color="gray.300" textAlign="center" mb={1}>
-                  Max
-                </Text>
-                <Input
-                  value={
-                    localValues[property]?.max ?? propertyData.maximum_value
                   }
-                  isReadOnly={!editing}
-                  color="rgba(255, 69, 96, 0.5)"
-                  textAlign="center"
-                  onChange={(e) =>
-                    setLocalValues((prev) => ({
-                      ...prev,
-                      [property]: { ...prev[property], max: e.target.value },
-                    }))
-                  }
-                  onFocus={() =>
-                    setIsEditing((prev) => ({ ...prev, [property]: true }))
-                  }
-                  onBlur={() => {
-                    setIsEditing((prev) => ({ ...prev, [property]: false }));
-
-                    const newValRaw = localValues[property]?.max;
-                    let newVal = parseFloat(newValRaw);
-
-                    // 현재 Min값(비교용). 숫자로 변환
-                    const currentMin = parseFloat(propertyData.minimum_value);
-
-                    // (1) 숫자가 아니면 → 이전 값으로 복구 + 에러
-                    if (isNaN(newVal)) {
+                }}
+              />
+            </Box>
+          ) : (
+            <Box w="100%" mt={4}>
+              <Flex alignItems="center" gap={4}>
+                <Box w="100%">
+                  <Text
+                    fontSize="xs"
+                    color="gray.300"
+                    textAlign="center"
+                    mb={1}
+                  >
+                    Min
+                  </Text>
+                  <Input
+                    value={
+                      localValues[property]?.min ?? propertyData.minimum_value
+                    }
+                    isReadOnly={!editing}
+                    color="rgba(0, 227, 150, 0.5)"
+                    textAlign="center"
+                    onChange={(e) =>
                       setLocalValues((prev) => ({
                         ...prev,
-                        [property]: {
-                          ...prev[property],
-                          max: propertyData.maximum_value,
-                        },
-                      }));
-                      toast({
-                        title: "Invalid value",
-                        description: "Please enter a numeric value for Max.",
-                        status: "error",
-                        duration: 1000,
-                        isClosable: true,
-                        position: "bottom",
-                        containerStyle: {
-                          marginLeft: "280px",
-                        },
-                      });
-                      return;
+                        [property]: { ...prev[property], min: e.target.value },
+                      }))
                     }
-
-                    // (2) 새로 입력한 Max <= 기존 Min → 에러
-                    if (newVal <= currentMin) {
+                    onFocus={() =>
+                      setIsEditing((prev) => ({ ...prev, [property]: true }))
+                    }
+                    onBlur={() => {
+                      setIsEditing((prev) => ({ ...prev, [property]: false }));
+                      const newValRaw = localValues[property]?.min;
+                      let newVal = parseFloat(newValRaw);
+                      const currentMax = parseFloat(propertyData.maximum_value);
+                      if (isNaN(newVal)) {
+                        setLocalValues((prev) => ({
+                          ...prev,
+                          [property]: {
+                            ...prev[property],
+                            min: propertyData.minimum_value,
+                          },
+                        }));
+                        toast({
+                          title: "Invalid value",
+                          description: "Please enter a numeric value for Min.",
+                          status: "error",
+                          duration: 1000,
+                          isClosable: true,
+                        });
+                        return;
+                      }
+                      if (newVal >= currentMax) {
+                        setLocalValues((prev) => ({
+                          ...prev,
+                          [property]: {
+                            ...prev[property],
+                            min: propertyData.minimum_value,
+                          },
+                        }));
+                        toast({
+                          title: "Invalid range",
+                          description:
+                            "Min cannot be greater than or equal to Max.",
+                          status: "error",
+                          duration: 1000,
+                          isClosable: true,
+                        });
+                        return;
+                      }
+                      // 포맷팅: 숫자를 원하는 소수점 자리까지 표현한 문자열로 변환
+                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
                       setLocalValues((prev) => ({
                         ...prev,
-                        [property]: {
-                          ...prev[property],
-                          max: propertyData.maximum_value,
-                        },
+                        [property]: { ...prev[property], min: formatted },
                       }));
+                      // API 요청시, 문자열 형태로 업데이트 (여기서는 formatted가 string임)
+                      dispatch(
+                        updateOptimizationData({
+                          flowId,
+                          property,
+                          newData: { minimum_value: formatted },
+                          category,
+                        })
+                      );
                       toast({
-                        title: "Invalid range",
-                        description: "Max cannot be less than or equal to Min.",
-                        status: "error",
+                        title: "Optimization range updated.",
+                        description: `Min value has been updated to ${formatted}.`,
+                        status: "success",
                         duration: 1000,
                         isClosable: true,
-                        position: "bottom",
-                        containerStyle: {
-                          marginLeft: "280px",
-                        },
                       });
-                      return;
+                    }}
+                  />
+                </Box>
+                <Box w="100%">
+                  <Text
+                    fontSize="xs"
+                    color="gray.300"
+                    textAlign="center"
+                    mb={1}
+                  >
+                    Max
+                  </Text>
+                  <Input
+                    value={
+                      localValues[property]?.max ?? propertyData.maximum_value
                     }
-
-                    // (3) 정상적인 숫자이면서 Min보다 크다면 → store에 업데이트
-                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
-                    setLocalValues((prev) => ({
-                      ...prev,
-                      [property]: { ...prev[property], max: formatted },
-                    }));
-
-                    dispatch(
-                      updateOptimizationData({
-                        flowId,
-                        property,
-                        newData: { maximum_value: parseFloat(formatted) },
-                        category,
-                      })
-                    );
-
-                    toast({
-                      title: "Optimization range updated.",
-                      description: `Max value has been updated to ${newVal}.`,
-                      status: "success",
-                      duration: 1000,
-                      isClosable: true,
-                      position: "bottom",
-                      containerStyle: {
-                        marginLeft: "280px",
-                      },
-                    });
-                  }}
-                />
-              </Box>
-            </Flex>
-          </Box>
-
-          {/* Goal 설정 */}
+                    isReadOnly={!editing}
+                    color="rgba(255, 69, 96, 0.5)"
+                    textAlign="center"
+                    onChange={(e) =>
+                      setLocalValues((prev) => ({
+                        ...prev,
+                        [property]: { ...prev[property], max: e.target.value },
+                      }))
+                    }
+                    onFocus={() =>
+                      setIsEditing((prev) => ({ ...prev, [property]: true }))
+                    }
+                    onBlur={() => {
+                      setIsEditing((prev) => ({ ...prev, [property]: false }));
+                      const newValRaw = localValues[property]?.max;
+                      let newVal = parseFloat(newValRaw);
+                      const currentMin = parseFloat(propertyData.minimum_value);
+                      if (isNaN(newVal)) {
+                        setLocalValues((prev) => ({
+                          ...prev,
+                          [property]: {
+                            ...prev[property],
+                            max: propertyData.maximum_value,
+                          },
+                        }));
+                        toast({
+                          title: "Invalid value",
+                          description: "Please enter a numeric value for Max.",
+                          status: "error",
+                          duration: 1000,
+                          isClosable: true,
+                        });
+                        return;
+                      }
+                      if (newVal <= currentMin) {
+                        setLocalValues((prev) => ({
+                          ...prev,
+                          [property]: {
+                            ...prev[property],
+                            max: propertyData.maximum_value,
+                          },
+                        }));
+                        toast({
+                          title: "Invalid range",
+                          description:
+                            "Max cannot be less than or equal to Min.",
+                          status: "error",
+                          duration: 1000,
+                          isClosable: true,
+                        });
+                        return;
+                      }
+                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
+                      setLocalValues((prev) => ({
+                        ...prev,
+                        [property]: { ...prev[property], max: formatted },
+                      }));
+                      dispatch(
+                        updateOptimizationData({
+                          flowId,
+                          property,
+                          newData: { maximum_value: formatted }, // dispatch 시에도 string으로 전송
+                          category,
+                        })
+                      );
+                      toast({
+                        title: "Optimization range updated.",
+                        description: `Max value has been updated to ${formatted}.`,
+                        status: "success",
+                        duration: 1000,
+                        isClosable: true,
+                      });
+                    }}
+                  />
+                </Box>
+              </Flex>
+            </Box>
+          )}
+          ;{/* Goal 설정 */}
           <Box w="100%" mt={4}>
             <Grid templateColumns="repeat(2, 2fr)" gap={2}>
               {optimizationOptions.map((option) => (
@@ -746,7 +853,26 @@ const SetGoalsPage = () => {
                   color={propertyData.goal === option ? "#0c1c1c" : "#fff"}
                   isDisabled={propertyData.goal === option}
                   _hover={{ bg: "blue.100" }}
-                  onClick={() =>
+                  onClick={() => {
+                    // 만약 categorical 또는 output인데 옵션이 Fit to Property가 아니면 경고 toast
+                    if (
+                      (currentType === "categorical" ||
+                        category === "output") &&
+                      option !== "Fit to Property"
+                    ) {
+                      toast({
+                        title: "Invalid Option",
+                        description:
+                          "For categorical or output properties, only 'Fit to Property' is allowed.",
+                        status: "warning",
+                        duration: 3000,
+                        isClosable: true,
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
+                      });
+                      return;
+                    }
                     dispatch(
                       updateOptimizationData({
                         flowId,
@@ -754,8 +880,8 @@ const SetGoalsPage = () => {
                         newData: { goal: option },
                         category,
                       })
-                    )
-                  }
+                    );
+                  }}
                 >
                   {option}
                 </Button>

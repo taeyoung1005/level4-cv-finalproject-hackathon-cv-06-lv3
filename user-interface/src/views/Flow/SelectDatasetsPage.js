@@ -88,15 +88,6 @@ const SelectDatasetsPage = () => {
     return state.flows.flows[flowId]?.csv;
   });
 
-  const selectedDataset = projectDatasets.filter((ds) =>
-    flowDatasets?.includes(ds.csvId)
-  );
-
-  const SelectedSize = selectedDataset.reduce(
-    (acc, ds) => acc + (ds.size || 0),
-    0
-  );
-
   // ✅ Flow와 프로젝트의 CSV 데이터셋 불러오기
   useEffect(() => {
     let isMounted = true; // ✅ 컴포넌트 마운트 여부 확인
@@ -108,6 +99,16 @@ const SelectDatasetsPage = () => {
         await dispatch(fetchFlowProperties(flowId));
         if (isMounted) {
           setSelectedDatasets(res.datasets?.map((d) => d.csvId) || []);
+
+          const selectedDataset = projectDatasets.filter((ds) =>
+            flowDatasets?.includes(ds.csvId)
+          );
+
+          const SelectedSize = selectedDataset.reduce(
+            (acc, ds) => acc + (ds.size || 0),
+            0
+          );
+
           setTotalSelectedSize(SelectedSize);
         }
       } catch (error) {
@@ -124,7 +125,7 @@ const SelectDatasetsPage = () => {
     return () => {
       isMounted = false; // ✅ 언마운트 시 상태 업데이트 방지
     };
-  }, [dispatch, projectId, flowId]);
+  }, [dispatch, projectId, flowId, flowDatasets]);
 
   //  setTotalSelectedSize(SelectedSize);
 
@@ -462,7 +463,7 @@ const SelectDatasetsPage = () => {
             </Flex>
           </CardHeader>
           <CardBody mt={4}>
-            <Grid templateColumns="repeat(4, 1fr)" gap={4}>
+            <Grid templateColumns="repeat(4, 1fr)" gap={4} w="100%">
               <DroppableCategory
                 categoryName="numerical"
                 items={categoriesState.numerical}

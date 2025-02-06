@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Flex,
   Grid,
@@ -34,6 +35,7 @@ import {
 } from "store/features/flowSlice";
 import { fetchCsvFilesByProject } from "store/features/projectSlice";
 import PieChart from "components/Charts/PieChart";
+import HorizontalBarChart from "components/Charts/HorizontalBarChart";
 
 const PROPERTIES_PER_PAGE = 3; // 한 페이지당 3개
 
@@ -41,6 +43,9 @@ function AnalyzePropertiesPage() {
   const { projectId, flowId } = useParams();
   const dispatch = useDispatch();
   const history = useHistory();
+  const location = useLocation();
+  // 기본값을 numeric으로 지정해놓았지만, location에서 categorical 정보를 받아오면 그걸 적용
+  const [tabIndex, setTabIndex] = useState(0);
 
   // -------------------------------
   // Redux 상태
@@ -65,7 +70,7 @@ function AnalyzePropertiesPage() {
   });
 
   const selectedDatasets = projectDatasets.filter((ds) =>
-    flowDatasets.includes(ds.csvId)
+    flowDatasets?.includes(ds.csvId)
   );
 
   const totalSelectedRows = selectedDatasets.reduce(
@@ -108,6 +113,18 @@ function AnalyzePropertiesPage() {
       console.log("done");
     }
   }, [dispatch, flowId, projectId, projectDatasets.length]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabFromQuery = params.get("tab");
+    if (tabFromQuery === "categorical") {
+      setTabIndex(1);
+    } else if (tabFromQuery === "numeric") {
+      setTabIndex(0);
+    } else if (location.state && location.state.activeTab) {
+      setTabIndex(location.state.activeTab === "categorical" ? 1 : 0);
+    }
+  }, [location]);
 
   // -------------------------------
   // 페이지네이션
@@ -171,6 +188,16 @@ function AnalyzePropertiesPage() {
     history.goBack();
   };
 
+  function combineCategories(data, limit = 15) {
+    if (data.length <= limit) return data;
+    // 상위 (limit - 1)개를 선택하고, 나머지는 others로 합침.
+    const topCategories = data.slice(0, limit - 1);
+    const othersValue = data
+      .slice(limit - 1)
+      .reduce((acc, item) => acc + item.value, 0);
+    return [...topCategories, { label: "Others", value: othersValue }];
+  }
+
   const DistributionCard = () => {
     return (
       <Card>
@@ -187,7 +214,13 @@ function AnalyzePropertiesPage() {
           alignItems="center"
           mt={10}
         >
-          <Tabs variant="enclosed" colorScheme="red" w="100%">
+          <Tabs
+            index={tabIndex}
+            onChange={(index) => setTabIndex(index)}
+            variant="enclosed"
+            colorScheme="red"
+            w="100%"
+          >
             <TabList>
               <Tab>Numeric</Tab>
               <Tab>Categorical</Tab>
@@ -281,6 +314,8 @@ function AnalyzePropertiesPage() {
                                 max: binMax + diff,
                                 labels: {
                                   style: { colors: "#fff", fontSize: "10px" },
+                                  rotateAlways: true,
+                                  rotate: -45, // 라벨을 -45도 회전
                                 },
                               },
                               yaxis: {
@@ -368,17 +403,27 @@ function AnalyzePropertiesPage() {
                           console.error("Histogram parse error:", e);
                         }
                       }
-                      // PieChart data: 각 bin의 label과 value로 구성
-                      const pieData = binEdges.map((edge, i) => ({
+                      // HorizontalBarChart data: 각 bin의 label과 value로 구성
+                      let barData = binEdges.map((edge, i) => ({
                         label: edge,
                         value: counts[i] || 0,
                       }));
+
+                      barData = combineCategories(barData, 15);
+
                       return (
-                        <Box key={prop} fontSize="xl" textAlign="center">
+                        <Box
+                          key={prop}
+                          fontSize="xl"
+                          textAlign="center"
+                          h="400px"
+                          pb={10}
+                        >
                           <Text color="gray.300" fontWeight="bold" mb={2}>
                             {prop}
                           </Text>
-                          <PieChart data={pieData} colorsArray={[]} />
+
+                          <HorizontalBarChart data={barData} />
                         </Box>
                       );
                     })}
@@ -478,8 +523,8 @@ function AnalyzePropertiesPage() {
     const colorsArray = [
       "rgba(111, 81, 219, 0.77)",
       "rgba(217, 101, 235, 0.6)",
-      "rgba(146, 245, 121, 0.4)",
-      "rgba(255, 94, 94, 0.2)",
+      "rgba(146, 245, 121, 0.6)",
+      "rgba(255, 94, 94, 0.5)",
     ];
 
     totalSize = (parseFloat(totalSize) / 1024).toFixed(2);
@@ -562,7 +607,7 @@ function AnalyzePropertiesPage() {
             mt={0}
           >
             {/* PieChart 컴포넌트를 사용 (가로/세로 크기 조정 필요) */}
-            <Box width="140px" height="100px">
+            <Box width="160px" height="140px">
               <PieChart data={pieData} colorsArray={colorsArray} />
             </Box>
             {/* Legend 박스 */}

@@ -378,7 +378,7 @@ export const fetchSurrogateFeatureImportance = createAsyncThunk(
       }
       const data = await response.json();
       // data.surrogate_feature_importance는 배열 형태로 반환됨.
-      return { flowId, data: data.surrogate_feature_importance };
+      return { flowId, data: data.feature_importance };
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
     }

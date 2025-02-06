@@ -23,6 +23,7 @@ import SetGoalsPage from "views/Flow/SetGoalsPage";
 import SetPrioritiesPage from "views/Flow/SetPrioritiesPage";
 import CheckPerformancePage from "views/Flow/CheckPerformancePage";
 import OptimizationResultsPage from "views/Flow/OptimizationResultsPage";
+import ModelTrainingProgressPage from "views/Flow/ModelTrainingProgressPage";
 
 export default function FlowLayout() {
   const { id: projectId, flowId } = useParams();
@@ -75,6 +76,10 @@ export default function FlowLayout() {
               <Route
                 path="/projects/:projectId/flows/:flowId/set-priorities"
                 component={SetPrioritiesPage}
+              />
+              <Route
+                path="/projects/:projectId/flows/:flowId/model-training-progress"
+                component={ModelTrainingProgressPage}
               />
               <Route
                 path="/projects/:projectId/flows/:flowId/check-performance"

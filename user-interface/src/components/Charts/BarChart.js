@@ -33,7 +33,7 @@ class BarChart extends Component {
       <Chart
         options={this.state.chartOptions}
         series={this.state.chartData}
-        height="300px"
+        height="350px"
         type="bar"
       />
     );
