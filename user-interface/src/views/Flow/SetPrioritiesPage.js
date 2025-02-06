@@ -235,7 +235,7 @@ const SetPrioritiesPage = () => {
           <Text fontSize="2xl" fontWeight="bold" color="white">
             Set Priorities
           </Text>
-          <Text fontSize="sm" color="gray.400">
+          <Text fontSize="md" color="gray.400">
             Drag and drop property cards to configure your optimization goals
             and priorities for model preparation.
           </Text>

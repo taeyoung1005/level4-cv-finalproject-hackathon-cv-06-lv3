@@ -121,7 +121,7 @@ function DroppableList({
         >
           {propertiesList.map((prop, index) => {
             const originalCat = getOriginalCategory(prop);
-            console.log(prop, originalCat);
+
             const bgColor = propertyColors[originalCat] || "gray.500";
             const isDisabled = originalCat === "unavailable" && isLeftSide;
 
@@ -154,8 +154,6 @@ function LeftDatasetProperties({
 }) {
   // 왼쪽에 표시할 카테고리 목록 (예: ["numerical", "categorical", "unavailable"])
   const categories = Object.keys(datasetProperties);
-
-  console.log("!!!!!!!!", categories);
 
   // 4단계로 점차 진해지는 그라데이션 배열
   const gradients = [

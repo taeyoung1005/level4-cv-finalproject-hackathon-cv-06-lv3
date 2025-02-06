@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ChakraProvider } from "@chakra-ui/react";
 import Footer from "components/Footer/Footer.js";
 import { Switch, Route, Redirect, useParams } from "react-router-dom";
@@ -11,10 +11,12 @@ import Sidebar from "components/Sidebar/Sidebar";
 import ProjectNavbar from "components/Navbars/ProjectNavbar"; // 새로운 Navbar
 
 import { useSelector } from "react-redux";
+import { CarIcon } from "components/Icons/Icons";
 
 export default function ProjectLayout() {
   // Redux에서 프로젝트 목록 가져오기
   const projects = useSelector((state) => state.projects.projects);
+  const [sidebarVariant, setSidebarVariant] = useState("transparent");
 
   // URL에서 현재 프로젝트 ID 가져오기
   const { id } = useParams();
@@ -22,14 +24,19 @@ export default function ProjectLayout() {
 
   // Sidebar에 표시할 프로젝트 목록
   const projectRoutes = projects.map((project) => ({
-    path: `/${project.id}`,
+    path: `/${project.projectId}`,
     name: project.name,
     layout: "/projects",
+    icon: <CarIcon color="inherit"></CarIcon>,
   }));
 
   return (
     <ChakraProvider theme={theme} resetCss={false}>
-      <Sidebar routes={projectRoutes} logoText="PROJECTS" />
+      <Sidebar
+        routes={projectRoutes}
+        logoText="PROJECTS"
+        variant={sidebarVariant}
+      />
       <MainPanel
         w={{
           base: "100%",

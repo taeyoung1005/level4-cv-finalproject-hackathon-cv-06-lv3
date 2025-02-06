@@ -232,7 +232,7 @@ const SetGoalsPage = () => {
       if (!prop) return;
       const hData = histograms[prop]; // store에서 읽기
       const oData = optimizationData[prop]; // store에서 읽기
-      console.log(histograms[prop], hData, oData);
+
       if (!hData || !oData) return;
 
       const propertyType = getPropertyType(prop, types) || "numerical";
@@ -256,6 +256,7 @@ const SetGoalsPage = () => {
           const colorsArray = counts.map((val) =>
             val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
           );
+
           setChartData((prev) => ({
             ...prev,
             [prop]: {
@@ -286,9 +287,14 @@ const SetGoalsPage = () => {
                 legend: { show: false },
                 xaxis: {
                   type: "numeric",
-                  min: Math.min(minX, parseFloat(binEdges[0])) - diff * 0.5,
+                  min:
+                    Math.min(parseFloat(minX), parseFloat(binEdges[0])) -
+                    diff * 0.5,
                   max:
-                    Math.max(maxX, parseFloat(binEdges[binEdges.length - 1])) +
+                    Math.max(
+                      parseFloat(maxX),
+                      parseFloat(binEdges[binEdges.length - 1])
+                    ) +
                     diff * 0.5,
                   labels: {
                     style: { colors: "#fff", fontSize: "10px" },
@@ -321,6 +327,16 @@ const SetGoalsPage = () => {
                       },
                     },
                   ],
+                  xaxis: [
+                    {
+                      x: minX,
+                      borderColor: "rgba(72, 187, 120, 1)",
+                    },
+                    {
+                      x: maxX,
+                      borderColor: "rgba(252, 130, 129, 1)",
+                    },
+                  ],
                 },
               },
             },
@@ -350,7 +366,7 @@ const SetGoalsPage = () => {
         console.error("Error making chart data for property:", err);
       }
     };
-    console.log(chartData, "!!!");
+
     // 현재 페이지 property들에 대해 차트 세팅
     updateChartDataForProperty(controllableProp);
     updateChartDataForProperty(outputProp);
@@ -364,8 +380,6 @@ const SetGoalsPage = () => {
     controllableProperties,
     outputProperties,
   ]);
-
-  console.log(optimizationData);
 
   // ------------------------------------------------------------
   // 나머지 부분(카드 렌더링, handleNextStep 등)은 기존과 동일
@@ -534,7 +548,7 @@ const SetGoalsPage = () => {
           )}
           {/* Target 입력 */}
           {propertyData.goal === "Fit to Property" ? (
-            <Box w="50%" mt={4}>
+            <Box w="50%" mt={8}>
               <Text fontSize="xs" color="gray.300" textAlign="center">
                 Target Value
               </Text>
@@ -656,7 +670,7 @@ const SetGoalsPage = () => {
               />
             </Box>
           ) : (
-            <Box w="100%" mt={4}>
+            <Box w="100%" mt={7}>
               <Flex alignItems="center" gap={4}>
                 <Box w="100%">
                   <Text
@@ -840,7 +854,7 @@ const SetGoalsPage = () => {
             </Box>
           )}
           ;{/* Goal 설정 */}
-          <Box w="100%" mt={4}>
+          <Box w="100%" mt={0}>
             <Grid templateColumns="repeat(2, 2fr)" gap={2}>
               {optimizationOptions.map((option) => (
                 <Button

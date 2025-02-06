@@ -457,7 +457,7 @@ const SelectDatasetsPage = () => {
               <Text color="#fff" fontSize="lg" fontWeight="bold">
                 Data Properties
               </Text>
-              <Text color="gray.400" fontSize="xs" fontWeight="bold">
+              <Text color="gray.400" fontSize="md" fontWeight="bold">
                 Drag and Drop to change property category
               </Text>
             </Flex>
@@ -504,7 +504,7 @@ const SelectDatasetsPage = () => {
           colorScheme="blue"
         />
         <Flex direction="column" align="center">
-          <Text fontSize="xl" fontWeight="bold" color="white">
+          <Text fontSize="2xl" fontWeight="bold" color="white">
             Select Datasets
           </Text>
           <Text fontSize="md" color="gray.400">

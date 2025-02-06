@@ -9,7 +9,6 @@ import {
   ModalFooter,
   Button,
   Input,
-  Textarea,
   VStack,
 } from "@chakra-ui/react";
 
@@ -26,8 +25,8 @@ function AddFlowDialog({ isOpen, onClose, onAdd }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
-      <ModalOverlay />
-      <ModalContent>
+      <ModalOverlay bg="blackAlpha.800" />
+      <ModalContent bg="gray.900" color="white" borderRadius="md">
         <ModalHeader>Add New Flow</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -36,6 +35,10 @@ function AddFlowDialog({ isOpen, onClose, onAdd }) {
               placeholder="Flow Name"
               value={flowName}
               onChange={(e) => setFlowName(e.target.value)}
+              focusBorderColor="teal.400"
+              bg="gray.800"
+              borderRadius="md"
+              color="white"
             />
           </VStack>
         </ModalBody>
@@ -43,7 +46,7 @@ function AddFlowDialog({ isOpen, onClose, onAdd }) {
           <Button colorScheme="teal" mr={3} onClick={handleAdd}>
             Add Flow
           </Button>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} color="white">
             Cancel
           </Button>
         </ModalFooter>

@@ -32,32 +32,39 @@ function EditProjectDialog({ isOpen, onClose, project, onUpdate }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <ModalOverlay bg="blackAlpha.800" />
       <ModalContent
         bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.9) 76.65%)"
         borderRadius="15px"
+        color="white"
       >
-        <ModalHeader color="#FFF">Edit Project</ModalHeader>
-        <Separator></Separator>
+        <ModalHeader>Edit Project</ModalHeader>
+        <Separator />
         <ModalCloseButton color="#fff" />
         <ModalBody>
           <Input
             placeholder="Project Name"
             value={name}
-            color="#FFF"
             onChange={(e) => setName(e.target.value)}
             mb={4}
+            borderColor="gray.600"
+            bg="gray.800"
+            _placeholder={{ color: "gray.400" }}
+            color="white"
           />
           <Textarea
             placeholder="Project Description"
             value={description}
-            color="#FFF"
             onChange={(e) => setDescription(e.target.value)}
+            borderColor="gray.600"
+            bg="gray.800"
+            _placeholder={{ color: "gray.400" }}
+            color="white"
           />
         </ModalBody>
         <ModalFooter>
-          <Button onClick={onClose} mr={3}>
+          <Button onClick={onClose} mr={3} variant="ghost" color="white">
             Cancel
           </Button>
           <Button

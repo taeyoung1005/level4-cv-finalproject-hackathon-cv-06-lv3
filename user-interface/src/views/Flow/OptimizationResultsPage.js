@@ -291,9 +291,10 @@ const OptimizationResultsPage = () => {
       pt={{ base: "120px", md: "75px" }}
       px={4}
       color="white"
+      maxH="100vh"
     >
       {/* 헤더 영역 */}
-      <Flex justifyContent="space-between" alignItems="center" mb={6}>
+      <Flex justifyContent="space-between" alignItems="center" mb={3}>
         <IconButton
           icon={<ArrowBackIcon />}
           onClick={() => history.goBack()}
@@ -303,7 +304,7 @@ const OptimizationResultsPage = () => {
           <Text fontSize="2xl" fontWeight="bold">
             Optimization Results
           </Text>
-          <Text fontSize="sm" color="gray.400">
+          <Text fontSize="md" color="gray.400">
             Explore optimization outcomes by property.
           </Text>
         </Box>
@@ -317,7 +318,7 @@ const OptimizationResultsPage = () => {
       </Flex>
 
       {/* 결과 카드 영역 - 2x2 그리드 */}
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(2, 1fr)" gap={4} h="calc(80vh - 130px)">
         {currentResults && currentResults.length > 0 ? (
           currentResults.map((item, index) => renderResultCard(item, index))
         ) : (
@@ -335,6 +336,7 @@ const OptimizationResultsPage = () => {
               aria-label="Previous Page"
               icon={<ChevronLeftIcon />}
               onClick={handlePrevPage}
+              colorScheme="whiteAlpha"
               isDisabled={currentPage === 1}
             />
             <Text color="white">
@@ -344,6 +346,7 @@ const OptimizationResultsPage = () => {
               aria-label="Next Page"
               icon={<ChevronRightIcon />}
               onClick={handleNextPage}
+              colorScheme="whiteAlpha"
               isDisabled={currentPage === totalPages}
             />
           </HStack>

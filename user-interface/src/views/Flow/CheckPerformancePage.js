@@ -53,8 +53,6 @@ const SurrogatePerformancePage = () => {
 
   const redux = useSelector((state) => state);
 
-  console.log(redux);
-
   useEffect(async () => {
     await dispatch(fetchSurrogateFeatureImportance(flowId)).unwrap();
     await dispatch(fetchSurrogateMatric(flowId)).unwrap();
@@ -62,7 +60,6 @@ const SurrogatePerformancePage = () => {
   }, [dispatch, flowId]); // properties가 아무것도 없을 때만 fetch
 
   const currentColumnType = surrogateMatric[outputIndex]?.column_type;
-  console.log(currentColumnType);
 
   const metricsCombinedCard = (
     <Card mb={4} h="100%" minH="400px">
@@ -86,6 +83,7 @@ const SurrogatePerformancePage = () => {
                   onClick={() =>
                     setOutputIndex((prev) => Math.max(prev - 1, 0))
                   }
+                  colorScheme="whiteAlpha"
                   isDisabled={outputIndex === 0}
                   size="sm"
                   mr={2}
@@ -101,6 +99,7 @@ const SurrogatePerformancePage = () => {
                       Math.min(prev + 1, surrogateMatric.length - 1)
                     )
                   }
+                  colorScheme="whiteAlpha"
                   isDisabled={outputIndex === surrogateMatric.length - 1}
                   size="sm"
                   ml={2}
@@ -512,7 +511,7 @@ const SurrogatePerformancePage = () => {
           <Text fontSize="2xl" fontWeight="bold">
             Surrogate Model Performance
           </Text>
-          <Text fontSize="sm" color="gray.400">
+          <Text fontSize="md" color="gray.400">
             Check metrics, feature importance, and prediction cases.
           </Text>
         </Box>

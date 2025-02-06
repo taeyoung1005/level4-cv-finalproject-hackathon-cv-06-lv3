@@ -122,6 +122,7 @@ export default function ProjectNavbar(props) {
                 color={
                   location.pathname === "/admin/projects" ? "white" : "#A0AEC0"
                 }
+                fontSize="lg"
               >
                 Projects
               </BreadcrumbLink>
@@ -136,6 +137,7 @@ export default function ProjectNavbar(props) {
                       ? "white"
                       : "#A0AEC0"
                   }
+                  fontSize="lg"
                 >
                   {project.name}
                 </BreadcrumbLink>
@@ -151,6 +153,7 @@ export default function ProjectNavbar(props) {
                       ? "white"
                       : "#A0AEC0"
                   }
+                  fontSize="lg"
                 >
                   {flow.flow_name}
                 </BreadcrumbLink>

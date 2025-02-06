@@ -14,7 +14,7 @@ function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
       p="16px"
       bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%)"
       transition="background-color 0.3s ease"
-      _hover={!isLocked ? { bg: "rgba(6, 12, 41, 0.8)" } : undefined} // 잠금 상태일 때 hover 제거
+      //_hover={!isLocked ? { bg: "rgba(6, 12, 41, 0.8)" } : undefined} // 잠금 상태일 때 hover 제거
       borderRadius="20px"
       boxShadow="md"
       w="100%"

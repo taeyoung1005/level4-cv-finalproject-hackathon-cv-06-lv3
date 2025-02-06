@@ -83,8 +83,6 @@ function AnalyzePropertiesPage() {
     0
   );
 
-  console.log(selectedDatasets, totalSelectedRows, totalSelectedSize);
-
   const numericCount = properties.numerical?.length || 0;
   const categoricalCount = properties.categorical?.length || 0;
   const textCount = properties.text?.length || 0;
@@ -110,7 +108,6 @@ function AnalyzePropertiesPage() {
     if (projectDatasets.length === 0) {
       dispatch(fetchCsvFilesByProject(projectId));
       dispatch(fetchFlowDatasets(flowId));
-      console.log("done");
     }
   }, [dispatch, flowId, projectId, projectDatasets.length]);
 

@@ -24,6 +24,8 @@ import {
   deleteFlowAsync,
   editFlowAsync,
 } from "store/features/flowSlice"; // ✅ 경로 수정
+import FlowProgressIndicator from "components/Indicator/FlowProgressIndicator";
+import FlowProgressBar from "components/Indicator/FlowProgressBar";
 
 export default function Project() {
   const { id: projectId } = useParams();
@@ -119,7 +121,7 @@ export default function Project() {
             <IconButton
               size="md"
               variant="solid"
-              bg="teal.400"
+              bg="teal.500"
               aria-label="Add New Flow"
               icon={<AddIcon color="#fff" />}
               onClick={onOpen}
@@ -128,7 +130,7 @@ export default function Project() {
             />
           </Tooltip>
         </CardHeader>
-        <Divider borderColor="rgba(255, 255, 255, 0.3)" mb={7} />
+
         <CardBody
           overflowY="auto"
           css={{
@@ -136,36 +138,49 @@ export default function Project() {
               width: "0px",
             },
           }}
+          mt={2}
         >
           <Box w="100%">
             <Grid templateColumns="repeat(3, 1fr)" gap={6}>
-              <Box
-                p="16px"
-                bg="transparent"
+              <Card
                 transition="background-color 0.3s ease"
-                _hover={{ bg: "rgba(6, 12, 41, 0.8)" }}
+                _hover={{ bg: "rgba(35, 40, 65, 0.49)" }}
                 cursor="pointer"
                 onClick={onOpen}
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                border="dashed 1px #fff"
-                borderRadius="20px"
                 boxShadow="md"
                 w="100%"
               >
-                <Text fontSize="sm" fontWeight="bold" color="#fff">
-                  Add New Flow
+                <Text fontSize="md" fontWeight="bold" color="brand.100">
+                  🌊 ADD New Flow
                 </Text>
-              </Box>
+              </Card>
               {flows.map((flow) => (
-                <FlowRow
+                <Box
                   key={flow.flowId}
-                  name={flow.flow_name}
-                  onEdit={() => handleFlowEdit(flow.flowId)}
-                  onDelete={() => handleFlowDelete(flow.flowId)}
+                  p="16px"
+                  bg="transparent"
+                  transition="background-color 0.3s ease, transform 0.2s ease"
+                  cursor="pointer"
+                  boxShadow="md"
+                  w="100%"
+                  _hover={{
+                    //bg: "rgba(6, 12, 41, 0.8)",
+                    transform: "scale(1.01)",
+                  }}
                   onClick={() => handleFlowClick(flow.flowId)}
-                />
+                >
+                  <FlowRow
+                    name={flow.flow_name}
+                    onEdit={() => handleFlowEdit(flow.flowId)}
+                    onDelete={() => handleFlowDelete(flow.flowId)}
+                    // 필요시 추가 props 전달
+                  />
+                  {/* FlowProgressBar를 카드 하단에 배치 */}
+                  <FlowProgressBar progress={flow.progress || 0} />
+                </Box>
               ))}
             </Grid>
           </Box>

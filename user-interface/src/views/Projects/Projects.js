@@ -11,7 +11,7 @@ import {
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader";
+import CardHeader from "components/Card/CardHeader.js";
 import ProjectRow from "components/Tables/ProjectRow";
 import AddProjectDialog from "components/Dialog/AddProjectDialog";
 import EditProjectDialog from "components/Dialog/EditProjectDialog";
@@ -30,12 +30,12 @@ export default function Projects() {
   const dispatch = useDispatch();
   const history = useHistory();
 
-  // ✅ Redux 상태 가져오기 (백엔드 `project_id` 사용)
+  // Redux 상태
   const projects = useSelector((state) => state.projects.projects || []);
   const status = useSelector((state) => state.projects.status);
   const error = useSelector((state) => state.projects.error);
 
-  // ✅ 모달 상태 관리
+  // 모달 상태 관리
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isEditOpen,
@@ -44,7 +44,7 @@ export default function Projects() {
   } = useDisclosure();
   const [currentProject, setCurrentProject] = useState(null);
 
-  // ✅ 프로젝트 목록 불러오기 (최초 실행)
+  // 프로젝트 목록 불러오기 (최초 실행)
   useEffect(() => {
     if (status === "idle") {
       dispatch(fetchProjects())
@@ -54,7 +54,7 @@ export default function Projects() {
     }
   }, [status, dispatch]);
 
-  // ✅ 프로젝트 추가 (API 요청 후 상태 업데이트)
+  // 프로젝트 추가 (API 요청 후 상태 업데이트)
   const handleProjectAdd = async (newProject) => {
     try {
       await dispatch(addProjectAsync(newProject)).unwrap();
@@ -64,7 +64,7 @@ export default function Projects() {
     }
   };
 
-  // ✅ 프로젝트 삭제 (API 요청 후 상태 업데이트)
+  // 프로젝트 삭제 (API 요청 후 상태 업데이트)
   const handleProjectDelete = async (projectId) => {
     try {
       await dispatch(deleteProjectAsync({ projectId })).unwrap();
@@ -73,17 +73,16 @@ export default function Projects() {
     }
   };
 
-  // ✅ 프로젝트 수정 모달 열기
+  // 프로젝트 수정 모달 열기
   const handleProjectEdit = (projectId) => {
     const project = projects.find((proj) => proj.projectId === projectId);
     setCurrentProject(project);
     onEditOpen();
   };
 
-  // ✅ 프로젝트 수정 (API 요청 후 상태 업데이트)
+  // 프로젝트 수정 (API 요청 후 상태 업데이트)
   const handleProjectUpdate = async (updatedProject) => {
     try {
-      console.log(updatedProject);
       await dispatch(editProjectAsync(updatedProject)).unwrap();
       onEditClose();
     } catch (err) {
@@ -91,13 +90,25 @@ export default function Projects() {
     }
   };
 
-  // ✅ 프로젝트 클릭 시 상세 페이지 이동
+  // 프로젝트 클릭 시 상세 페이지 이동
   const handleProjectClick = (projectId) => {
     history.push(`/projects/${projectId}`);
   };
 
+  // 날짜 포맷 함수 (영어 형식, 예: "Feb 3, 2025, 2:59 PM")
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }}>
+    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={4}>
       <Card w="100%">
         <CardHeader
           mb="16px"
@@ -121,8 +132,8 @@ export default function Projects() {
             />
           </Tooltip>
         </CardHeader>
-        <Divider borderColor="rgba(255, 255, 255, 0.3)" mb={7} />
-        <CardBody>
+
+        <CardBody mt={3}>
           {error ? (
             <Text color="red.500" textAlign="center">
               Error: {error}
@@ -132,15 +143,17 @@ export default function Projects() {
               <VStack spacing={4} w="100%">
                 {projects.length > 0 ? (
                   projects.map((project) => (
-                    <Box
-                      key={project.projectId} // ✅
+                    <Card
+                      key={project.projectId}
                       bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%)"
-                      transition="background-color 0.3s ease"
+                      transition="background-color 0.3s ease, transform 0.2s ease"
                       cursor="pointer"
-                      borderRadius="20px"
-                      boxShadow="md"
                       w="100%"
-                      _hover={{ bg: "rgba(6, 12, 41, 0.8)" }}
+                      p={4}
+                      _hover={{
+                        bg: "rgba(6, 12, 41, 0.8)",
+                        transform: "scale(1.01)",
+                      }}
                       onClick={() => handleProjectClick(project.projectId)}
                     >
                       <ProjectRow
@@ -150,7 +163,11 @@ export default function Projects() {
                         onEdit={() => handleProjectEdit(project.projectId)}
                         onDelete={() => handleProjectDelete(project.projectId)}
                       />
-                    </Box>
+                      {/* 생성일 정보를 description 아래에 표시 */}
+                      <Text fontSize="xs" color="gray.300" mt={2}>
+                        Created at: {formatDate(project.created_at)}
+                      </Text>
+                    </Card>
                   ))
                 ) : (
                   <Text color="gray.400" textAlign="center">
@@ -158,23 +175,23 @@ export default function Projects() {
                   </Text>
                 )}
                 {/* 프로젝트 추가 버튼 */}
-                <Box
-                  p="16px"
-                  borderRadius="20px"
-                  border="dashed 1px #fff"
+                <Card
                   boxShadow="md"
                   w="100%"
                   cursor="pointer"
                   onClick={onOpen}
-                  transition="background-color 0.3s ease"
-                  _hover={{ bg: "rgba(6, 12, 41, 0.8)" }}
+                  transition="background-color 0.3s ease, transform 0.2s ease"
+                  _hover={{
+                    bg: "rgba(6, 12, 41, 0.8)",
+                    transform: "scale(1.01)",
+                  }}
                 >
                   <Flex justify="center" align="center" w="100%" h="100%">
-                    <Text fontSize="ms" fontWeight="bold" color="#fff">
-                      새로운 프로젝트 추가
+                    <Text fontSize="md" fontWeight="bold" color="brand.100">
+                      📁 ADD New Project
                     </Text>
                   </Flex>
-                </Box>
+                </Card>
               </VStack>
             </Box>
           )}

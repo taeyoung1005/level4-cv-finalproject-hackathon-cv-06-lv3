@@ -3,8 +3,6 @@ import { Box, Text, Flex, Stack, Divider } from "@chakra-ui/react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { SimmmpleLogoWhite } from "components/Icons/Icons";
 
-let sidebarMargins = "16px 0px 16px 16px";
-
 const SidebarTimeline = () => {
   const { projectId, flowId } = useParams(); // 현재 URL에서 projectId와 flowId 가져오기
   const location = useLocation(); // 현재 URL 경로 가져오기
@@ -86,10 +84,10 @@ const SidebarTimeline = () => {
       position="fixed"
       h="calc(100vh - 32px)"
       w="260px"
-      m={sidebarMargins}
+      m="16px"
       p={4}
-      ps="20px"
-      pt={"25px"}
+      pl="20px"
+      pt="25px"
       borderRadius="16px"
       boxShadow="0px 4px 12px rgba(0, 0, 0, 0.1)"
     >
@@ -101,9 +99,8 @@ const SidebarTimeline = () => {
         mb={6}
         position="relative"
       >
-        {/* Logo and Text */}
         <Flex align="center" justify="center" mb="12px">
-          <SimmmpleLogoWhite w="22px" h="22px" me="10px" mt="2px" />
+          <SimmmpleLogoWhite w="28px" h="28px" me="10px" mt="2px" />
           <Box
             bg="linear-gradient(97.89deg, #FFFFFF 70.67%, rgba(117, 122, 140, 0) 108.55%)"
             bgClip="text"
@@ -115,90 +112,75 @@ const SidebarTimeline = () => {
               fontWeight="medium"
               color="transparent"
             >
-              Steps
+              STEPS
             </Text>
           </Box>
         </Flex>
-        {/* Separator */}
-        <Divider
-          orientation="horizontal"
-          borderColor="gray.600"
-          w="80%"
-          mx="auto"
-        />
+        <Divider orientation="horizontal" borderColor="gray.600" w="80%" />
       </Flex>
 
       {/* Timeline Steps */}
-      <Stack spacing={6}>
-        {steps.map((step, stepIndex) => (
-          <Box key={stepIndex}>
-            {/* Major Step */}
-            <Flex
-              bg={currentStep === stepIndex ? "blue.600" : "gray.700"}
-              p={3}
-              borderRadius="lg"
-              cursor="pointer"
-              mb={2}
-              transition="all 0.3s ease"
-              _hover={{
-                transform: "scale(1.02)",
-                boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.2)",
-              }}
-            >
-              <Text
-                fontWeight="bold"
-                color={currentStep === stepIndex ? "white" : "gray.400"}
-              >
-                {step.title}
-              </Text>
-            </Flex>
-
-            {/* Sub-Steps */}
-            <Stack spacing={2} pl={4}>
-              {step.subSteps.map((subStep, subIndex) => (
-                <Link to={subStep.path} key={subIndex}>
-                  <Flex
-                    p={2}
-                    borderRadius="md"
-                    bg={
-                      currentStep === stepIndex && currentSubStep === subIndex
-                        ? "blue.500"
-                        : "rgba(255, 255, 255, 0.1)"
-                    }
-                    cursor="pointer"
-                    transition="all 0.2s ease"
-                    _hover={{
-                      bg: "blue.400",
-                      color: "#fff",
-                    }}
+      <Stack spacing={6} position="relative" ml="16px">
+        {steps.map((step, stepIndex) => {
+          // major step 활성화 여부
+          const isStepActive = stepIndex === currentStep;
+          // subSteps 수에 따라 연결선 높이를 동적으로 계산 (예: subStep당 20px, 기본 오프셋 28px)
+          const connectingLineHeight = `${step.subSteps.length * 20 + 28}px`;
+          return (
+            <Box key={stepIndex}>
+              <Flex direction="row" align="flex-start">
+                {/* 원형 아이콘 */}
+                <Box position="relative">
+                  <Box
+                    w="16px"
+                    h="16px"
+                    borderRadius="full"
+                    bg={isStepActive ? "brand.400" : "gray.500"}
+                    border="2px solid white"
+                  />
+                  {/* 마지막 step이 아니라면 subSteps 수에 따라 동적으로 연결선 길이 적용 */}
+                  {stepIndex < steps.length - 1 && (
+                    <Box
+                      position="absolute"
+                      top="20px"
+                      left="7px"
+                      h={connectingLineHeight}
+                      borderLeft="3px dashed rgba(255,255,255,0.3)"
+                    />
+                  )}
+                </Box>
+                {/* 텍스트 영역 */}
+                <Box ml={6}>
+                  <Text
+                    fontWeight="bold"
+                    color={isStepActive ? "brand.400" : "gray.400"}
+                    fontSize="lg"
                   >
-                    <Text
-                      fontSize="sm"
-                      color={
-                        currentStep === stepIndex && currentSubStep === subIndex
-                          ? "#fff"
-                          : "gray.300"
-                      }
-                    >
-                      {subStep.name}
-                    </Text>
-                  </Flex>
-                </Link>
-              ))}
-            </Stack>
-
-            {/* Connecting Line */}
-            {stepIndex < steps.length - 1 && (
-              <Box
-                h="20px"
-                borderLeft="4px dotted rgba(255, 255, 255, 0.1)"
-                ml="16px"
-                m="20px 0px"
-                mb="8px"
-              ></Box>
-            )}
-          </Box>
-        ))}
+                    {step.title}
+                  </Text>
+                  <Stack mt={2} spacing={2}>
+                    {step.subSteps.map((subStep, subIndex) => {
+                      // 현재 substep 활성화 여부
+                      const isSubActive =
+                        isStepActive && currentSubStep === subIndex;
+                      return (
+                        <Link to={subStep.path} key={subIndex}>
+                          <Text
+                            fontSize="md"
+                            color={isSubActive ? "brand.100" : "gray.300"}
+                            _hover={{ color: "blue.400" }}
+                          >
+                            {subStep.name}
+                          </Text>
+                        </Link>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+              </Flex>
+            </Box>
+          );
+        })}
       </Stack>
     </Box>
   );

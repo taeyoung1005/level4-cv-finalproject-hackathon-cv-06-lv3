@@ -24,8 +24,6 @@ function EditFlowDialog({ isOpen, onClose, flow, onUpdate }) {
   const handleUpdate = () => {
     if (flowName.trim()) {
       console.log("✅ Updating flow:", { flowId: flow.flowId, flowName });
-
-      // ✅ 객체를 직접 렌더링하지 않도록 `onUpdate` 호출 시 주의!
       onUpdate(flow.flowId, flowName);
       onClose();
     }
@@ -33,8 +31,8 @@ function EditFlowDialog({ isOpen, onClose, flow, onUpdate }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
-      <ModalOverlay />
-      <ModalContent>
+      <ModalOverlay bg="blackAlpha.800" />
+      <ModalContent bg="gray.900" color="white" borderRadius="md">
         <ModalHeader>Edit Flow</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -43,6 +41,10 @@ function EditFlowDialog({ isOpen, onClose, flow, onUpdate }) {
               placeholder="Flow Name"
               value={flowName}
               onChange={(e) => setFlowName(e.target.value)}
+              focusBorderColor="teal.400"
+              bg="gray.800"
+              borderRadius="md"
+              color="white"
             />
           </VStack>
         </ModalBody>
@@ -50,7 +52,7 @@ function EditFlowDialog({ isOpen, onClose, flow, onUpdate }) {
           <Button colorScheme="teal" mr={3} onClick={handleUpdate}>
             Update Flow
           </Button>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} color="white">
             Cancel
           </Button>
         </ModalFooter>

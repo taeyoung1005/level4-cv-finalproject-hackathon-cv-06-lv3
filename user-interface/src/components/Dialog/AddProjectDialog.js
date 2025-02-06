@@ -28,14 +28,14 @@ function AddProjectDialog({ isOpen, onClose, onAdd }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalOverlay />
+    <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
+      <ModalOverlay bg="blackAlpha.800" />
       <ModalContent
         bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.9) 76.65%)"
         borderRadius="15px"
       >
         <ModalHeader color="#fff">Add New Project</ModalHeader>
-        <Separator></Separator>
+        <Separator />
         <ModalCloseButton color="#fff" />
         <ModalBody>
           <VStack spacing={4}>
@@ -45,6 +45,7 @@ function AddProjectDialog({ isOpen, onClose, onAdd }) {
               onChange={(e) => setNewProjectName(e.target.value)}
               borderColor="gray.600"
               color="#fff"
+              _placeholder={{ color: "gray.400" }}
             />
             <Textarea
               placeholder="Project Description"
@@ -52,12 +53,13 @@ function AddProjectDialog({ isOpen, onClose, onAdd }) {
               onChange={(e) => setNewProjectDescription(e.target.value)}
               borderColor="gray.600"
               color="#fff"
+              _placeholder={{ color: "gray.400" }}
             />
           </VStack>
         </ModalBody>
         <ModalFooter>
           <Flex w="100%" justifyContent="flex-end">
-            <Button onClick={onClose} mr={3}>
+            <Button onClick={onClose} mr={3} variant="ghost" color="white">
               Cancel
             </Button>
             <Button
