@@ -207,7 +207,7 @@ def main(args, scalers=None):
     ]
 
     df_transformed = []
-    for test_col, pred_col in target_columns:
+    for pred_col, test_col in target_columns:
         df_transformed.append(
             {
                 "column_name": test_col.split("_")[-1],
