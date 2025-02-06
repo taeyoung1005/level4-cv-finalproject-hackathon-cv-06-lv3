@@ -206,8 +206,8 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
 
     #TODO bounds 적용 
     if bounds:
-        x_min = np.array([value[0] for key, value in bounds.items()]).squeeze()
-        x_max = np.array([value[1] for key, value in bounds.items()]).squeeze()
+        x_min = np.array([value[0] for key, value in bounds.items()]).reshape(-1)
+        x_max = np.array([value[1] for key, value in bounds.items()]).reshape(-1)
     else:
         x_min,x_max = np.min(X_train, axis=0)[control_index], np.max(X_train, axis=0)[control_index]
 
@@ -301,7 +301,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
         toolbox.register('mutate', mutGaussian_mutUniformInt, mu=mu, sigma=sigma_list,\
                           indpb=INDPB, is_nominal=is_norminal)
 
-        for gen in range(1,100):    
+        for gen in range(1,3):    
 
             offspring = algorithms.varAnd(population, toolbox, cxpb, mutpb)
 
