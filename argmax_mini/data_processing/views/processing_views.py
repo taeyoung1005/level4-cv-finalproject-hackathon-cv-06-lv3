@@ -94,21 +94,21 @@ class ProcessingView(APIView):
 
         # Read the concatenated CSV and perform preprocessing.
         concat_df = pd.read_csv(flow.concat_csv)
-        flow_progress(flow, 'Preprocessing started')
+        flow_progress(flow, 1)
         preprocessed_df, df_scaled, dtype_info, scaler_info = preprocess_dynamic(concat_df)
 
         # Save the preprocessed CSV.
         preprocessed_filename = f'{flow.flow_name}_preprocessed.csv'
         flow.preprocessed_csv.save(
             preprocessed_filename, ContentFile(preprocessed_df.to_csv(index=False)))
-        flow_progress(flow, 'Preprocessing completed')
+        flow_progress(flow, 2)
 
         # Retrieve output columns for surrogate modeling.
         output_columns = ConcatColumnModel.objects.filter(
             flow=flow, property_type='output'
         ).values_list('column_name', flat=True)
 
-        flow_progress(flow, 'Surrogate Model training started')
+        flow_progress(flow, 3)
 
         # Define common arguments for surrogate model training.
         common_args = {
@@ -127,7 +127,7 @@ class ProcessingView(APIView):
         tabpfn_args = argparse.Namespace(**common_args, model='tabpfn')
         df_rank_tab, df_eval_tab, model_path_tab = surrogate_model.main(
             tabpfn_args, scaler_info)
-        flow_progress(flow, 'Surrogate Model training completed')
+        flow_progress(flow, 4)
 
         # Choose the model with the higher average r_squared.
         if df_eval_cat['r2'].mean() > df_eval_tab['r2'].mean():
@@ -156,7 +156,7 @@ class ProcessingView(APIView):
         update_model_instances(flow, FeatureImportanceModel, df_importance, 'feature', {
                                'importance': 'importance'})
 
-        flow_progress(flow, 'Search Model started')
+        flow_progress(flow, 5)
 
         controllable_columns = list(ConcatColumnModel.objects.filter(
             flow=flow, property_type='controllable').values_list('column_name', flat=True))
@@ -213,6 +213,6 @@ class ProcessingView(APIView):
         #     user_request_target=user_request_target
         # )
 
-        flow_progress(flow, 'Search Model completed')
+        flow_progress(flow, 6)
 
         return Response({"message": "Processing completed successfully"}, status=200)

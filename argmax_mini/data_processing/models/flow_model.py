@@ -27,8 +27,7 @@ class FlowModel(models.Model):
     flow_name = models.CharField(max_length=255, blank=False, null=False)
     model = models.FileField(
         upload_to=surrogate_model_upload_to, default=None, blank=True, null=True)
-    progress = models.CharField(
-        max_length=255, blank=True, null=True, default="Start")
+    progress = models.IntegerField(blank=True, null=True, default=1)
 
     def __str__(self):
         return self.flow_name
