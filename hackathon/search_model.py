@@ -53,8 +53,12 @@ def main(args, scalers=None):
         for key, value in args.controll_range.items():
             if type(scalers[key]).__name__ == 'LabelEncoder':
                 # controll_range[key] = scalers[key].transform(np.array(value).reshape(-1,1))
-                i = x_col_list.index(key)
-                controll_range[key] = (X_train[:,i].min(),X_train[:,i].max())
+                if value[0] == value[1]:
+                    ran_val = scalers[key].transform(np.array(value).reshape(-1,1)).flatten()
+                    controll_range[key] = (ran_val[0],ran_val[1])
+                else:
+                    i = x_col_list.index(key)
+                    controll_range[key] = (X_train[:,i].min(),X_train[:,i].max())
             else:
                 controll_range[key] = tuple(scalers[key].transform(np.array(value).reshape(-1,1)).flatten())
 
