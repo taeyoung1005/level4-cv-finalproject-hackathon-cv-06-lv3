@@ -15,12 +15,7 @@
 from .eval_surrogate_model import eval_surrogate_model
 from .eval_classification_model import eval_classification_model
 from .eval_multi_surrogate_model import eval_multi_surrogate_model
-from .tabpfn_model import (
-    tabpfn_train, 
-    tabpfn_predict,
-    tabpfn_save,
-    tabpfn_load
-)
+from .tabpfn_model import tabpfn_train, tabpfn_predict, tabpfn_save, tabpfn_load
 from .catboost_model import (
     catboost_train,
     catboost_predict,
@@ -34,7 +29,7 @@ from .catboost_multi_model import (
     catboost_multi_load,
 )
 from .tabpfn_multi_model import (
-    tabpfn_multi_train, 
+    tabpfn_multi_train,
     tabpfn_multi_predict,
     tabpfn_multi_save,
     tabpfn_multi_load,

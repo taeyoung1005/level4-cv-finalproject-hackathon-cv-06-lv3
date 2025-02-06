@@ -3,17 +3,19 @@ import numpy as np
 
 def eval_multi_surrogate_model(model, y_train, y_pred, y_test, target_cols):
     """
-    LightGBM 다중 타겟 회귀 모델의 성능을 평가하는 함수
+    다중 타겟 회귀 모델의 성능을 평가하는 함수
 
     Args:
-        model (LightGBM model): 학습된 LightGBM 모델 객체
+        model (model): 학습된 모델 객체
         y_train (numpy.ndarray): 학습 데이터의 실제 타겟 값
         y_pred (numpy.ndarray): 테스트 데이터에 대한 모델의 예측 값
         y_test (numpy.ndarray): 테스트 데이터의 실제 타겟 값
         target_cols (list of str): 예측 대상 변수(타겟)의 컬럼명 리스트
 
     Returns:
-        tuple: RMSE, MAE, R2의 평균 값 반환
+        float: 평균 제곱근 오차 (RMSE)의 Mean값
+        float: 평균 절대 오차 (MAE)의 Mean값
+        float: 결정 계수 (R² Score)의 Mean값
     """
 
     # RMSE, MAE, R2 값을 저장할 리스트 초기화
