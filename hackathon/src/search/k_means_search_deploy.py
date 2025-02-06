@@ -241,11 +241,15 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
         np.random.uniform(x_min, x_max)       # 연속형이면 uniform 사용
         )
         # min max optimize 고려 해서 초기값 생성 보류 
+        scale_factor = (x_max - x_min) / 3*5  # 범위 조절 (x_max - x_min)/3 -> 분모 범위내에서 샘플 95% 확률로 포함 
         for i in pop_index_to_optimize.keys():
             if pop_index_to_optimize[i] == 'maximize':
-                individual[i] = np.random.uniform((x_max[i] + x_min[i]) / 2, x_max[i])
+                individual[i] = x_max[i] - np.random.exponential(scale_factor[i])
             else:
-                individual[i] = np.random.uniform(x_min[i], (x_max[i] + x_min[i]) / 2)
+                individual[i] = x_min[i] + np.random.exponential(scale_factor[i])
+            
+            individual[i] = np.clip(individual[i], x_min[i], x_max[i])
+
         return individual
         # return np.random.uniform(x_min[control_index], x_max[control_index])
         # return np.random.uniform(x_min, x_max)
@@ -313,7 +317,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
         toolbox.register('mutate', mutGaussian_mutUniformInt, mu=mu, sigma=sigma_list,\
                           indpb=INDPB, is_nominal=is_norminal)
 
-        for gen in range(1,3):    
+        for gen in range(1,100):    
 
             offspring = algorithms.varAnd(population, toolbox, cxpb, mutpb)
 
