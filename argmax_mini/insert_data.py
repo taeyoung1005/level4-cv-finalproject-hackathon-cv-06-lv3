@@ -1,5 +1,3 @@
-from data_processing.serializers import SurrogateResultModelSerializer, SurrogateMatricModelSerializer, FeatureImportanceModelSerializer, SearchResultModelSerializer
-from data_processing.models import FlowModel, ConcatColumnModel
 import os
 import sys
 
@@ -8,11 +6,12 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 import pandas as pd
 from tqdm import tqdm
 
-sys.path.append(os.path.dirname(os.path.abspath(
-    os.path.dirname(__file__))) + "/argmax_mini")
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))) + "/argmax_mini")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'argmax_mini.settings')
 django.setup()
 
+from data_processing.models import FlowModel, ConcatColumnModel
+from data_processing.serializers import SurrogateResultModelSerializer, SurrogateMatricModelSerializer, FeatureImportanceModelSerializer, SearchResultModelSerializer, ConcatColumnModelSerializer
 
 def insert_surrogate_matric(csv_file, flow_id):
     '''
@@ -142,15 +141,14 @@ def insert_search_result(csv_file, flow_id, column_name):
     df = pd.read_csv(csv_file)
     flow = FlowModel.objects.get(id=flow_id)
     column = ConcatColumnModel.objects.get(flow=flow, column_name=column_name)
+    if column.property_type == 'environmental': 
+        return
+
 
     # 데이터 저장
     # 시리얼라이저 생성 및 저장
-    serializer = SearchResultModelSerializer(data={
-        'flow': flow.id,
-        'column': column.id,
-        'ground_truth': df['ground_truth'].tolist(),
-        'predicted': df['predicted'].tolist()
-    })
+    serializer = SearchResultModelSerializer(
+        data={'flow': flow.id, 'column': column.id, 'ground_truth': df['ground_truth'].tolist(), 'predicted': df['predicted'].tolist()})
     if serializer.is_valid():
         serializer.save()
     else:
