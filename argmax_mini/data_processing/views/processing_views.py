@@ -24,7 +24,12 @@ def flow_progress(flow, progress):
     flow.progress = progress
     flow.save()
 
-# Helper function to update or create model instances from DataFrame rows.
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 
 def update_model_instances(flow, model_cls, df, column_field, defaults_mapping):
@@ -126,10 +131,10 @@ class ProcessingView(APIView):
 
         # Choose the model with the higher average r_squared.
         if df_eval_cat['r2'].mean() > df_eval_tab['r2'].mean():
-            surrogate_model = 'catboost'
+            surrogate_model_name = 'catboost'
             df_rank, df_eval, model_path = df_rank_cat, df_eval_cat, model_path_cat
         else:
-            surrogate_model = 'tabpfn'
+            surrogate_model_name = 'tabpfn'
             df_rank, df_eval, model_path = df_rank_tab, df_eval_tab, model_path_tab
 
         # Save the chosen model file.
@@ -153,44 +158,49 @@ class ProcessingView(APIView):
 
         flow_progress(flow, 'Search Model started')
 
-        controllable_columns = ConcatColumnModel.objects.filter(
-            flow=flow, property_type='controllable').values_list('column_name', flat=True)
+        controllable_columns = list(ConcatColumnModel.objects.filter(
+            flow=flow, property_type='controllable').values_list('column_name', flat=True))
         
         optimize = {}
         importance_column = {}
-        controllable_columns_range = []
+        controllable_columns_range = {}
 
         for column in controllable_columns:
 
             optimization = OptimizationModel.objects.get(
                 column__flow=flow, column__column_name=column)
-            importance = FeatureImportanceModel.objects.get(
-                flow=flow, column__column_name=column)
             
             if optimization.optimize_goal == 1:
-                controllable_columns_range.append(preprocessed_df[column].min(), preprocessed_df[column].max())
+                controllable_columns_range[column] = (preprocessed_df[column].min(), preprocessed_df[column].max())
                 continue
             elif optimization.optimize_goal == 2:
                 optimize[column] = 'maximize'
-                importance_column[column] = importance.importance
+                importance_column[column] = optimization.optimize_order
             elif optimization.optimize_goal == 3:
                 optimize[column] = 'minimize'
-                importance_column[column] = importance.importance
+                importance_column[column] = optimization.optimize_order
+
+            if is_number(optimization.minimum_value) and is_number(optimization.maximum_value):
+                controllable_columns_range[column] = (float(optimization.minimum_value), float(optimization.maximum_value))
+            else:
+                controllable_columns_range[column] = (optimization.minimum_value, optimization.maximum_value)
             
-            controllable_columns_range.append(
-                (optimization.minimum_value, optimization.maximum_value))
             
-            
-        target_column = ConcatColumnModel.objects.filter(
-            flow=flow, property_type='output').values_list('column_name', flat=True)
+        target_column = list(ConcatColumnModel.objects.filter(
+            flow=flow, property_type='output').values_list('column_name', flat=True))
 
         user_request_target = [OptimizationModel.objects.get(
-            column__flow=flow, column__column_name=target).optimize_goal for target in target_column]
+            column__flow=flow, column__column_name=target).maximum_value for target in target_column]
         
-        print(controllable_columns, controllable_columns_range, target_column, importance_column, optimize, user_request_target, sep='\n')
+        print(f'control_name: {controllable_columns}')
+        print(f'control_range: {controllable_columns_range}')
+        print(f'target: {target_column}')
+        print(f'importance: {importance_column}')
+        print(f'optimize: {optimize}')
+        print(f'user_request_target: {user_request_target}')
 
         # search_args = argparse.Namespace(
-        #     model=surrogate_model,
+        #     model=surrogate_model_name,
         #     search_model='k_means',
         #     data_path=flow.preprocessed_csv.path,
         #     control_name=controllable_columns,

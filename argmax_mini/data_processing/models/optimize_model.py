@@ -13,8 +13,8 @@ class OptimizationModel(models.Model):
     ]
     column = models.OneToOneField(
         ConcatColumnModel, on_delete=models.CASCADE, related_name="controllable_optimizations")
-    minimum_value = models.FloatField(blank=False, null=False, default=0)
-    maximum_value = models.FloatField(blank=False, null=False, default=0)
+    minimum_value = models.CharField(blank=False, null=False, default='0', max_length=100)
+    maximum_value = models.CharField(blank=False, null=False, default='0', max_length=100)
     optimize_goal = models.IntegerField(
         choices=OPTIMIZE_GOAL_CHOICES, blank=False, null=False, default=1)
     optimize_order = models.IntegerField(blank=True, null=True, default=1)

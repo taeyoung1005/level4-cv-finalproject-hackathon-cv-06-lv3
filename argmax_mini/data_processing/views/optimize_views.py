@@ -7,7 +7,13 @@ from rest_framework import status
 from data_processing.models import OptimizationModel, ConcatColumnModel
 from data_processing.serializers import OptimizationModelSerializer
 
-
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+    
 class OptimizationView(APIView):
     '''
     controllable variable, Output variable 최적화 목표 설정
@@ -27,11 +33,11 @@ class OptimizationView(APIView):
                     description="Name of the column",
                 ),
                 'minimum_value': openapi.Schema(
-                    type=openapi.TYPE_NUMBER,
+                    type=openapi.TYPE_STRING,
                     description="Minimum value of the optimization goal",
                 ),
                 'maximum_value': openapi.Schema(
-                    type=openapi.TYPE_NUMBER,
+                    type=openapi.TYPE_STRING,
                     description="Maximum value of the optimization goal",
                 ),
                 'optimize_goal': openapi.Schema(
@@ -139,11 +145,15 @@ class OptimizationView(APIView):
 
         optimization = OptimizationModel.objects.filter(
             column=column)
+        optimization_serializer = OptimizationModelSerializer(optimization.first()).data
 
+        if is_number(optimization_serializer['minimum_value']) and is_number(optimization_serializer['maximum_value']):
+            optimization_serializer['minimum_value'] = float(optimization_serializer['minimum_value'])
+            optimization_serializer['maximum_value'] = float(optimization_serializer['maximum_value'])
+        
         if optimization.exists():
             return Response(
-                OptimizationModelSerializer(
-                    optimization.first()).data,
+                optimization_serializer,
                 status=status.HTTP_200_OK
             )
 
