@@ -7,6 +7,9 @@ import pandas as pd
 def dynamic_outlier_removal(df: pd.DataFrame, numerical_cols: list, **kwargs) -> pd.DataFrame:
     """
     분포 분석을 기반으로 동적으로 이상치 처리 전략을 선택한다.
+    메모리 사용을 최적화하기 위해 각 방식별로 여러 열에 대해
+    이상치 인덱스를 모아서 한 번에 삭제한다.
+
     :param df: 입력 데이터프레임
     :param numerical_cols: 수치형 열 목록
     :param kwargs: 이상치 처리 파라미터
@@ -17,18 +20,20 @@ def dynamic_outlier_removal(df: pd.DataFrame, numerical_cols: list, **kwargs) ->
     # 분포 분석
     distribution_info = analyze_distribution(df, numerical_cols)
 
-    for col in numerical_cols:
-        if col not in df.columns:
-            continue
-        
-        info = distribution_info[col]
-        if info['is_normal']:
-            # 정규 분포: Z-score 방식
-            print(f"{col}: 정규 분포로 확인됨. Z-score 방식 적용.")
-            df = remove_outliers_zscore(df, [col], threshold=kwargs.get('zscore_threshold', 3.0))
-        else:
-            # 비대칭 분포: IQR 방식
-            print(f"{col}: 비대칭 분포로 확인됨. IQR 방식 적용.")
-            df = remove_outliers_iqr(df, [col], factor=kwargs.get('iqr_factor', 1.5))
-    
+    # Z-score 및 IQR로 처리할 열 구분
+    zscore_cols = [col for col in numerical_cols if col in df.columns and distribution_info[col]['is_normal']]
+    iqr_cols = [col for col in numerical_cols if col in df.columns and not distribution_info[col]['is_normal']]
+
+    # Z-score 적용 (정규 분포)
+    if zscore_cols:
+        print(f"정규 분포 확인된 열: {zscore_cols}, Z-score 방식 적용.")
+        remove_outliers_zscore(df, zscore_cols, threshold=kwargs.get('zscore_threshold', 3.0))
+
+    # IQR 적용 (비대칭 분포)
+    if iqr_cols:
+        print(f"비대칭 분포 확인된 열: {iqr_cols}, IQR 방식 적용.")
+        remove_outliers_iqr(df, iqr_cols, factor=kwargs.get('iqr_factor', 1.5))
+
     return df
+
+
