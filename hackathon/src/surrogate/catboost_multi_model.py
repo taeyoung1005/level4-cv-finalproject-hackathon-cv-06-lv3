@@ -98,7 +98,11 @@ def catboost_multi_predict(model, X_test: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: 예측된 다중 출력 회귀 결과
     """
-    return model.predict(X_test)  # 모델을 사용하여 예측 수행
+    y_pred = model.predict(X_test) 
+    if y_pred.ndim == 1:
+        y_pred = y_pred.reshape(-1, X_test.shape[1])
+
+    return y_pred # 모델을 사용하여 예측 수행
 
 
 def catboost_multi_save(model, path):

@@ -280,8 +280,8 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
             # fit_res.append(-(y_pred - gt_y)**2)
             # print(-(y_pred - user_request_target)**2)
             # print(y_pred)
-            fit_res.append(-(y_pred - user_request_target.reshape(1,-1))**2)
-            
+            fit_res.append((-(y_pred - user_request_target.reshape(1,-1))**2))
+
             for i in sorted_pop_idx_by_importance:
                     fit_res.append(population[:,i:i+1])
             fit_res = np.concatenate(fit_res, axis=1)

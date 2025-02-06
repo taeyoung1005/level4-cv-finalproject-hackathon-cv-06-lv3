@@ -42,7 +42,7 @@ def tabpfn_multi_predict(model, X_test: np.ndarray) -> np.ndarray:
     y_pred = model.predict(X_test)
 
     if y_pred.ndim == 1:
-        y_pred = y_pred.reshape(-1, 1)
+        y_pred = y_pred.reshape(-1, X_test.shape[1])
     # print(f'y pred : {y_pred.shape}')
     return y_pred
 

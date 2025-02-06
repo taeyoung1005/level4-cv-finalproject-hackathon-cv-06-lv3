@@ -42,6 +42,10 @@ def tabpfn_classification_predict(model, X_test: np.ndarray) -> np.ndarray:
         np.ndarray: 예측된 범주형 출력값 배열 (샘플 수,)
     """
     y_pred = model.predict(X_test)
+
+    if y_pred.ndim == 1:
+        y_pred = y_pred.reshape(-1, 1)
+
     return y_pred
 
 
