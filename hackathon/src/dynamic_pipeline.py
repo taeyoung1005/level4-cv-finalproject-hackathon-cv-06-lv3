@@ -36,6 +36,8 @@ def preprocess_dynamic(df: pd.DataFrame) -> pd.DataFrame:
     dtype_info = feature_info['dtypes']
     scaler_info = {col: IdentityScaler() for col in df.columns}
 
+    # 백엔드에서 사용할 변수타입별 열 정보 (categorical: 기존 categorical + numerical_categorical)
+    combined_cat_cols = cat_cols + num_cat_cols
 
     # 2. 결측치 처리
     df = drop_high_missing_data(df, threshold=0.5)
