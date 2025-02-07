@@ -54,8 +54,12 @@ def main(args, scalers=None):
         for key, value in args.control_range.items():
             if type(scalers[key]).__name__ == 'LabelEncoder':
                 # control_range[key] = scalers[key].transform(np.array(value).reshape(-1,1))
-                i = x_col_list.index(key)
-                control_range[key] = (
+                if value[0] == value[1]:
+                    ran_val = scalers[key].transform(np.array(value).reshape(-1,1)).flatten()
+                    control_range[key] = (ran_val[0],ran_val[1])
+                else:
+                    i = x_col_list.index(key)
+                    control_range[key] = (
                     X_train[:, i].min(), X_train[:, i].max())
             else:
                 control_range[key] = tuple(scalers[key].transform(
@@ -94,17 +98,31 @@ def main(args, scalers=None):
     logging.info(f"y_train.shape: {y_train.shape}")
     logging.info(f"y_test.shape: {y_test.shape}")
 
-    model_load_func = getattr(surrogate, f'{model_name}_load')
+    if len(args.target) > 1:
+        model_load_func = getattr(surrogate, f'{model_name}_multi_load')
+    else:
+        if type(scalers[args.target[0]]).__name__ == 'LabelEncoder':
+            unique_classes_train = np.unique(y_train)
+            if len(unique_classes_train) > 10 and model_name == 'tabpfn':
+                model_name = 'catboost'
+            print(f'{model_name} classifier load')
+            model_load_func = getattr(surrogate, f'{model_name}_classification_load')
+        else:
+            model_load_func = getattr(surrogate, f'{model_name}_load')
+
     model = model_load_func(args.model_path)
     print(model)
 
-    predict_func = getattr(surrogate, f'{model_name}_predict')
-    # y_pred = predict_func(model, X_test)
-
-    # 사용자 요청
+    if len(args.target) > 1:
+        predict_func = getattr(surrogate, f'{model_name}_multi_predict')
+    else:
+        if type(scalers[args.target[0]]).__name__ == 'LabelEncoder':
+            predict_func = getattr(surrogate, f'{model_name}_classification_predict')
+        else:
+            predict_func = getattr(surrogate, f'{model_name}_predict')
 
     # 최적화/검색 수행
-    # try:
+    # 샘플링한 실제 데이터를 기반으로 유저의 요구사항에 맞게, 최적화/검색 수행 
     search_func = getattr(search, f'{search_model}_search_deploy')
     start_time = time.time()
     opt_df = search_func(model, predict_func, X_train, X_test, y_test, x_col_list, args.control_name,
@@ -113,6 +131,8 @@ def main(args, scalers=None):
     print(f"search model 소요 시간: {end_time - start_time:.4f}초")
 
 
+    # 최적화 결과 반환 
+    # 예측한 결과에 대해 Surrogate model로 예측 값 생성 
     pred_input = X_test.copy()
     control_index = [i for i, v in enumerate(
         x_col_list) if v in args.control_name]
@@ -121,22 +141,24 @@ def main(args, scalers=None):
                    ] = opt_df[f'pred_x_{args.control_name[i]}']
     pred_y = predict_func(model, pred_input)
 
+    # 예측한 결과를 원본 데이터 scale로 변환
     for i in range(len(args.target)):
-
         opt_df[f'pred_y_{args.target[i]}'] = pred_y[:, i]
         opt_df[f'pred_y_{args.target[i]}'] = inverse_transform(
             opt_df[[f'pred_y_{args.target[i]}']])
 
+    # pred y의 원본 데이터를 원본 데이터 scale로 변환
     for i in range(len(args.target)):
         opt_df[f'test_y_{args.target[i]}'] = y_test[:, i]
         opt_df[f'test_y_{args.target[i]}'] = inverse_transform(
             opt_df[[f'test_y_{args.target[i]}']])
 
+    # 유저의 요구사항에 맞게 최적화한 결과를 원본 데이터 scale로 변환
     for i in range(len(args.control_name)):
-
         opt_df[f'pred_x_{args.control_name[i]}'] = inverse_transform(
             opt_df[[f'pred_x_{args.control_name[i]}']])
 
+    # 샘플링한 실제 데이터를 원본 데이터 scale로 변환
     for i in range(len(x_col_list)):
         if type(scalers[x_col_list[i]]).__name__ == 'LabelEncoder':
             opt_df[f'test_x_{x_col_list[i]}'] = X_test[:, i].astype(int)
@@ -144,8 +166,8 @@ def main(args, scalers=None):
             opt_df[f'test_x_{x_col_list[i]}'] = X_test[:, i]
         opt_df[f'test_x_{x_col_list[i]}'] = inverse_transform(
             opt_df[[f'test_x_{x_col_list[i]}']])
-    # opt_df['test_x_control'] = opt_df['test_x'].apply(lambda x : x[control_index])
 
+    # UI 요구사항에 따른 df 변환 
     target_columns = [
 
         (f'pred_x_{col}', f'test_x_{col}')
@@ -156,7 +178,7 @@ def main(args, scalers=None):
     ]
 
     df_transformed = []
-    for test_col, pred_col in target_columns:
+    for pred_col, test_col in target_columns:
         df_transformed.append(
             {
                 "column_name": test_col.split("_")[-1],
