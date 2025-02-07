@@ -166,13 +166,34 @@ const SelectDatasetsPage = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
-        containerStyle: {
-          marginLeft: "280px",
-        },
+        containerStyle: { marginLeft: "280px" },
       });
       return;
     }
+
     const dataset = projectDatasets.find((ds) => ds.csvId === csvId);
+
+    // parquet 형식의 파일인 경우, 이미 선택된 데이터셋 중 parquet 형식이 있는지 확인
+    if (dataset.format === "application/parquet") {
+      const alreadySelectedParquet = selectedDatasets.some((id) => {
+        const selectedDs = projectDatasets.find((ds) => ds.csvId === id);
+        return selectedDs && selectedDs.format === "application/parquet";
+      });
+
+      if (alreadySelectedParquet) {
+        toast({
+          title: "Selection Error",
+          description:
+            "A parquet dataset is already selected. Only one parquet dataset can be selected.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          containerStyle: { marginLeft: "280px" },
+        });
+        return;
+      }
+    }
+
     setTotalSelectedSize((prev) => prev + dataset.size);
     setSelectedDatasets((prev) => [...prev, csvId]);
     toast({
@@ -181,9 +202,7 @@ const SelectDatasetsPage = () => {
       status: "success",
       duration: 3000,
       isClosable: true,
-      containerStyle: {
-        marginLeft: "280px",
-      },
+      containerStyle: { marginLeft: "280px" },
     });
   };
 
@@ -211,7 +230,7 @@ const SelectDatasetsPage = () => {
 
   // ✅ 파일 업로드 핸들러
   const handleFilesAdded = async (files) => {
-    const allowedFormats = ["text/csv"];
+    const allowedFormats = ["text/csv", "application/parquet"];
     const fileArray = Array.from(files);
 
     const validFiles = fileArray.filter((file) => {

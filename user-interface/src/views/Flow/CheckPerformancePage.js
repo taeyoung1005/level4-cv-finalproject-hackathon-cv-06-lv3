@@ -340,8 +340,6 @@ const SurrogatePerformancePage = () => {
     return surrogateResult.slice().sort((a, b) => a.rank - b.rank);
   }, [surrogateResult]);
 
-  console.log(sortedResults);
-
   const numericOutputs = useMemo(
     () =>
       surrogateMatric.filter((output) => output.column_type === "numerical"),
@@ -530,12 +528,12 @@ const SurrogatePerformancePage = () => {
     <Flex
       flexDirection="column"
       pt={{ base: "120px", md: "75px" }}
-      px={4}
+      px={6}
       maxH="100vh"
       color="white"
     >
       {/* 헤더 영역 */}
-      <Flex justifyContent="space-between" alignItems="center" mb={6}>
+      <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
         <IconButton
           icon={<ArrowBackIcon />}
           onClick={() => history.goBack()}
