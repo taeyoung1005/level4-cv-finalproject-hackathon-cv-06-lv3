@@ -72,7 +72,7 @@ def main(args, scalers=None):
         raise ValueError("scalers is not provided")
 
     X_test, y_test = find_top_k_similar_with_user_request(
-        y_user_request, X_train, y_train, k=5)
+        y_user_request, X_train, y_train, k=50)
 
     def inverse_transform(df):  # , col_names):
         """
@@ -96,7 +96,6 @@ def main(args, scalers=None):
 
     model_load_func = getattr(surrogate, f'{model_name}_load')
     model = model_load_func(args.model_path)
-    print(model)
 
     predict_func = getattr(surrogate, f'{model_name}_predict')
     # y_pred = predict_func(model, X_test)
@@ -156,10 +155,11 @@ def main(args, scalers=None):
     ]
 
     df_transformed = []
-    for test_col, pred_col in target_columns:
+    print(target_columns)
+    for pred_col, test_col in target_columns:
         df_transformed.append(
             {
-                "column_name": test_col.split("_")[-1],
+                "column_name": "_".join(test_col.split("_")[2:]),
                 "ground_truth": opt_df[test_col].tolist(),
                 "predicted": opt_df[pred_col].tolist(),
             }

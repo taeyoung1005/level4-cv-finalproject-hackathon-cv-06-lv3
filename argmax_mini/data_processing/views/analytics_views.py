@@ -47,7 +47,7 @@ class HistogramView(APIView):
         if not FlowModel.objects.filter(id=flow_id).exists():
             return Response({"error": "File not found"}, status=404)
 
-        if not column_name or not column_name.isalpha():
+        if not column_name:
             print(1)
             return Response({"error": "File not found"}, status=404)
 

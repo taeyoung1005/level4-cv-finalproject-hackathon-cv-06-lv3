@@ -90,7 +90,7 @@ def k_means_search(model, pred_func, X_train, X_test, y_test):
         toolbox.register('mate', tools.cxSimulatedBinary, eta=ETA_CX)
         toolbox.register('mutate', tools.mutGaussian, mu=[0.0]*(len(x_min)), sigma=sigma_list, indpb=INDPB)
 
-        for gen in range(1,3):    
+        for gen in range(1,100):
             # if gen%20 == 0:
             #     ETA_CX = 2.0 * ETA_CX# 초기에 작게(탐색), 점점 크게(exploitation)
             #     # sigma_list = [(ub - lb)/(5.0*(gen//40)) for (lb,ub) in zip(x_min, x_max)]

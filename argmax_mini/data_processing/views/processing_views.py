@@ -228,9 +228,8 @@ class ProcessingView(APIView):
         )
 
         x_opt = search_model.main(search_args, scaler_info)
-        x_opt['average_change_rate'] = x_opt.apply(lambda row: calculate_change_rate(row['ground_truth'], row['predicted']), axis=1)
-        
         print(f'{x_opt = }')
+        x_opt['average_change_rate'] = x_opt.apply(lambda row: calculate_change_rate(row['ground_truth'], row['predicted']), axis=1)
 
         update_model_instances(flow, SearchResultModel, x_opt, 'column_name', {
                                'ground_truth': 'ground_truth', 'predicted': 'predicted', 'average_change_rate': 'average_change_rate'})

@@ -293,20 +293,24 @@ class FlowCsvAddView(APIView):
 
             # 히스토그램 데이터 저장
             if column_type == "numerical":
-                counts, bin_edges = np.histogram(
-                    concat_df[column_name].dropna(), bins=10)
+                concat_df_column = concat_df[column_name].dropna()
+                # IQR 방식 이상치 제거
+                Q1 = concat_df_column.quantile(0.25)
+                Q3 = concat_df_column.quantile(0.75)
+                IQR = Q3 - Q1
+                concat_df_column = concat_df_column[~((concat_df_column < (Q1 - 1.5 * IQR)) | (concat_df_column > (Q3 + 1.5 * IQR)))]
+                counts, bin_edges = np.histogram(concat_df_column, bins=10)
 
                 models.HistogramModel.objects.create(
                     column=concat_column_serializer.instance,
                     counts=json.dumps(counts.tolist()),
-                    bin_edges=json.dumps(bin_edges.tolist())
+                    bin_edges=json.dumps([round(float(i), 2) for i in bin_edges.tolist()])
                 )
             elif column_type == "categorical":
                 # 카테고리별 빈도 계산
-                value_counts = concat_df[column_name].dropna().value_counts()
-                category_counts = value_counts.tolist()
-                category_names = value_counts.index.tolist()
-
+                column_counts = concat_df[column_name].dropna().value_counts()
+                category_counts = column_counts.tolist()
+                category_names = column_counts.index.tolist()
                 # 히스토그램 데이터 저장
                 models.HistogramModel.objects.create(
                     column=concat_column_serializer.instance,
@@ -357,14 +361,18 @@ class FlowCsvAddView(APIView):
 
 class FlowConcatCsvView(APIView):
     '''
-    Concat된 csv 파일 데이터 조회
+    Concat된 csv 파일 컬럼 데이터 조회
     '''
     @swagger_auto_schema(
-        operation_description="Concat된 csv 파일 데이터 조회",
+        operation_description="Concat된 csv 파일 컬럼 데이터 조회",
         manual_parameters=[
             openapi.Parameter(
                 'flow_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER,
                 description="ID of the Flow",
+            ),
+            openapi.Parameter(
+                'column_name', openapi.IN_QUERY, type=openapi.TYPE_STRING,
+                description="Name of the column",
             ),
         ],
         responses={
@@ -375,9 +383,10 @@ class FlowConcatCsvView(APIView):
     )
     def get(self, request, *args, **kwargs):
         '''
-        Concat된 csv 파일 데이터 조회
+        Concat된 csv 파일 컬럼 데이터 조회
         '''
         flow_id = request.GET.get("flow_id")
+        column_name = request.GET.get("column_name")
 
         if not flow_id or not str(flow_id).isdigit():
             return Response({"error": "Invalid or missing flow_id"}, status=status.HTTP_400_BAD_REQUEST)
@@ -387,9 +396,9 @@ class FlowConcatCsvView(APIView):
         except models.FlowModel.DoesNotExist:
             return Response({"error": "Flow not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        concat_csv = pd.read_csv(flow.concat_csv).to_json()
+        concat_column_data = pd.read_csv(flow.concat_csv)[column_name].tolist()
 
-        return Response({"concat_csv": concat_csv}, status=status.HTTP_200_OK)
+        return Response({"concat_column_data": concat_column_data}, status=status.HTTP_200_OK)
 
 
 class FlowProgressView(ADRFAPIView):
