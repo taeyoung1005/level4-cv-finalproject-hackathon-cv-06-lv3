@@ -1,9 +1,8 @@
-import numpy as np
-from tabpfn import TabPFNRegressor
 import warnings
 import pickle
 
-warnings.filterwarnings("ignore", category=FutureWarning)
+import numpy as np
+from tabpfn import TabPFNRegressor
 
 
 def tabpfn_train(train_loader, val_loader):
@@ -49,12 +48,28 @@ def tabpfn_predict(model, X_test: np.ndarray) -> np.ndarray:
 
 
 def tabpfn_save(model, path):
-    with open(path + '.pkl', 'wb') as f:
+    """
+    모델 객체를 지정된 경로에 피클(pickle) 파일로 저장합니다.
+
+    Args:
+        model (object): 저장할 모델 객체
+        path (str): 저장할 파일 경로 (확장자 제외)
+    """
+    with open(path + ".pkl", "wb") as f:
         pickle.dump(model, f)
 
     return path + '.pkl'
 
 
 def tabpfn_load(path):
-    with open(path + '.pkl', 'rb') as f:
+    """
+    지정된 경로에서 피클(pickle) 파일을 불러와 모델 객체를 반환합니다.
+
+    Args:
+        path (str): 불러올 파일 경로 (확장자 제외)
+
+    Returns:
+        object: 로드된 모델 객체
+    """
+    with open(path + ".pkl", "rb") as f:
         return pickle.load(f)

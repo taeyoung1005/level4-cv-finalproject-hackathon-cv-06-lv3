@@ -1,24 +1,23 @@
 import random
+
 import numpy as np
-import pandas as pd
-import torch
 from deap import base, creator, tools
 from tqdm import tqdm
 
 
 def adaptive_niche_size(gen, max_gen, initial_sigma, min_sigma, decay_constant=5.0):
     """
-    세대에 따라 적응적으로 niche size를 조정하는 함수.
+    세대에 따라 적응적으로 niche size를 조정하는 함수
 
-    Parameters:
-        gen (int): 현재 세대 (generation).
-        max_gen (int): 전체 세대 수 (maximum number of generations).
-        initial_sigma (float): 초기 niche size 값.
-        min_sigma (float): 최소 niche size 값 (sigma가 이 값 이하로 감소하지 않음).
-        decay_constant (float): niche size 감소 속도를 조절하는 상수 (기본값: 5.0).
+    Args:
+        gen (int): 현재 세대 (generation)
+        max_gen (int): 전체 세대 수 (maximum number of generations)
+        initial_sigma (float): 초기 niche size 값
+        min_sigma (float): 최소 niche size 값 (sigma가 이 값 이하로 감소하지 않음)
+        decay_constant (float): niche size 감소 속도를 조절하는 상수 (기본값: 5.0)
 
     Returns:
-        (float) 현재 세대에 해당하는 niche size 값.
+        (float) 현재 세대에 해당하는 niche size 값
     """
 
     # 지수적 감소를 적용하여 niche size 계산
@@ -32,7 +31,7 @@ def fitness_sharing(population, sigma, alpha):
     """
     적용된 적합도 공유(Fitness Sharing) 방법을 사용하여 개체들의 적합도를 조정합니다.
 
-    Parameters:
+    Args:
         population (list): 개체 리스트 (각 개체는 .fitness.values 속성을 가져야 함)
         sigma (float): 공유 거리 임계값 (개체 간 거리 비교 기준)
         alpha (float): 공유 강도 계수
@@ -72,21 +71,21 @@ def ga_adaptive_niching_search(
     decay_constant=2.0,
 ):
     """
-    유전자 알고리즘 기반의 적응형 니칭 검색을 수행하는 함수.
+    유전자 알고리즘 기반의 적응형 니칭 검색을 수행하는 함수
 
     Args:
-        model: 예측을 수행할 모델.
-        pred_func: 예측 함수.
-        X_train (np.array): 훈련 데이터.
-        X_test (np.array): 테스트 데이터.
-        y_test (np.array): 테스트 데이터의 정답값.
-        max_gen (int): 최대 세대 수 (default: 100).
-        initial_sigma (float): 초기 시그마 값 (default: 2.5).
-        min_sigma (float): 최소 시그마 값 (default: 0.5).
-        decay_constant (float): 시그마 감소 계수 (default: 2.0).
+        model: 예측을 수행할 모델
+        pred_func: 예측 함수
+        X_train (np.array): 훈련 데이터
+        X_test (np.array): 테스트 데이터
+        y_test (np.array): 테스트 데이터의 정답값
+        max_gen (int): 최대 세대 수 (default: 100)
+        initial_sigma (float): 초기 시그마 값 (default: 2.5)
+        min_sigma (float): 최소 시그마 값 (default: 0.5)
+        decay_constant (float): 시그마 감소 계수 (default: 2.0)
 
     Returns:
-        np.array: 최적의 예측값 배열.
+        np.array: 최적의 예측값 배열
     """
 
     test = X_test
