@@ -71,19 +71,9 @@ def main(args, scalers=None):
     else:
         raise ValueError("scalers is not provided")
 
-    # is_nominal = [False]*len(args.control_name)
-    # for i, key in enumerate(args.control_name):
-    #     if type(scalers[key]).__name__ == 'LabelEncoder':
-    #         is_nominal[i] = True
-    # print("is_nominal",is_nominal)
     X_test, y_test = find_top_k_similar_with_user_request(
         y_user_request, X_train, y_train, k=5)
 
-    # def inverse_transform_x(x):
-    #     for j in range(len(x)):
-
-    #         x[j] = scalers[x_col_list[j]].inverse_transform(x[j].reshape(-1,1))[0]
-    #     return list(x)
     def inverse_transform(df):  # , col_names):
         """
         df : scaled col이 있는 df 
@@ -97,25 +87,7 @@ def main(args, scalers=None):
             df_tmp[df.columns[i]] = inversed.flatten()
         return df_tmp
 
-        # for j, col in enumerate(col_names):
-        #     transformed_value = scalers[col].inverse_transform(np.array(x[j]).reshape(-1, 1))[0]
-        #     transformed_x.append(transformed_value)
-        # return transformed_x
 
-    # def inverse_transform_y(y):
-    #     # len_y = len(y) if isinstance(y, list) or isinstance(y, np.ndarray) else 1
-    #     # for j in range(len_y):
-    #     #     y[j] = scalers[args.target[j]].inverse_transform(y[j].reshape(-1,1))[0]
-    #     # return list(y)
-    #     y_arr = np.array(y, dtype=float)
-
-    #     if y_arr.ndim == 0:
-    #         return float(scalers[args.target[0]].inverse_transform(y_arr.reshape(-1, 1))[0, 0])
-    #     elif y_arr.ndim == 1:
-    #         return [float(scalers[args.target[j]].inverse_transform(np.array(val).reshape(-1, 1))[0, 0])
-    #                 for j, val in enumerate(y_arr)]
-    #     else:
-    #         raise ValueError(f"Unsupported y shape: {y_arr.shape}")
     # 데이터셋 형태 출력
     logging.info(f"X_train.shape: {X_train.shape}")
     logging.info(f"X_test.shape: {X_test.shape}")
@@ -123,7 +95,7 @@ def main(args, scalers=None):
     logging.info(f"y_test.shape: {y_test.shape}")
 
     model_load_func = getattr(surrogate, f'{model_name}_load')
-    model = model_load_func(f'./prj/{args.prj_id}/surrogate_model/model')
+    model = model_load_func(args.model_path)
     print(model)
 
     predict_func = getattr(surrogate, f'{model_name}_predict')
@@ -140,17 +112,7 @@ def main(args, scalers=None):
     end_time = time.time()
     print(f"search model 소요 시간: {end_time - start_time:.4f}초")
 
-    # except AttributeError:
-    #     logging.error(f"지원되지 않는 검색 모델 '{search_model}' 입니다.")
-    #     return
 
-    # # 최적화 결과 평가
-    # try:
-    #     rmse, mae, r2 = search.eval_search_model(X_train, x_opt, X_test)
-    #     logging.info("R²: " + ", ".join([f"{x:.2f}" for x in r2]))
-    # except Exception as e:
-    #     logging.error(f"최적화 결과 평가 중 오류 발생: {e}")
-    #     return
     pred_input = X_test.copy()
     control_index = [i for i, v in enumerate(
         x_col_list) if v in args.control_name]
@@ -256,12 +218,13 @@ if __name__ == "__main__":
         help='피쳐 별 최적화 방향을 지정합니다')
     # arg('--model', '--model', '-model', type=str, default='lightgbm',
     #     choices=['lightgbm', 'simpleNN', 'tabpfn'], help='사용할 모델을 지정합니다 (기본값: lightgbm)')
-    arg('--prj_id', '--prj_id', '-prj_id', type=int, default=42,
-        help='프로젝트 아이디를 지정합니다')
+    arg('--flow_id', '--flow_id', '-flow_id', type=int, default=42,
+        help='플로우 아이디를 지정합니다')
     arg('--seed', '--seed', '-seed', type=int, default=42,
         help='재현성을 위한 랜덤 시드 (기본값: 42)')
     arg('--user_request_target', '--user_request_target', '-user_request_target', type=list, default=[0.0],
         help='사용자 요청 타겟 값을 지정합니다')
+    arg('--model_path', '--model_path', '-model_path', type=str, default='./model/catboost.pkl'),
     args = parser.parse_args()
 
     main(args)

@@ -43,6 +43,5 @@ urlpatterns = [
 
     path('data-cleaning-ratio/', views.DataCleaningView.as_view(),
          name='data-cleaning-ratio'),
-
     path('processing/', views.ProcessingView.as_view(), name='processing'),
 ]

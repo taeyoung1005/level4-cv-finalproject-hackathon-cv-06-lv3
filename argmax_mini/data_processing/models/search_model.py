@@ -12,6 +12,7 @@ class SearchResultModel(models.Model):
         ConcatColumnModel, on_delete=models.CASCADE, related_name="search_result")
     ground_truth = models.JSONField()
     predicted = models.JSONField()
+    average_change_rate = models.FloatField(default=0.0)
 
     def __str__(self):
         return self.search_result

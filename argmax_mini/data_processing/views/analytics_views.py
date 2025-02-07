@@ -48,6 +48,7 @@ class HistogramView(APIView):
             return Response({"error": "File not found"}, status=404)
 
         if not column_name or not column_name.isalpha():
+            print(1)
             return Response({"error": "File not found"}, status=404)
 
         # 데이터베이스에서 해당 파일의 히스토그램 데이터 가져오기

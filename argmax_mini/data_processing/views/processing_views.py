@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from data_processing.models import FlowModel, ConcatColumnModel, SurrogateMatricModel, SurrogateResultModel, FeatureImportanceModel, OptimizationModel
+from data_processing.models import FlowModel, ConcatColumnModel, SurrogateMatricModel, SurrogateResultModel, SearchResultModel, FeatureImportanceModel, OptimizationModel
 
 from hackathon.src.dynamic_pipeline import preprocess_dynamic
 from hackathon import surrogate_model, search_model
@@ -30,6 +30,13 @@ def is_number(s):
         return True
     except ValueError:
         return False
+    
+def calculate_change_rate(ground_truth, predicted):
+    try:
+        change_rate = [(p - g) / g * 100 for g, p in zip(ground_truth, predicted)]
+    except:
+        return 0.0
+    return sum(change_rate) / len(change_rate)  # 평균 변화율
 
 
 def update_model_instances(flow, model_cls, df, column_field, defaults_mapping):
@@ -52,7 +59,7 @@ class ProcessingView(APIView):
     concat된 csv 파일의 전처리 수행
     '''
     @swagger_auto_schema(
-        operation_description="concat된 csv 파일의 전처리 수행",
+        operation_description="전처리 및 surrogate model, search model 학습 수행",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -139,7 +146,7 @@ class ProcessingView(APIView):
 
         # Save the chosen model file.
         model_filename = model_path.split('/')[-1]
-        flow.model.save(model_filename, ContentFile(model_path))
+        flow.model.save(model_filename, ContentFile(open(model_path, 'rb').read()))
 
         # Clean up temporary files.
         shutil.rmtree('./temp')
@@ -199,20 +206,34 @@ class ProcessingView(APIView):
         print(f'optimize: {optimize}')
         print(f'user_request_target: {user_request_target}')
 
-        # search_args = argparse.Namespace(
-        #     model=surrogate_model_name,
-        #     search_model='k_means',
-        #     data_path=flow.preprocessed_csv.path,
-        #     control_name=controllable_columns,
-        #     control_range=controllable_columns_range,
-        #     target=target_column,
-        #     importance=importance_column,
-        #     optimize=optimize,
-        #     prj_id=40,
-        #     seed=40,
-        #     user_request_target=user_request_target
-        # )
+        if surrogate_model_name == 'catboost':
+            model_path = flow.model.path.removesuffix('.cbm')
+        elif surrogate_model_name == 'tabpfn':
+            model_path = flow.model.path.removesuffix('.pkl')
 
+
+        search_args = argparse.Namespace(
+            model=surrogate_model_name,
+            search_model='k_means',
+            data_path=flow.preprocessed_csv.path,
+            control_name=controllable_columns,
+            control_range=controllable_columns_range,
+            target=target_column,
+            importance=importance_column,
+            optimize=optimize,
+            flow_id=flow_id,
+            seed=40,
+            user_request_target=user_request_target,
+            model_path=model_path
+        )
+
+        x_opt = search_model.main(search_args, scaler_info)
+        x_opt['average_change_rate'] = x_opt.apply(lambda row: calculate_change_rate(row['ground_truth'], row['predicted']), axis=1)
+        
+        print(f'{x_opt = }')
+
+        update_model_instances(flow, SearchResultModel, x_opt, 'column_name', {
+                               'ground_truth': 'ground_truth', 'predicted': 'predicted', 'average_change_rate': 'average_change_rate'})
         flow_progress(flow, 6)
 
         return Response({"message": "Processing completed successfully"}, status=200)
