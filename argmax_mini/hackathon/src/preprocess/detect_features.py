@@ -55,6 +55,7 @@ def detect_features(df: pd.DataFrame) -> dict:
     feature_info = {
         'numerical': numerical,
         'categorical': categorical,
+        'numerical_categorical': numerical_categorical,
         'datetime': datetime_cols,
         'text': text,
         'dtypes': dtype_info
