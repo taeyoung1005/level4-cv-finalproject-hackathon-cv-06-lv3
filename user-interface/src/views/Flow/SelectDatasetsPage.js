@@ -150,7 +150,7 @@ const SelectDatasetsPage = () => {
         }
       }
     }
-    history.push(`/projects/${projectId}/flows/${flowId}/configure-properties`);
+    history.push(`/projects/${projectId}/flows/${flowId}/analyze-properties`);
   };
 
   const handleGoBack = () => {

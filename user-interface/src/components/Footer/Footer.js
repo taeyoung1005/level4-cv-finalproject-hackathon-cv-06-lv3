@@ -27,31 +27,16 @@ export default function Footer(props) {
         mb={{ base: "20px", xl: "0px" }}
       >
         &copy; {1900 + new Date().getYear()},{" "}
-        <Text as="span">{"Made with ❤️ by "}</Text>
-        <Link href="https://www.simmmple.com" target="_blank">
-          {"andantecode "}
-        </Link>
-        &
-        <Link href="https://www.creative-tim.com" target="_blank">
+        <Text as="span">{"Made ❤️ by "}</Text>
+        <Link
+          href="https://wise-columnist-5eb.notion.site/CV06-Hand-bone-Semantic-Segmentation-162218e09e1680eca386e32c28e46799?pvs=4"
+          target="_blank"
+        >
           {" SIXSENSE"}
         </Link>
         {" for prescriptive AI"}
       </Text>
       <List display="flex">
-        <ListItem
-          me={{
-            base: "20px",
-            md: "44px",
-          }}
-        >
-          <Link
-            color="white"
-            fontSize="sm"
-            href="https://github.com/andantecode"
-          >
-            {"andantecode"}
-          </Link>
-        </ListItem>
         <ListItem
           me={{
             base: "20px",

@@ -16,11 +16,11 @@ import CardBody from "components/Card/CardBody";
 import CardHeader from "components/Card/CardHeader";
 import Chart from "react-apexcharts";
 import {
-  ArrowForwardIcon,
   ArrowBackIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@chakra-ui/icons";
+import { FiDownload } from "react-icons/fi";
 import {
   fetchSearchResult,
   fetchOptimizationData,
@@ -309,11 +309,11 @@ const OptimizationResultsPage = () => {
           </Text>
         </Box>
         <IconButton
-          icon={<ArrowForwardIcon />}
+          icon={<FiDownload color="#fff" />}
           onClick={() =>
-            history.push(`/projects/${projectId}/flows/${flowId}/next-step`)
+            history.push(`/projects/${projectId}/flows/${flowId}/download`)
           }
-          colorScheme="blue"
+          colorScheme="teal"
         />
       </Flex>
 

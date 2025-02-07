@@ -13,7 +13,6 @@ import {
   VStack,
   Flex,
 } from "@chakra-ui/react";
-import { Separator } from "components/Separator/Separator";
 
 function AddProjectDialog({ isOpen, onClose, onAdd }) {
   const [newProjectName, setNewProjectName] = useState("");
@@ -24,35 +23,36 @@ function AddProjectDialog({ isOpen, onClose, onAdd }) {
       onAdd({ name: newProjectName, description: newProjectDescription });
       setNewProjectName("");
       setNewProjectDescription("");
+      onClose();
     }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
       <ModalOverlay bg="blackAlpha.800" />
-      <ModalContent
-        bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.9) 76.65%)"
-        borderRadius="15px"
-      >
-        <ModalHeader color="#fff">Add New Project</ModalHeader>
-        <Separator />
-        <ModalCloseButton color="#fff" />
+      <ModalContent bg="gray.900" color="white" borderRadius="md">
+        <ModalHeader>Add New Project</ModalHeader>
+        <ModalCloseButton />
         <ModalBody>
           <VStack spacing={4}>
             <Input
               placeholder="Project Name"
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
-              borderColor="gray.600"
-              color="#fff"
+              focusBorderColor="teal.400"
+              bg="gray.800"
+              borderRadius="md"
+              color="white"
               _placeholder={{ color: "gray.400" }}
             />
             <Textarea
               placeholder="Project Description"
               value={newProjectDescription}
               onChange={(e) => setNewProjectDescription(e.target.value)}
-              borderColor="gray.600"
-              color="#fff"
+              focusBorderColor="teal.400"
+              bg="gray.800"
+              borderRadius="md"
+              color="white"
               _placeholder={{ color: "gray.400" }}
             />
           </VStack>

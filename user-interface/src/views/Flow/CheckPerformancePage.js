@@ -51,8 +51,6 @@ const SurrogatePerformancePage = () => {
     (state) => state.flows.surrogateResult[flowId] || []
   );
 
-  const redux = useSelector((state) => state);
-
   useEffect(async () => {
     await dispatch(fetchSurrogateFeatureImportance(flowId)).unwrap();
     await dispatch(fetchSurrogateMatric(flowId)).unwrap();
@@ -342,41 +340,77 @@ const SurrogatePerformancePage = () => {
     return surrogateResult.slice().sort((a, b) => a.rank - b.rank);
   }, [surrogateResult]);
 
-  const bestCases = useMemo(() => sortedResults.slice(0, 5), [sortedResults]);
-  const worstCases = useMemo(() => sortedResults.slice(-5), [sortedResults]);
+  console.log(sortedResults);
+
   const numericOutputs = useMemo(
     () =>
       surrogateMatric.filter((output) => output.column_type === "numerical"),
     [surrogateMatric]
   );
 
-  // 각 케이스에 대해 "Ground Truth"와 "Predicted"를 선 차트로 표현
-  const bestCasesLineData = useMemo(() => {
-    return {
-      // x축 레이블 제거
-      categories: [],
-      series: [
-        {
-          name: "Ground Truth",
-          data: bestCases.map((res) => res.ground_truth),
-        },
-        { name: "Predicted", data: bestCases.map((res) => res.predicted) },
-      ],
-    };
-  }, [bestCases]);
+  // 페이지네이션 state for Prediction Cases tab (each page shows 1 output property)
+  const [predictionPage, setPredictionPage] = useState(0);
 
-  const worstCasesLineData = useMemo(() => {
-    return {
+  // 선택된 output property (기본적으로 numericOutputs의 predictionPage번째)
+  const currentOutput = useMemo(() => numericOutputs[predictionPage] || null, [
+    numericOutputs,
+    predictionPage,
+  ]);
+
+  // 해당 output property에 해당하는 surrogateResult들만 필터링 (각 결과 객체에는 column (id)와 column_name 등이 있다고 가정)
+  const propertyResults = useMemo(() => {
+    if (!currentOutput) return [];
+    return surrogateResult.filter((res) => res.column === currentOutput.column);
+  }, [surrogateResult, currentOutput]);
+
+  // 해당 output property 결과를 rank 기준으로 정렬 (낮을수록 좋은 것으로 가정)
+  const sortedPropertyResults = useMemo(() => {
+    return propertyResults.slice().sort((a, b) => a.rank - b.rank);
+  }, [propertyResults]);
+
+  // best & worst cases: 상위 5개와 하위 5개
+  const bestCasesForProperty = useMemo(
+    () => sortedPropertyResults.slice(0, 5),
+    [sortedPropertyResults]
+  );
+  const worstCasesForProperty = useMemo(() => sortedPropertyResults.slice(-5), [
+    sortedPropertyResults,
+  ]);
+
+  // 차트 데이터 구성
+  const bestCasesLineDataForProperty = useMemo(
+    () => ({
+      categories: [], // x축 레이블은 제거
+      series: [
+        {
+          name: "Ground Truth",
+          data: bestCasesForProperty.map((res) => res.ground_truth),
+        },
+        {
+          name: "Predicted",
+          data: bestCasesForProperty.map((res) => res.predicted),
+        },
+      ],
+    }),
+    [bestCasesForProperty]
+  );
+
+  const worstCasesLineDataForProperty = useMemo(
+    () => ({
       categories: [],
       series: [
         {
           name: "Ground Truth",
-          data: worstCases.map((res) => res.ground_truth),
+          data: worstCasesForProperty.map((res) => res.ground_truth),
         },
-        { name: "Predicted", data: worstCases.map((res) => res.predicted) },
+        {
+          name: "Predicted",
+          data: worstCasesForProperty.map((res) => res.predicted),
+        },
       ],
-    };
-  }, [worstCases]);
+    }),
+    [worstCasesForProperty]
+  );
 
   // 라인 차트 옵션 수정: x축 레이블 제거, 데이터 라벨 색상 변경
   const lineChartOptions = useMemo(() => {
@@ -445,19 +479,19 @@ const SurrogatePerformancePage = () => {
     };
   }, []);
 
+  // 예시: Best Cases 카드
   const bestCasesCard = (
     <Card minH="300px" mb={4}>
       <CardHeader pb={2}>
         <Text fontSize="xl" fontWeight="bold">
-          Best Cases
+          Best Cases for {currentOutput ? currentOutput.column_name : ""}
         </Text>
       </CardHeader>
-
       <Box w="100%" minH={{ sm: "500px" }}>
-        {bestCases.length > 0 ? (
+        {bestCasesForProperty.length > 0 ? (
           <Chart
             options={lineChartOptions}
-            series={bestCasesLineData.series}
+            series={bestCasesLineDataForProperty.series}
             type="area"
             height="100%"
           />
@@ -468,19 +502,19 @@ const SurrogatePerformancePage = () => {
     </Card>
   );
 
+  // 예시: Worst Cases 카드
   const worstCasesCard = (
     <Card minH="300px" mb={4}>
       <CardHeader pb={2}>
         <Text fontSize="xl" fontWeight="bold">
-          Worst Cases
+          Worst Cases for {currentOutput ? currentOutput.column_name : ""}
         </Text>
       </CardHeader>
-
       <Box w="100%" minH={{ sm: "500px" }}>
-        {worstCases.length > 0 ? (
+        {worstCasesForProperty.length > 0 ? (
           <Chart
             options={lineChartOptions}
-            series={worstCasesLineData.series}
+            series={worstCasesLineDataForProperty.series}
             type="area"
             width="100%"
             height="100%"
@@ -548,17 +582,46 @@ const SurrogatePerformancePage = () => {
           {/* 두 번째 탭: Prediction Cases */}
           {numericOutputs.length > 0 && (
             <TabPanel>
-              {surrogateMatric[outputIndex]?.column_type === "numerical" ? (
+              {/* Pagination controls for prediction cases */}
+              <Flex justifyContent="space-between" alignItems="center" mb={4}>
+                <IconButton
+                  icon={<ArrowBackIcon />}
+                  onClick={() =>
+                    setPredictionPage((prev) => Math.max(prev - 1, 0))
+                  }
+                  isDisabled={predictionPage === 0}
+                  size="sm"
+                  colorScheme="whiteAlpha"
+                  aria-label="Previous Output Property"
+                />
+                <Text fontSize="xl" color="gray.400">
+                  {currentOutput ? currentOutput.column_name : "N/A"} (
+                  {predictionPage + 1} of {numericOutputs.length})
+                </Text>
+                <IconButton
+                  icon={<ArrowForwardIcon />}
+                  onClick={() =>
+                    setPredictionPage((prev) =>
+                      Math.min(prev + 1, numericOutputs.length - 1)
+                    )
+                  }
+                  isDisabled={predictionPage === numericOutputs.length - 1}
+                  size="sm"
+                  colorScheme="whiteAlpha"
+                  aria-label="Next Output Property"
+                />
+              </Flex>
+              {currentOutput && currentOutput.column_type === "numerical" ? (
                 <Grid
                   templateColumns={{ base: "1fr", md: "1fr 1fr" }}
-                  h="calc(80vh - 150px)"
+                  h="calc(80vh - 200px)"
                   gap={6}
                 >
                   {bestCasesCard}
                   {worstCasesCard}
                 </Grid>
               ) : (
-                <Flex align="center" justify="center" h="calc(80vh - 150px)">
+                <Flex align="center" justify="center" h="calc(80vh - 200px)">
                   <Text fontSize="xl" color="gray.400">
                     Prediction cases are available only for numerical outputs.
                   </Text>

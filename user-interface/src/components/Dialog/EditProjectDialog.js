@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Button,
-  Input,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -10,7 +7,10 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
+  Button,
+  Input,
   Textarea,
+  VStack,
 } from "@chakra-ui/react";
 import { Separator } from "components/Separator/Separator";
 
@@ -43,25 +43,29 @@ function EditProjectDialog({ isOpen, onClose, project, onUpdate }) {
         <Separator />
         <ModalCloseButton color="#fff" />
         <ModalBody>
-          <Input
-            placeholder="Project Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            mb={4}
-            borderColor="gray.600"
-            bg="gray.800"
-            _placeholder={{ color: "gray.400" }}
-            color="white"
-          />
-          <Textarea
-            placeholder="Project Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            borderColor="gray.600"
-            bg="gray.800"
-            _placeholder={{ color: "gray.400" }}
-            color="white"
-          />
+          <VStack spacing={4}>
+            <Input
+              placeholder="Project Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              mb={4}
+              borderColor="gray.600"
+              bg="gray.800"
+              _placeholder={{ color: "gray.400" }}
+              color="white"
+              focusBorderColor="teal.400"
+            />
+            <Textarea
+              placeholder="Project Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              borderColor="gray.600"
+              bg="gray.800"
+              _placeholder={{ color: "gray.400" }}
+              color="white"
+              focusBorderColor="teal.400"
+            />
+          </VStack>
         </ModalBody>
         <ModalFooter>
           <Button onClick={onClose} mr={3} variant="ghost" color="white">

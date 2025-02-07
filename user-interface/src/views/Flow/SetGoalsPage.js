@@ -542,7 +542,7 @@ const SetGoalsPage = () => {
             </Box>
           )}
           {currentType === "categorical" && (
-            <Box h="300px" mt={4}>
+            <Box h="290px" mt={4}>
               {chartComponent}
             </Box>
           )}
@@ -592,6 +592,9 @@ const SetGoalsPage = () => {
                         status: "error",
                         duration: 1000,
                         isClosable: true,
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
                       return;
                     }
@@ -618,6 +621,9 @@ const SetGoalsPage = () => {
                       status: "success",
                       duration: 1000,
                       isClosable: true,
+                      containerStyle: {
+                        marginLeft: "280px",
+                      },
                     });
                   } else if (currentType === "categorical") {
                     // 범주형 타입 검증
@@ -645,6 +651,9 @@ const SetGoalsPage = () => {
                         status: "success",
                         duration: 1000,
                         isClosable: true,
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
                     } else {
                       // 유효하지 않으면 이전 값으로 복구
@@ -663,6 +672,9 @@ const SetGoalsPage = () => {
                         status: "error",
                         duration: 1000,
                         isClosable: true,
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
                     }
                   }
@@ -716,6 +728,9 @@ const SetGoalsPage = () => {
                           status: "error",
                           duration: 1000,
                           isClosable: true,
+                          containerStyle: {
+                            marginLeft: "280px",
+                          },
                         });
                         return;
                       }
@@ -734,6 +749,9 @@ const SetGoalsPage = () => {
                           status: "error",
                           duration: 1000,
                           isClosable: true,
+                          containerStyle: {
+                            marginLeft: "280px",
+                          },
                         });
                         return;
                       }
@@ -758,6 +776,9 @@ const SetGoalsPage = () => {
                         status: "success",
                         duration: 1000,
                         isClosable: true,
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
                     }}
                   />
@@ -806,6 +827,9 @@ const SetGoalsPage = () => {
                           status: "error",
                           duration: 1000,
                           isClosable: true,
+                          containerStyle: {
+                            marginLeft: "280px",
+                          },
                         });
                         return;
                       }
@@ -824,6 +848,9 @@ const SetGoalsPage = () => {
                           status: "error",
                           duration: 1000,
                           isClosable: true,
+                          containerStyle: {
+                            marginLeft: "280px",
+                          },
                         });
                         return;
                       }
@@ -846,6 +873,9 @@ const SetGoalsPage = () => {
                         status: "success",
                         duration: 1000,
                         isClosable: true,
+                        containerStyle: {
+                          marginLeft: "280px",
+                        },
                       });
                     }}
                   />
