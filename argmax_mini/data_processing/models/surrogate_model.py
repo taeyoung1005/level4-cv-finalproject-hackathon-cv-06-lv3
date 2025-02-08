@@ -12,8 +12,8 @@ class SurrogateMatricModel(models.Model):
     column = models.ForeignKey(
         ConcatColumnModel, on_delete=models.CASCADE, related_name="surrogate_matric")
     r_squared = models.FloatField(blank=False, null=False)
-    rmse = models.FloatField(blank=False, null=False, default=0)
-    mae = models.FloatField(blank=False, null=False, default=0)
+    rmse = models.FloatField(blank=False, null=True, default=0)
+    mae = models.FloatField(blank=False, null=True, default=0)
 
     def __str__(self):
         return self.flow.flow_name
@@ -27,8 +27,8 @@ class SurrogateResultModel(models.Model):
         FlowModel, on_delete=models.CASCADE, related_name="surrogate_result")
     column = models.ForeignKey(
         ConcatColumnModel, on_delete=models.CASCADE, related_name="surrogate_result")
-    ground_truth = models.FloatField(blank=False, null=False)
-    predicted = models.FloatField(blank=False, null=False)
+    ground_truth = models.CharField(blank=False, null=False, max_length=255)
+    predicted = models.CharField(blank=False, null=False, max_length=255)
     rank = models.IntegerField(blank=False, null=False)
 
     def __str__(self):

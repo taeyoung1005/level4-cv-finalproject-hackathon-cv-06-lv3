@@ -8,6 +8,12 @@ from drf_yasg import openapi
 from data_processing.models import SurrogateMatricModel, SurrogateResultModel, FeatureImportanceModel
 from data_processing.serializers import SurrogateMatricModelSerializer, SurrogateResultModelSerializer, FeatureImportanceModelSerializer
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 class SurrogateMatricView(APIView):
     '''
@@ -85,6 +91,14 @@ class SurrogateResultView(APIView):
         surrogate_result = SurrogateResultModel.objects.filter(flow=flow_id)
         serialized_data = SurrogateResultModelSerializer(
             surrogate_result, many=True).data
+        
+        # serialized_data에서 ground_truth와 predicted가 숫자인 경우 float로 변환
+        for item in serialized_data:
+            if is_number(item['ground_truth']):
+                item['ground_truth'] = float(item['ground_truth'])
+            if is_number(item['predicted']):
+                item['predicted'] = float(item['predicted'])
+
         for item, instance in zip(serialized_data, surrogate_result):
             item['column_name'] = instance.column.column_name
             item['column_type'] = instance.column.column_type

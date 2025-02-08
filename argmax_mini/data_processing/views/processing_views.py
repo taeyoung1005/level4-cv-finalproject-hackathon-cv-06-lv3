@@ -33,11 +33,13 @@ def is_number(s):
     
 def calculate_change_rate(ground_truth, predicted):
     try:
-        change_rate = [(p - g) / g * 100 for g, p in zip(ground_truth, predicted)]
+        sum_gt = np.sum(ground_truth)
+        sum_pred = np.sum(predicted)
     except:
-        return 0.0
-    return sum(change_rate) / len(change_rate)  # 평균 변화율
+        return 0
 
+    return round((sum_pred - sum_gt) / sum_gt * 100, 2)
+    
 
 def update_model_instances(flow, model_cls, df, column_field, defaults_mapping):
     model_cls.objects.filter(flow=flow).delete()
@@ -150,7 +152,10 @@ class ProcessingView(APIView):
 
         # Clean up temporary files.
         shutil.rmtree('./temp')
-
+        print(f'{df_rank = }')
+        print(f'{df_eval = }')
+        print(f'{df_importance = }')
+    
         # Update or create SurrogateResultModel instances.
         update_model_instances(flow, SurrogateResultModel, df_rank, 'column_name', {
                                'ground_truth': 'y_test', 'predicted': 'y_pred', 'rank': 'rank'})
@@ -228,7 +233,7 @@ class ProcessingView(APIView):
         )
 
         x_opt = search_model.main(search_args, scaler_info)
-        print(f'{x_opt = }')
+        # print(x_opt)
         x_opt['average_change_rate'] = x_opt.apply(lambda row: calculate_change_rate(row['ground_truth'], row['predicted']), axis=1)
 
         update_model_instances(flow, SearchResultModel, x_opt, 'column_name', {
