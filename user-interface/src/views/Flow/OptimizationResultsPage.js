@@ -25,6 +25,7 @@ import {
   fetchSearchResult,
   fetchOptimizationData,
 } from "store/features/flowSlice";
+import { getColor } from "@chakra-ui/theme-tools";
 
 const OptimizationResultsPage = () => {
   const { projectId, flowId } = useParams();
@@ -119,11 +120,10 @@ const OptimizationResultsPage = () => {
       },
       yaxis: {
         labels: {
-          formatter: (val) => val.toFixed(3),
+          formatter: (val) => val?.toFixed(3),
           style: {
             colors: "#fff",
             fontSize: "10px",
-            fontFamily: "Plus Jakarta Display",
           },
         },
       },
@@ -133,21 +133,11 @@ const OptimizationResultsPage = () => {
         theme: "dark",
         style: {
           fontSize: "12px",
-          fontFamily: "Plus Jakarta Display",
         },
       },
       legend: { labels: { colors: "#fff" } },
       colors: ["#2CD9FF", "#582CFF"],
-      fill: {
-        type: "gradient",
-        gradient: {
-          shade: "light",
-          type: "vertical",
-          opacityFrom: 1,
-          opacityTo: 0.8,
-          stops: [0, 90, 100],
-        },
-      },
+
       grid: {
         show: false,
         padding: {
@@ -157,31 +147,45 @@ const OptimizationResultsPage = () => {
     };
   }, []);
 
+  const sortedCurrentResults = useMemo(() => {
+    if (!currentResults) return [];
+    return currentResults.slice().sort((a, b) => {
+      // 각 항목의 우선순위는 optimizationData에서 가져온 order 값 (없으면 0으로 처리)
+      const aPriority = optimizationData[a.column_name]?.order || 0;
+      const bPriority = optimizationData[b.column_name]?.order || 0;
+      // 내림차순: 우선순위가 높은(값이 큰) 항목이 먼저 오도록
+      return aPriority - bPriority;
+    });
+  }, [currentResults, optimizationData]);
+
   // 각 결과 카드 렌더링 함수
   const renderResultCard = (item, index) => {
     const property = item.column_name;
     const optData = optimizationData[property] || null;
-    const series = [
-      { name: "Previous", data: item.ground_truth },
-      { name: "Optimized", data: item.predicted },
-    ];
+    const isNumeric = item.column_type === "numerical";
+    const series = isNumeric
+      ? [
+          { name: "Previous", data: item.ground_truth },
+          { name: "Optimized", data: item.predicted },
+        ]
+      : [];
 
-    // 기본 차트 옵션 (제목은 제거한 상태)
+    const avgChangeRate = item.average_change_rate;
+
+    // 기존 차트 옵션(baseChartOptions)과 어노테이션 구성은 그대로 사용한다고 가정
     const options = { ...baseChartOptions };
-
-    // 어노테이션: optData가 있으면 최소, 최대 값을 표시 (없으면 빈 객체)
     const rangeAnnotations =
       optData && optData.minimum_value !== "" && optData.maximum_value !== ""
         ? {
             yaxis: [
               {
                 y: optData.minimum_value,
-                borderColor: "rgba(0,227,150,0.5)",
+                borderColor: "rgba(0,227,150,0.9)",
+                borderWidth: 3,
                 label: {
-                  text: `Min: ${optData.minimum_value}`,
                   style: {
                     color: "#fff",
-                    background: "rgba(0,227,150,0.5)",
+                    background: "rgba(0,227,150,0.9)",
                     fontFamily: "Plus Jakarta Display",
                     fontSize: "8px",
                   },
@@ -189,12 +193,12 @@ const OptimizationResultsPage = () => {
               },
               {
                 y: optData.maximum_value,
-                borderColor: "rgba(255,69,96,0.5)",
+                borderColor: "rgba(255,69,96,0.9)",
+                borderWidth: 3,
                 label: {
-                  text: `Max: ${optData.maximum_value}`,
                   style: {
                     color: "#fff",
-                    background: "rgba(255,69,96,0.5)",
+                    background: "rgba(255,69,96,0.9)",
                     fontFamily: "Plus Jakarta Display",
                     fontSize: "8px",
                   },
@@ -203,7 +207,6 @@ const OptimizationResultsPage = () => {
             ],
           }
         : {};
-
     const optionsWithAnnotations = {
       ...options,
       annotations: rangeAnnotations,
@@ -211,17 +214,35 @@ const OptimizationResultsPage = () => {
 
     return (
       <Card key={index} h="300px">
-        {/* 카드 헤더: property 이름 및 optimization 정보 */}
         <CardHeader pb={2}>
           <Flex justify="space-between" align="center" w="100%">
             <Box>
               <Text fontSize="lg" fontWeight="bold">
                 {property}
               </Text>
-              <Text fontSize="sm" color="gray.400">
-                Type: {item.property_type || "-"} | Priority:{" "}
-                {optData ? optData.order || "-" : "-"}
-              </Text>
+              <Flex justify="space-between" w="100%">
+                <Text fontSize="sm" color="gray.400" flex="1">
+                  Type: {item.column_type || "-"} | Priority:{" "}
+                  {optData ? optData.order || "-" : "-"}
+                </Text>
+                {/* average_change_rate는 숫자형(numerical)인 경우에만 렌더링 */}
+                {isNumeric &&
+                  typeof avgChangeRate === "number" &&
+                  (!optData ||
+                    (optData.goal !== "Fit to Property" &&
+                      optData.goal !== "Fit to Range")) && (
+                    <Text
+                      fontSize="sm"
+                      color={avgChangeRate >= 0 ? "green.500" : "red.500"}
+                      flexShrink={0}
+                      ml={4}
+                    >
+                      {avgChangeRate >= 0
+                        ? `Increased by ${avgChangeRate.toFixed(2)}%`
+                        : `Decreased by ${Math.abs(avgChangeRate).toFixed(2)}%`}
+                    </Text>
+                  )}
+              </Flex>
             </Box>
             <Card
               bg="transparent"
@@ -243,17 +264,23 @@ const OptimizationResultsPage = () => {
         <Divider borderColor="gray.600" />
         <CardBody p={2} h="100%">
           <Box w="100%">
-            {optData ? (
-              <Chart
-                options={optionsWithAnnotations}
-                series={series}
-                type="line"
-                width="100%"
-                height="100%"
-              />
+            {isNumeric ? (
+              optData ? (
+                <Chart
+                  options={optionsWithAnnotations}
+                  series={series}
+                  type="line"
+                  width="100%"
+                  height="100%"
+                />
+              ) : (
+                <Flex justify="center" align="center" h="100%">
+                  <Spinner size="md" />
+                </Flex>
+              )
             ) : (
               <Flex justify="center" align="center" h="100%">
-                <Spinner size="md" />
+                <Text color="gray.400">No chart available for this type.</Text>
               </Flex>
             )}
           </Box>
@@ -319,8 +346,10 @@ const OptimizationResultsPage = () => {
 
       {/* 결과 카드 영역 - 2x2 그리드 */}
       <Grid templateColumns="repeat(2, 1fr)" gap={4} h="calc(80vh - 130px)">
-        {currentResults && currentResults.length > 0 ? (
-          currentResults.map((item, index) => renderResultCard(item, index))
+        {sortedCurrentResults && sortedCurrentResults.length > 0 ? (
+          sortedCurrentResults.map((item, index) =>
+            renderResultCard(item, index)
+          )
         ) : (
           <Text color="white" textAlign="center" width="100%">
             No optimization results available.

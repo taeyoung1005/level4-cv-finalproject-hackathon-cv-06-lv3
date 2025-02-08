@@ -26,6 +26,7 @@ import {
   fetchOptimizationData,
 } from "store/features/flowSlice";
 import { postOptimizationOrder } from "store/features/flowSlice";
+import { createModelThunk } from "store/features/flowSlice";
 
 const SetPrioritiesPage = () => {
   const { projectId, flowId } = useParams();
@@ -138,19 +139,21 @@ const SetPrioritiesPage = () => {
     try {
       setIsPreparing(true);
       await dispatch(postOptimizationOrder({ flowId, priorities })).unwrap();
-      // 정보 메시지를 2초 정도 보여준 후 다음 페이지로 이동
+
+      // 2. 모든 optimizationData POST 요청이 끝난 후, 모델 생성 API 요청 (createModelThunk)
+      dispatch(createModelThunk(flowId)).unwrap();
+      // 정보 메시지를 1초 정도 보여준 후 다음 페이지로 이동
       setTimeout(() => {
         history.push(
-          `/projects/${projectId}/flows/${flowId}/check-performance`
+          `/projects/${projectId}/flows/${flowId}/model-training-progress`
         );
-      }, 5000);
+      }, 1000);
     } catch (error) {
       console.error("Failed to post optimization orders:", error);
       setIsPreparing(false);
     }
   };
 
-  // 드래그 가능한 카드 렌더링 함수 (정사각형 형태, 일렬 배치)
   const renderDraggableCard = (prop, index) => {
     const data = optimizationData[prop] || {};
     const textColor = getGoalColor(data.goal);
@@ -183,7 +186,13 @@ const SetPrioritiesPage = () => {
                       <Badge mr={2} colorScheme="teal">
                         {index + 1}
                       </Badge>
-                      <Text fontSize="sm" fontWeight="bold" color="white">
+                      <Text
+                        fontSize="sm"
+                        fontWeight="bold"
+                        color="white"
+                        maxW="150px"
+                        isTruncated
+                      >
                         {prop}
                       </Text>
                     </Flex>
@@ -191,15 +200,23 @@ const SetPrioritiesPage = () => {
 
                   <CardBody p={1} mt={4}>
                     <Flex direction="column">
-                      <Text fontSize="xs" color="white">
-                        {data.minimum_value !== " "
-                          ? data.minimum_value
-                          : "NaN"}{" "}
-                        ~{" "}
-                        {data.maximum_value !== " "
-                          ? data.maximum_value
-                          : "NaN"}
-                      </Text>
+                      {data.goal === "Fit to Property" ? (
+                        <Text fontSize="xs" color="white">
+                          {data.minimum_value !== " "
+                            ? data.minimum_value
+                            : "NaN"}
+                        </Text>
+                      ) : (
+                        <Text fontSize="xs" color="white">
+                          {data.minimum_value !== " "
+                            ? data.minimum_value
+                            : "NaN"}{" "}
+                          ~{" "}
+                          {data.maximum_value !== " "
+                            ? data.maximum_value
+                            : "NaN"}
+                        </Text>
+                      )}
                       <Text fontSize="xs" color={textColor}>
                         {data.goal || "-"}
                       </Text>

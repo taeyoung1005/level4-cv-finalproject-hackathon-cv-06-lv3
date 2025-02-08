@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { shallowEqual, useDispatch, useSelector } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
 import {
   Box,
@@ -31,6 +31,7 @@ import {
   postOptimizationData,
 } from "store/features/flowSlice";
 import PieChart from "components/Charts/PieChart";
+import { createModelThunk } from "store/features/flowSlice";
 
 const SetGoalsPage = () => {
   const { projectId, flowId } = useParams();
@@ -40,16 +41,25 @@ const SetGoalsPage = () => {
 
   // Redux
   const properties = useSelector(
-    (state) => state.flows.newCategories[flowId] || {}
+    (state) => state.flows.newCategories[flowId] || {},
+    shallowEqual
   );
   const histograms = useSelector(
-    (state) => state.flows.histograms[flowId] || {}
+    (state) => state.flows.histograms[flowId] || {},
+    shallowEqual
   );
 
-  const types = useSelector((state) => state.flows.properties[flowId] || {});
+  const types = useSelector(
+    (state) => state.flows.properties[flowId] || {},
+    shallowEqual
+  );
 
-  const optimizationData =
-    useSelector((state) => state.flows.optimizationData[flowId]) || {};
+  const optimizationData = useSelector(
+    (state) => state.flows.optimizationData[flowId] || {},
+    shallowEqual
+  );
+
+  const redux = useSelector((state) => state);
 
   // Property 분류
   const controllableProperties = useMemo(
@@ -83,6 +93,7 @@ const SetGoalsPage = () => {
 
   // 로딩, 초기화
   const [isLoading, setIsLoading] = useState(true);
+  const [histogramReady, setHistogramReady] = useState(false);
   const [initPropertyReady, setInitPropertyReady] = useState(false);
 
   // fetch 중복 방지
@@ -120,32 +131,47 @@ const SetGoalsPage = () => {
   }, [dispatch, flowId, properties]); // properties가 아무것도 없을 때만 fetch
 
   useEffect(() => {
-    if (!initPropertyReady) return;
-
     // 현재 페이지에서 보여줄 property
     const controllableProp =
       controllableProperties[currentControllablePage - 1];
     const outputProp = outputProperties[currentOutputPage - 1];
 
-    const handlePropertyFetch = async (prop) => {
-      if (!prop) return; // 없는 페이지면 스킵
+    // 두 property 중 하나라도 histogram 데이터가 있으면 histogramReady를 true로 설정
+    if (
+      (controllableProp && histograms[controllableProp]) ||
+      (outputProp && histograms[outputProp])
+    ) {
+      setHistogramReady(true);
+    } else {
+      setHistogramReady(false);
+    }
+  }, [
+    histograms,
+    controllableProperties,
+    outputProperties,
+    currentControllablePage,
+    currentOutputPage,
+  ]);
 
-      // (1) 히스토그램이 없으면 fetch
-      if (!histograms[prop] && !histogramFetchRef.current[prop]) {
-        histogramFetchRef.current[prop] = true;
-        try {
-          await dispatch(
-            fetchPropertyHistograms({ flowId, column_name: prop })
-          ).unwrap();
-        } catch (err) {
-          console.error("Failed to fetch histograms:", err);
-        }
+  useEffect(() => {
+    if (!initPropertyReady) return;
+
+    const controllableProp =
+      controllableProperties[currentControllablePage - 1];
+    const outputProp = outputProperties[currentOutputPage - 1];
+
+    const handlePropertyFetch = async (prop) => {
+      if (!prop) return;
+
+      // Case 1: 이미 optimizationData가 있는 경우 → 바로 리턴
+      if (optimizationData[prop]) {
+        return;
       }
 
-      // (2) 옵티마이제이션 데이터 없으면 서버에서 fetch
-      //     실패 시 히스토그램 기반 초기화
-      if (!optimizationData[prop] && !attemptedFetchRef.current[prop]) {
-        attemptedFetchRef.current[prop] = true;
+      let fetchedHistogramData; // 로컬 변수에 fetch 결과 저장
+
+      // Case 2: optimizationData가 없고, histogram이 있는 경우 → optimizationData만 fetch
+      if (histograms[prop]) {
         try {
           await dispatch(
             fetchOptimizationData({
@@ -156,46 +182,83 @@ const SetGoalsPage = () => {
           ).unwrap();
         } catch (err) {
           console.error("Failed to fetch optimization data:", err);
-          // 없다면 히스토그램으로 초기화
-          const histogramData = histograms[prop]?.histograms;
-          if (histogramData?.bin_edges && histogramData.counts) {
-            try {
-              const binEdges = JSON.parse(histogramData.bin_edges);
-              if (binEdges.length > 1) {
-                const minEdge = binEdges[0];
-                const maxEdge = binEdges[binEdges.length - 1];
-                const diff = maxEdge - minEdge;
-                const newMin = (minEdge - diff * 0.1)
-                  .toFixed(4)
-                  .replace(/\.?0+$/, "");
-                const newMax = (maxEdge + diff * 0.1)
-                  .toFixed(4)
-                  .replace(/\.?0+$/, "");
-                await dispatch(
-                  updateOptimizationData({
-                    flowId,
-                    property: prop,
-                    newData: {
-                      minimum_value: newMin,
-                      maximum_value: newMax,
-                      goal:
-                        properties[prop] === "output"
-                          ? "Fit to Property"
-                          : "No Optimization",
-                    },
-                    type: properties[prop],
-                  })
-                );
-              }
-            } catch (e) {
-              console.error("Error initializing optimization data:", e);
+        }
+        return;
+      }
+
+      // Case 3: 둘 다 없는 경우 → histogram 먼저 fetch, 그 후 optimizationData fetch
+      try {
+        // histogram 데이터 fetch 및 반환값 저장
+        fetchedHistogramData = await dispatch(
+          fetchPropertyHistograms({ flowId, column_name: prop })
+        ).unwrap();
+      } catch (err) {
+        console.error("Failed to fetch histogram:", err);
+      }
+
+      try {
+        await dispatch(
+          fetchOptimizationData({
+            flowId,
+            property: prop,
+            type: properties[prop],
+          })
+        ).unwrap();
+      } catch (err) {
+        console.error(
+          "Failed to fetch optimization data after fetching histogram:",
+          err
+        );
+        // fallback: redux에 저장된 histograms[prop]가 없으면 fetchedHistogramData 사용
+        const histogramData =
+          histograms[prop] || fetchedHistogramData?.histograms;
+
+        if (histogramData?.bin_edges && histogramData.counts) {
+          try {
+            const binEdges = JSON.parse(histogramData.bin_edges);
+            if (binEdges.length > 1) {
+              const minEdge = binEdges[0];
+              const maxEdge = binEdges[binEdges.length - 1];
+              const diff = maxEdge - minEdge;
+              const newMin = (minEdge - diff * 0.1)
+                .toFixed(4)
+                .replace(/\.?0+$/, "");
+              const newMax = (maxEdge + diff * 0.1)
+                .toFixed(4)
+                .replace(/\.?0+$/, "");
+
+              await dispatch(
+                updateOptimizationData({
+                  flowId,
+                  property: prop,
+                  newData: {
+                    minimum_value: newMin,
+                    maximum_value: newMax,
+                    goal:
+                      properties[prop] === "output" ||
+                      types[prop] === "categorical"
+                        ? "Fit to Property"
+                        : "No Optimization",
+                  },
+                  type: properties[prop],
+                })
+              );
+              setLocalValues((prev) => ({
+                ...prev,
+                [prop]: {
+                  ...(prev[prop] || {}),
+                  min: newMin,
+                  max: newMax,
+                },
+              }));
             }
+          } catch (e) {
+            console.error("Error initializing optimization data:", e);
           }
         }
       }
     };
 
-    // 실제 호출
     (async () => {
       setIsLoading(true);
       await Promise.all([
@@ -210,53 +273,96 @@ const SetGoalsPage = () => {
     currentOutputPage,
     controllableProperties,
     outputProperties,
-    // !!! 여기에 histograms, optimizationData를 굳이 넣지 않는다 !!!
-    // store가 바뀌어도 이 이펙트가 반복되지 않도록
-
     dispatch,
     flowId,
     properties,
+    histograms,
+    // histograms와 optimizationData는 dependency에서 제거해 무한루프를 방지
   ]);
 
   // ------------------------------------------------------------
   // (B) 두 번째 useEffect: (읽기 전용) store → chartData 로컬 state 반영
   // ------------------------------------------------------------
   useEffect(() => {
-    // 매 렌더마다 store의 값이 갱신되었는지 확인
-    // 해당 property의 histogram, optimizationData 있으면 차트 세팅
+    // 현재 페이지에서 보여줄 property (예: controllable과 output 중 선택)
     const controllableProp =
       controllableProperties[currentControllablePage - 1];
     const outputProp = outputProperties[currentOutputPage - 1];
 
     const updateChartDataForProperty = (prop) => {
       if (!prop) return;
-      const hData = histograms[prop]; // store에서 읽기
-      const oData = optimizationData[prop]; // store에서 읽기
-
-      if (!hData || !oData) return;
+      const hData = histograms[prop]; // histogram 데이터 (redux에서 읽음)
+      const oData = optimizationData[prop]; // optimizationData (redux에서 읽음)
+      // histogram 데이터가 없으면 차트 생성 자체 불가
+      if (!hData) return;
 
       const propertyType = getPropertyType(prop, types) || "numerical";
 
       try {
-        // numeric인 경우 BarChart 데이터 생성
         if (propertyType === "numerical") {
           const binEdges = JSON.parse(hData.bin_edges);
           const counts = JSON.parse(hData.counts);
           if (binEdges.length < 2) return;
+          // diff 계산
           const diff =
             (parseFloat(binEdges[binEdges.length - 1]) -
               parseFloat(binEdges[0])) *
             0.1;
-          const minX = parseFloat(oData?.minimum_value || binEdges[0] - diff);
-          const maxX = parseFloat(
-            oData?.maximum_value || binEdges[binEdges.length - 1] + diff
-          );
+          // fallback: optimizationData가 없으면 기본값 계산
+          const minX =
+            oData && oData.minimum_value
+              ? parseFloat(oData.minimum_value)
+              : parseFloat(binEdges[0]) - diff;
+          const maxX =
+            oData && oData.maximum_value
+              ? parseFloat(oData.maximum_value)
+              : parseFloat(binEdges[binEdges.length - 1]) + diff;
           const total = counts.reduce((sum, val) => sum + val, 0);
           const avgValue = total / counts.length;
           const colorsArray = counts.map((val) =>
             val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
           );
 
+          // 만약 optimizationData가 없으면 fallback 로직 실행
+          if (!oData) {
+            // 계산된 fallback 값: histogram 데이터를 이용해서 기본 min/max 계산
+            const minEdgeFallback = parseFloat(binEdges[0]);
+            const maxEdgeFallback = parseFloat(binEdges[binEdges.length - 1]);
+            const fallbackDiff = maxEdgeFallback - minEdgeFallback;
+            const fallbackMin = (minEdgeFallback - fallbackDiff * 0.1)
+              .toFixed(4)
+              .replace(/\.?0+$/, "");
+            const fallbackMax = (maxEdgeFallback + fallbackDiff * 0.1)
+              .toFixed(4)
+              .replace(/\.?0+$/, "");
+            // Redux 업데이트 fallback
+            dispatch(
+              updateOptimizationData({
+                flowId,
+                property: prop,
+                newData: {
+                  minimum_value: fallbackMin,
+                  maximum_value: fallbackMax,
+                  goal:
+                    properties[prop] === "output"
+                      ? "Fit to Property"
+                      : "No Optimization",
+                },
+                type: properties[prop],
+              })
+            );
+            // localValues 업데이트 fallback (input 영역 초기값 설정)
+            setLocalValues((prev) => ({
+              ...prev,
+              [prop]: {
+                ...(prev[prop] || {}),
+                min: fallbackMin,
+                max: fallbackMax,
+              },
+            }));
+          }
+
+          // 최종 chartData 세팅 (oData가 있든 없든, fallback 경우 위에서 localValues만 업데이트)
           setChartData((prev) => ({
             ...prev,
             [prop]: {
@@ -264,9 +370,9 @@ const SetGoalsPage = () => {
               barChartData: [
                 {
                   name: prop,
-                  data: binEdges.map((edge, i) => ({
-                    x: parseFloat(edge),
-                    y: counts[i],
+                  data: counts.map((count, i) => ({
+                    x: (binEdges[i] + binEdges[i + 1]) / 2,
+                    y: count || 0,
                   })),
                 },
               ],
@@ -280,7 +386,7 @@ const SetGoalsPage = () => {
                   bar: {
                     distributed: true,
                     borderRadius: 8,
-                    columnWidth: "10px",
+                    columnWidth: "12px",
                   },
                 },
                 dataLabels: { enabled: false },
@@ -297,8 +403,9 @@ const SetGoalsPage = () => {
                     ) +
                     diff * 0.5,
                   labels: {
+                    show: false,
                     style: { colors: "#fff", fontSize: "10px" },
-                    rotate: -45, // 라벨을 -45도 회전
+                    rotate: -45,
                     rotateAlways: true,
                   },
                 },
@@ -307,7 +414,26 @@ const SetGoalsPage = () => {
                 },
                 tooltip: {
                   theme: "dark",
-                  y: { formatter: (val) => `${parseInt(val)}` },
+                  custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+                    // binEdges 배열은 상위 스코프에서 정의되어 있어야 함.
+                    const startEdge = parseFloat(binEdges[dataPointIndex])
+                      .toFixed(3)
+                      .replace(/\.?0+$/, "");
+                    const endEdge = parseFloat(binEdges[dataPointIndex + 1])
+                      .toFixed(3)
+                      .replace(/\.?0+$/, "");
+                    const countValue = series[seriesIndex][dataPointIndex];
+                    return `<div style="padding: 8px; color: #fff; background: #00000080;">
+                              <div><strong>Range:</strong> ${parseFloat(
+                                startEdge
+                              ).toLocaleString()} ~ ${parseFloat(
+                      endEdge
+                    ).toLocaleString()}</div>
+                              <div><strong>Count:</strong> ${parseInt(
+                                countValue
+                              )}</div>
+                            </div>`;
+                  },
                   style: { fontSize: "14px" },
                 },
                 colors: colorsArray,
@@ -316,13 +442,18 @@ const SetGoalsPage = () => {
                     {
                       y: avgValue,
                       borderColor: "yellow",
+                      // 선 두께 조절 (만약 동작하지 않으면 CSS 오버라이드 필요)
+                      borderWidth: 3,
+                      // 또는 strokeWidth: 3,
                       label: {
+                        //    text: `Avg: ${avgValue.toFixed(2)}`,
                         position: "left",
                         offsetX: 35,
                         style: {
                           color: "#fff",
                           background: "#0c0c0c",
-                          fontSize: "8px",
+                          fontSize: "10px",
+                          fontWeight: "bold",
                         },
                       },
                     },
@@ -330,11 +461,31 @@ const SetGoalsPage = () => {
                   xaxis: [
                     {
                       x: minX,
-                      borderColor: "rgba(72, 187, 120, 1)",
+                      borderColor: "rgba(72,187,120,1)",
+                      borderWidth: 3,
+                      label: {
+                        //    text: `Min: ${minX}`,
+                        style: {
+                          color: "#fff",
+                          background: "#0c0c0c",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                        },
+                      },
                     },
                     {
                       x: maxX,
-                      borderColor: "rgba(252, 130, 129, 1)",
+                      borderColor: "rgba(252,130,129,1)",
+                      borderWidth: 3,
+                      label: {
+                        // text: `Max: ${maxX}`,
+                        style: {
+                          color: "#fff",
+                          background: "#0c0c0c",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                        },
+                      },
                     },
                   ],
                 },
@@ -345,12 +496,10 @@ const SetGoalsPage = () => {
           // categorical인 경우 PieChart 데이터 생성
           const binEdges = JSON.parse(hData.bin_edges);
           const counts = JSON.parse(hData.counts);
-          // PieChart data: 각 bin을 항목으로, label은 binEdges, value는 counts
           let pieData = binEdges.map((edge, i) => ({
             label: edge,
             value: counts[i] || 0,
           }));
-
           pieData = combineCategories(pieData, 15);
 
           setChartData((prev) => ({
@@ -371,8 +520,6 @@ const SetGoalsPage = () => {
     updateChartDataForProperty(controllableProp);
     updateChartDataForProperty(outputProp);
   }, [
-    // store에서 읽고, chartData 로컬 상태만 세팅
-    // histograms, optimizationData 등이 바뀔 때마다 실행
     histograms,
     optimizationData,
     currentControllablePage,
@@ -386,6 +533,7 @@ const SetGoalsPage = () => {
   // ------------------------------------------------------------
   const handleNextStep = async () => {
     try {
+      // 1. optimizationData에 대해 POST 요청 실행
       const postPromises = Object.keys(optimizationData).map((prop) => {
         const data = optimizationData[prop];
         if (!data) return null;
@@ -401,12 +549,14 @@ const SetGoalsPage = () => {
         ).unwrap();
       });
       await Promise.all(postPromises);
+
+      // 3. 모델 생성 후, 다음 페이지로 이동 (예: set-priorities 페이지)
       history.push(`/projects/${projectId}/flows/${flowId}/set-priorities`);
     } catch (error) {
-      console.error("Failed to post optimization data:", error);
+      console.error("Failed to post optimization data or create model:", error);
       toast({
         title: "Error",
-        description: "Failed to update optimization data.",
+        description: "Failed to update optimization data or create model.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -542,12 +692,13 @@ const SetGoalsPage = () => {
             </Box>
           )}
           {currentType === "categorical" && (
-            <Box h="290px" mt={4}>
+            <Box h="300px" mt={4}>
               {chartComponent}
             </Box>
           )}
           {/* Target 입력 */}
-          {propertyData.goal === "Fit to Property" ? (
+          {propertyData.goal === "Fit to Property" ||
+          currentType === "categorical" ? (
             <Box w="50%" mt={8}>
               <Text fontSize="xs" color="gray.300" textAlign="center">
                 Target Value
@@ -576,6 +727,7 @@ const SetGoalsPage = () => {
                   const newValRaw = localValues[property]?.target;
 
                   if (currentType === "numerical") {
+                    console.log(newValRaw);
                     // 숫자 타입 검증
                     let newVal = parseFloat(newValRaw);
                     if (isNaN(newVal)) {
@@ -628,9 +780,10 @@ const SetGoalsPage = () => {
                   } else if (currentType === "categorical") {
                     // 범주형 타입 검증
                     // chartForProperty.pieChartData에 실제 카테고리 값들이 있다고 가정
-                    const allowedValues = (
-                      chartForProperty.pieChartData || []
-                    ).map((item) => item.label);
+                    const allowedValues = (chartForProperty.pieChartData || [])
+                      .map((item) => item.label)
+                      .map(String);
+                    console.log(allowedValues, newValRaw, "!!");
                     if (allowedValues.includes(newValRaw)) {
                       // 여기서 target 대신에 minimum_value(또는 maximum_value)로 저장할 수 있음.
                       // 예시로 minimum_value를 업데이트하는 식으로 처리:
@@ -715,6 +868,7 @@ const SetGoalsPage = () => {
                       let newVal = parseFloat(newValRaw);
                       const currentMax = parseFloat(propertyData.maximum_value);
                       if (isNaN(newVal)) {
+                        console.log(newValRaw);
                         setLocalValues((prev) => ({
                           ...prev,
                           [property]: {

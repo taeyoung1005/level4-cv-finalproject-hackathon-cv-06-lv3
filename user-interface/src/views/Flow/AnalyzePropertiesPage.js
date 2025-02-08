@@ -36,6 +36,7 @@ import {
 import { fetchCsvFilesByProject } from "store/features/projectSlice";
 import PieChart from "components/Charts/PieChart";
 import HorizontalBarChart from "components/Charts/HorizontalBarChart";
+import { fetchPropertyTypes } from "store/features/flowSlice";
 
 const PROPERTIES_PER_PAGE = 3; // 한 페이지당 3개
 
@@ -65,13 +66,21 @@ function AnalyzePropertiesPage() {
         unavailable: [],
       }
   );
+  const redux = useSelector((state) => state);
+
   const flowDatasets = useSelector((state) => {
     return state.flows.flows[flowId]?.csv;
   });
 
-  const selectedDatasets = projectDatasets.filter((ds) =>
-    flowDatasets?.includes(ds.csvId)
-  );
+  const [selectedDatasets, setSelectedDatasets] = useState([]);
+
+  useEffect(() => {
+    if (flowDatasets?.length && projectDatasets?.length) {
+      setSelectedDatasets(
+        projectDatasets.filter((ds) => flowDatasets.includes(ds.csvId))
+      );
+    }
+  }, [flowDatasets, projectDatasets]);
 
   const totalSelectedRows = selectedDatasets.reduce(
     (acc, ds) => acc + (ds.rows || 0),
@@ -81,6 +90,15 @@ function AnalyzePropertiesPage() {
   const totalSelectedSize = selectedDatasets.reduce(
     (acc, ds) => acc + (ds.size || 0),
     0
+  );
+
+  console.log(
+    redux,
+    projectDatasets,
+    flowDatasets,
+    selectedDatasets,
+    totalSelectedRows,
+    totalSelectedSize
   );
 
   const numericCount = properties.numerical?.length || 0;
@@ -104,12 +122,10 @@ function AnalyzePropertiesPage() {
   // 초기 로드
   // -------------------------------
   useEffect(() => {
-    dispatch(fetchFlowProperties(flowId));
-    if (projectDatasets.length === 0) {
-      dispatch(fetchCsvFilesByProject(projectId));
-      dispatch(fetchFlowDatasets(flowId));
-    }
-  }, [dispatch, flowId, projectId, projectDatasets.length]);
+    dispatch(fetchPropertyTypes(flowId));
+    dispatch(fetchCsvFilesByProject(projectId));
+    dispatch(fetchFlowDatasets(flowId));
+  }, [dispatch, flowId, projectId]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -247,7 +263,7 @@ function AnalyzePropertiesPage() {
                             JSON.parse(hData.bin_edges) || [];
                           const parsedCounts = JSON.parse(hData.counts) || [];
                           binEdges = parsedBinEdges.map((edge) =>
-                            parseFloat(edge)
+                            parseFloat(edge.toFixed(4))
                           );
                           counts = parsedCounts.map((val) => parseFloat(val));
                           const total = counts.reduce(
@@ -286,9 +302,9 @@ function AnalyzePropertiesPage() {
                             barChartData={[
                               {
                                 name: prop,
-                                data: binEdges.map((edge, i) => ({
-                                  x: edge,
-                                  y: counts[i] || 0,
+                                data: counts.map((count, i) => ({
+                                  x: (binEdges[i] + binEdges[i + 1]) / 2,
+                                  y: count || 0,
                                 })),
                               },
                             ]}
@@ -302,15 +318,18 @@ function AnalyzePropertiesPage() {
                                 bar: {
                                   distributed: true,
                                   borderRadius: 8,
-                                  columnWidth: "8px",
+                                  columnWidth: "12px",
                                 },
                               },
                               xaxis: {
                                 type: "numeric",
-                                min: binMin - diff,
-                                max: binMax + diff,
+                                min: binMin,
+                                max: binMax,
+                                tickAmount: binEdges.length,
                                 labels: {
+                                  show: false,
                                   style: { colors: "#fff", fontSize: "10px" },
+                                  formatter: (value) => value.toFixed(2),
                                   rotateAlways: true,
                                   rotate: -45, // 라벨을 -45도 회전
                                 },
@@ -324,7 +343,28 @@ function AnalyzePropertiesPage() {
                               legend: { show: false },
                               tooltip: {
                                 theme: "dark",
-                                y: { formatter: (val) => `${parseInt(val)}` },
+                                custom: ({
+                                  series,
+                                  seriesIndex,
+                                  dataPointIndex,
+                                  w,
+                                }) => {
+                                  // binEdges 배열은 상위 스코프에서 정의되어 있어야 함.
+                                  const startEdge = binEdges[dataPointIndex];
+                                  const endEdge = binEdges[dataPointIndex + 1];
+                                  const countValue =
+                                    series[seriesIndex][dataPointIndex];
+                                  return `<div style="padding: 8px; color: #fff; background: #00000080;">
+                                            <div><strong>Range:</strong> ${parseFloat(
+                                              startEdge
+                                            ).toLocaleString()} ~ ${parseFloat(
+                                    endEdge
+                                  ).toLocaleString()}</div>
+                                            <div><strong>Count:</strong> ${parseInt(
+                                              countValue
+                                            )}</div>
+                                          </div>`;
+                                },
                                 style: { fontSize: "14px" },
                               },
                               colors: colorsArray,

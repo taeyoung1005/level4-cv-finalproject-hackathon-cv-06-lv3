@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useRef, useEffect, useState, useMemo } from "react";
+import { shallowEqual, useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
@@ -35,6 +35,7 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { fetchFlowProperties } from "store/features/flowSlice";
 import { updatePropertyCategory } from "store/features/flowSlice";
 import { savePropertyTypes } from "store/features/flowSlice";
+import { fetchPropertyTypes } from "store/features/flowSlice";
 
 const SelectDatasetsPage = () => {
   const { projectId, flowId } = useParams();
@@ -45,9 +46,31 @@ const SelectDatasetsPage = () => {
   const isMounted = useRef(true); // ✅ 컴포넌트 마운트 여부 확인
 
   const [isLoading, setIsLoading] = useState(true);
-  // ✅ 선택된 데이터셋을 로컬 상태에서 관리
+
+  // Redux 상태에서 데이터 가져오기
+  const flow = useSelector((state) => state.flows.flows[flowId] || {});
+
+  // Redux store에서 flowDatasets 가져오기
+  let flowDatasets = useSelector(
+    (state) => state.flows.flows[flowId]?.csv || []
+  );
+  const projectDatasets = useSelector(
+    (state) => state.projects.datasets[projectId] || [],
+    shallowEqual
+  );
+
   const [selectedDatasets, setSelectedDatasets] = useState([]);
-  const [totalSelectedSize, setTotalSelectedSize] = useState(0);
+
+  // ✅ 선택된 데이터셋을 로컬 상태에서 관리
+  useEffect(() => {
+    setSelectedDatasets(
+      projectDatasets.filter((ds) => flowDatasets.includes(ds.csvId))
+    );
+  }, [flowDatasets, projectDatasets]);
+
+  const totalSelectedSize = useMemo(() => {
+    return selectedDatasets.reduce((acc, ds) => acc + (ds.size || 0), 0);
+  }, [selectedDatasets]);
 
   const properties = useSelector(
     (state) =>
@@ -56,7 +79,8 @@ const SelectDatasetsPage = () => {
         categorical: [],
         text: [],
         unavailable: [],
-      }
+      },
+    shallowEqual
   );
 
   // 로컬 상태로 카테고리별 property 배열을 관리
@@ -69,65 +93,38 @@ const SelectDatasetsPage = () => {
 
   // Redux 상태 변경 시 로컬 상태 동기화 (필요하다면)
   useEffect(() => {
-    setCategoriesState({
-      numerical: properties.numerical,
-      categorical: properties.categorical,
-      text: properties.text,
-      unavailable: properties.unavailable,
+    setCategoriesState((prev) => {
+      // 간단한 비교 (예를 들어 JSON.stringify를 사용한 비교)
+      const newState = {
+        numerical: properties.numerical,
+        categorical: properties.categorical,
+        text: properties.text,
+        unavailable: properties.unavailable,
+      };
+      if (JSON.stringify(prev) === JSON.stringify(newState)) {
+        return prev; // 변화가 없다면 업데이트 안 함.
+      }
+      return newState;
     });
   }, [properties]);
 
-  // Redux 상태에서 데이터 가져오기
-  const flow = useSelector((state) => state.flows.flows[flowId] || {});
-
-  const projectDatasets = useSelector(
-    (state) => state.projects.datasets[projectId] || []
-  );
-
-  const flowDatasets = useSelector((state) => {
-    return state.flows.flows[flowId]?.csv;
-  });
-
-  // ✅ Flow와 프로젝트의 CSV 데이터셋 불러오기
+  // ✅ 데이터 로딩 (Redux store 업데이트)
   useEffect(() => {
-    let isMounted = true; // ✅ 컴포넌트 마운트 여부 확인
-
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         await dispatch(fetchCsvFilesByProject(projectId));
-        const res = await dispatch(fetchFlowDatasets(flowId)).unwrap();
-        await dispatch(fetchFlowProperties(flowId));
-        if (isMounted) {
-          setSelectedDatasets(res.datasets?.map((d) => d.csvId) || []);
-
-          const selectedDataset = projectDatasets.filter((ds) =>
-            flowDatasets?.includes(ds.csvId)
-          );
-
-          const SelectedSize = selectedDataset.reduce(
-            (acc, ds) => acc + (ds.size || 0),
-            0
-          );
-
-          setTotalSelectedSize(SelectedSize);
-        }
+        await dispatch(fetchFlowDatasets(flowId));
+        await dispatch(fetchPropertyTypes(flowId));
       } catch (error) {
-        console.error("❌ Failed to fetch flow datasets:", error);
-        if (isMounted) setSelectedDatasets([]);
-      }
-      if (isMounted) {
+        console.error("❌ Failed to fetch data:", error);
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-
-    return () => {
-      isMounted = false; // ✅ 언마운트 시 상태 업데이트 방지
-    };
-  }, [dispatch, projectId, flowId, flowDatasets]);
-
-  //  setTotalSelectedSize(SelectedSize);
+  }, [dispatch, projectId, flowId]);
 
   const handleNextStep = async () => {
     for (const category of Object.keys(categoriesState)) {
@@ -157,12 +154,12 @@ const SelectDatasetsPage = () => {
     history.goBack();
   };
 
-  // ✅ 데이터셋 선택
+  // ✅ 데이터셋 선택 핸들러 (useState에서 즉시 반영)
   const handleDatasetSelect = (csvId) => {
     if (totalSelectedSize >= 1024 * 1024) {
       toast({
         title: "Capacity Error",
-        description: `The maximum selectable capacity is 1024MB.`,
+        description: "The maximum selectable capacity is 1024MB.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -172,55 +169,14 @@ const SelectDatasetsPage = () => {
     }
 
     const dataset = projectDatasets.find((ds) => ds.csvId === csvId);
+    if (!dataset) return;
 
-    // parquet 형식의 파일인 경우, 이미 선택된 데이터셋 중 parquet 형식이 있는지 확인
-    if (dataset.format === "application/parquet") {
-      const alreadySelectedParquet = selectedDatasets.some((id) => {
-        const selectedDs = projectDatasets.find((ds) => ds.csvId === id);
-        return selectedDs && selectedDs.format === "application/parquet";
-      });
-
-      if (alreadySelectedParquet) {
-        toast({
-          title: "Selection Error",
-          description:
-            "A parquet dataset is already selected. Only one parquet dataset can be selected.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          containerStyle: { marginLeft: "280px" },
-        });
-        return;
-      }
-    }
-
-    setTotalSelectedSize((prev) => prev + dataset.size);
-    setSelectedDatasets((prev) => [...prev, csvId]);
-    toast({
-      title: "Dataset Selected",
-      description: `Dataset Selected successfully`,
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-      containerStyle: { marginLeft: "280px" },
-    });
+    setSelectedDatasets((prev) => [...prev, dataset]);
   };
 
-  // ✅ 데이터셋 선택 해제
-  const handleDatasetDeselect = (csvId) => {
-    const dataset = projectDatasets.find((ds) => ds.csvId === csvId);
-    setTotalSelectedSize((prev) => prev - dataset.size);
-    setSelectedDatasets((prev) => prev.filter((id) => id !== csvId));
-    toast({
-      title: "Dataset DeSelected",
-      description: `Dataset DeSelected successfully`,
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-      containerStyle: {
-        marginLeft: "280px",
-      },
-    });
+  // ✅ 데이터셋 선택 해제 핸들러 (useState에서 즉시 반영)
+  const handleDatasetDeselect = async (csvId) => {
+    setSelectedDatasets((prev) => prev.filter((ds) => ds.csvId !== csvId));
   };
 
   // ✅ 파일 업로드 클릭 핸들러
@@ -293,8 +249,10 @@ const SelectDatasetsPage = () => {
 
   // ✅ Flow에 선택된 데이터셋 저장
   const handleApplySelection = async () => {
-    await dispatch(addCsvToFlow({ flowId, csvIds: selectedDatasets }));
-    await dispatch(fetchFlowProperties(flowId));
+    await dispatch(
+      addCsvToFlow({ flowId, csvIds: selectedDatasets.map((ds) => ds.csvId) })
+    );
+    await dispatch(fetchPropertyTypes(flowId));
 
     toast({
       title: "Saved as flow datasets",
@@ -402,12 +360,14 @@ const SelectDatasetsPage = () => {
                   mb={1}
                   //   borderRadius="md"
                   color="gray.300"
-                  fontSize="md"
+                  fontSize="xs"
                   cursor="pointer"
                   width="auto"
                   whiteSpace="nowrap"
                 >
-                  <Text fontWeight="bold">{property}</Text>
+                  <Text fontWeight="bold" maxW="100px" isTruncated>
+                    {property}
+                  </Text>
                 </Card>
               </Tooltip>
             );
@@ -632,7 +592,7 @@ const SelectDatasetsPage = () => {
 
             <CardBody>
               <SelectedDataArea
-                selectedFiles={selectedDatasets} // ✅ 이제 csvId 배열만 전달
+                selectedFiles={selectedDatasets.map((ds) => ds.csvId)} // ✅ 이제 csvId 배열만 전달
                 allDatasets={projectDatasets} // ✅ 전체 프로젝트 데이터셋 전달
                 onDeselect={(csvId) => handleDatasetDeselect(csvId)}
               />

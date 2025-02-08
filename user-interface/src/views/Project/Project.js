@@ -39,8 +39,6 @@ export default function Project() {
     )
   );
 
-  console.log(flows);
-
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isEditOpen,

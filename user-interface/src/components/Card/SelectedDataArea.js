@@ -14,7 +14,7 @@ function SelectedFileCard({ fileName, onDeselect }) {
             fontWeight="bold"
             isTruncated
             noOfLines={1}
-            maxW="180px"
+            maxW="80px"
           >
             {fileName}
           </Text>

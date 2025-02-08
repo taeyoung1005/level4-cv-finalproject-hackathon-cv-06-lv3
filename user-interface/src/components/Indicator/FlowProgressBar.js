@@ -34,15 +34,16 @@ export const FlowProgressBar = ({ progress }) => {
             <Box
               w={segmentWidth}
               h="100%"
-              bg={isCompleted ? "green.400" : "gray.300"}
+              bg="green.400"
               transition="background-color 0.3s ease"
             />
           </Tooltip>
         ) : (
           <Box
+            key={index}
             w={segmentWidth}
             h="100%"
-            bg={isCompleted ? "green.400" : "gray.300"}
+            bg="gray.300"
             transition="background-color 0.3s ease"
           />
         );

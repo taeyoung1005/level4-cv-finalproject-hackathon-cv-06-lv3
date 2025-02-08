@@ -4,49 +4,151 @@ import { CheckIcon, TimeIcon } from "@chakra-ui/icons";
 import Card from "components/Card/Card";
 import CardHeader from "components/Card/CardHeader";
 import CardBody from "components/Card/CardBody";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, useHistory } from "react-router-dom";
+import { pollFlowProgress } from "store/features/flowSlice"; // 경로에 맞게 수정
 
-const trainingStages = [
-  { id: 1, label: "Preprocessing Start" },
-  { id: 2, label: "Preprocessing Complete" },
-  { id: 3, label: "Surrogate Model Training Start" },
-  { id: 4, label: "Surrogate Model Training Complete" },
-  { id: 5, label: "Search Model Optimization Start" },
-  { id: 6, label: "Search Model Optimization Complete" },
+// 그룹 정의: 각 그룹은 Preprocessing, Surrogate Model, Search Model
+const groups = [
+  { id: 1, title: "Preprocessing", startStage: 1, endStage: 2 },
+  { id: 2, title: "Surrogate Model", startStage: 3, endStage: 4 },
+  { id: 3, title: "Search Model", startStage: 5, endStage: 6 },
 ];
 
 const ModelTrainingProgressPage = () => {
-  // currentStage: API에서 받아온 현재 진행 단계 (예: 1 ~ 6)
-  const [currentStage, setCurrentStage] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { flowId, projectId } = useParams();
+  const dispatch = useDispatch();
   const toast = useToast();
+  const history = useHistory();
 
-  // 예시: flowId를 URL에서 받아온다고 가정 (필요에 따라 사용)
-  // const { flowId } = useParams();
+  // redux store에서 flow의 progress를 가져옴
+  const currentStage = useSelector(
+    (state) => state.flows.flows[flowId]?.progress
+  );
+  const [loading, setLoading] = useState(true);
 
-  // API 폴링: 일정 간격마다 진행 상태 업데이트 (예: 3초마다)
+  // 각 그룹별 시작시간 및 완료 시간을 기록하는 state
+  const [groupStartTimes, setGroupStartTimes] = useState({});
+  const [groupTimes, setGroupTimes] = useState({});
+  const [currentStageStart, setCurrentStageStart] = useState(Date.now());
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const prevStageRef = useState(currentStage)[0]; // 또는 useRef(currentStage)
+
+  // polling: 3초마다 API 호출하여 progress 업데이트 (redux에 저장)
   useEffect(() => {
-    // const intervalId = setInterval(async () => {
-    //   try {
-    //     // 실제 API 엔드포인트와 응답 구조에 맞게 수정하세요.
-    //     const response = await axios.get(`/api/flow/progress?flowId=123`);
-    //     // 응답 데이터 예시: { stage: 3 }  (1 ~ 6 사이의 숫자)
-    //     const stage = response.data.stage;
-    //     setCurrentStage(stage);
-    //     setLoading(false);
-    //   } catch (error) {
-    //     console.error("Failed to fetch progress:", error);
-    //     toast({
-    //       title: "Error fetching progress",
-    //       description: error.message,
-    //       status: "error",
-    //       duration: 3000,
-    //       isClosable: true,
-    //     });
-    //   }
-    // }, 3000);
-    // return () => clearInterval(intervalId);
-  }, [toast]);
+    if (!flowId) return;
+    const intervalId = dispatch(pollFlowProgress(flowId, toast));
+    setLoading(false);
+    return () => clearInterval(intervalId);
+  }, [dispatch, flowId, toast]);
+
+  // 매초 타이머 업데이트 (리렌더링용)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTime(Date.now() - currentStageStart);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentStageStart]);
+
+  // currentStage 변경 감지: 이전 단계 종료시간 기록 후 타이머 재설정
+  useEffect(() => {
+    // 이전 currentStage가 존재하고, 새로운 currentStage가 증가했다면 기록
+    if (prevStageRef && currentStage > prevStageRef) {
+      const finalTime = Date.now() - currentStageStart;
+      setGroupTimes((prev) => ({ ...prev, [prevStageRef]: finalTime }));
+      setCurrentStageStart(Date.now());
+      setElapsedTime(0);
+    }
+    // 업데이트 후 prevStageRef를 갱신 (여기서는 useRef를 사용하면 더 적합함)
+    // (이 예제에서는 단순화를 위해 직접 할당하지 않고, currentStage를 참조하는 형태로 사용)
+  }, [currentStage, currentStageStart]);
+
+  // currentStage가 6에 도달하면 5초간 toast 후 CheckPerformance 페이지로 이동
+  useEffect(() => {
+    if (currentStage === 6) {
+      toast({
+        title: "Generating Results",
+        description:
+          "Optimization has been completed successfully. Generating results.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+        containerStyle: {
+          marginLeft: "280px",
+        },
+      });
+      setTimeout(() => {
+        history.push(
+          `/projects/${projectId}/flows/${flowId}/check-performance`
+        );
+      }, 5000);
+    }
+  }, [currentStage, toast, history, flowId, projectId]);
+
+  // 각 그룹 카드 렌더링 함수
+  const renderGroupCard = (group) => {
+    let bgColor = "gray.700";
+    let icon = null;
+    let timerText = "";
+    if (!currentStage || currentStage < group.startStage) {
+      bgColor = "gray.700";
+      timerText = "Not started";
+    } else if (
+      currentStage >= group.startStage &&
+      currentStage < group.endStage
+    ) {
+      bgColor = "yellow.400";
+      const startTime = groupStartTimes[group.id];
+      if (startTime) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timerText = `${elapsed}s elapsed`;
+      } else {
+        // 그룹 시작 시간이 없으면 현재 타이머 사용
+        timerText = `${Math.floor(elapsedTime / 1000)}s elapsed`;
+      }
+      icon = <TimeIcon boxSize={6} color="white" />;
+      // 만약 그룹이 시작되었는데 시작시간이 아직 기록되지 않았다면 기록
+      if (!groupStartTimes[group.id]) {
+        setGroupStartTimes((prev) => ({ ...prev, [group.id]: Date.now() }));
+      }
+    } else if (currentStage >= group.endStage) {
+      bgColor = "green.500";
+      const finalTime = groupTimes[group.id];
+      timerText = finalTime
+        ? `Completed in ${Math.floor(finalTime / 1000)}s`
+        : "Completed";
+      icon = <CheckIcon boxSize={6} color="white" />;
+    }
+
+    return (
+      <Box
+        key={group.id}
+        p={4}
+        borderRadius="md"
+        bg={bgColor}
+        textAlign="center"
+        minW="200px"
+      >
+        <Text fontSize="lg" fontWeight="bold" color="white">
+          {group.title}
+        </Text>
+        {timerText && (
+          <Text mt={2} fontSize="sm" color="white">
+            {timerText}
+          </Text>
+        )}
+        {icon && <Box mt={2}>{icon}</Box>}
+      </Box>
+    );
+  };
+
+  if (loading) {
+    return (
+      <Flex pt={{ base: "120px", md: "75px" }} justify="center">
+        <Spinner color="white" size="xl" />
+      </Flex>
+    );
+  }
 
   return (
     <Flex
@@ -54,48 +156,25 @@ const ModelTrainingProgressPage = () => {
       p={6}
       minH="80vh"
       pt={{ base: "120px", md: "75px" }}
+      align="center"
     >
-      <Card>
+      <Card w="100%">
         <CardHeader>
           <Text color="white" fontSize="2xl" fontWeight="bold">
             Model Training Progress
           </Text>
         </CardHeader>
         <CardBody>
-          {loading ? (
-            <Flex justify="center" align="center">
-              <Spinner color="white" size="xl" />
-            </Flex>
-          ) : (
-            <Grid templateColumns="repeat(6, 1fr)" gap={4}>
-              {trainingStages.map((stage) => (
-                <Box
-                  key={stage.id}
-                  p={3}
-                  borderRadius="md"
-                  bg={
-                    currentStage > stage.id
-                      ? "green.500"
-                      : currentStage === stage.id
-                      ? "yellow.400"
-                      : "gray.700"
-                  }
-                  textAlign="center"
-                >
-                  <Text color="white" fontSize="sm">
-                    {stage.label}
-                  </Text>
-                  <Box mt={2}>
-                    {currentStage > stage.id ? (
-                      <CheckIcon boxSize={6} color="white" />
-                    ) : currentStage === stage.id ? (
-                      <TimeIcon boxSize={6} color="white" />
-                    ) : null}
-                  </Box>
-                </Box>
-              ))}
-            </Grid>
-          )}
+          <Flex
+            justify="center"
+            align="center"
+            gap={6}
+            mt={4}
+            w="100%"
+            mx="auto"
+          >
+            {groups.map((group) => renderGroupCard(group))}
+          </Flex>
         </CardBody>
       </Card>
     </Flex>

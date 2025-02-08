@@ -16,6 +16,7 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import IconBox from "components/Icons/IconBox";
+import { SimmmpleEmojiIcon } from "components/Icons/Icons";
 import { SimmmpleLogoWhite } from "components/Icons/Icons";
 import { Separator } from "components/Separator/Separator";
 import { SidebarHelp } from "components/Sidebar/SidebarHelp";
@@ -231,12 +232,12 @@ function Sidebar(props) {
         fontSize="11px"
         cursor="pointer" // 클릭 가능한 링크 스타일 추가
       >
-        <SimmmpleLogoWhite w="22px" h="22px" me="10px" mt="2px" />
+        <SimmmpleEmojiIcon w="28px" h="28px" me="10px" mt="2px" />
         <Box
           bg="linear-gradient(97.89deg, #FFFFFF 70.67%, rgba(117, 122, 140, 0) 108.55%)"
           bgClip="text"
         >
-          <Text fontSize="sm" letterSpacing="3px" mt="3px" color="transparent">
+          <Text fontSize="md" letterSpacing="3px" mt="3px" color="transparent">
             {logoText}
           </Text>
         </Box>

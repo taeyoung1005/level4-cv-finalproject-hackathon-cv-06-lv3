@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const API_BASE_URL = "http://10.28.224.157:30887/data-processing";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 //
 // -------------------- Projects API Thunks --------------------

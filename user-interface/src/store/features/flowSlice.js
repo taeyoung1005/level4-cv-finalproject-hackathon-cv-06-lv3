@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const API_BASE_URL = "http://10.28.224.157:30887/data-processing";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 //
 // -------------------- Flows API Thunks --------------------
@@ -121,6 +121,8 @@ export const fetchFlowDatasets = createAsyncThunk(
 
       const data = await response.json();
 
+      console.log("hi", data);
+
       // 🔍 응답 검증
       if (!data.csvs || !Array.isArray(data.csvs)) {
         console.error(
@@ -142,6 +144,8 @@ export const fetchFlowDatasets = createAsyncThunk(
           fileName: csv_name,
         };
       });
+
+      console.log("hello", formattedDatasets);
 
       return { flowId, datasets: formattedDatasets };
     } catch (error) {
@@ -178,6 +182,25 @@ export const fetchFlowProperties = createAsyncThunk(
     try {
       const response = await fetch(
         `${API_BASE_URL}/concat-columns/properties/?flow_id=${flowId}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch properties");
+
+      const data = await response.json();
+
+      return { flowId, data };
+    } catch (error) {
+      console.error("❌ Error fetching properties:", error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchPropertyTypes = createAsyncThunk(
+  "flows/fetchPropertyTypes",
+  async (flowId, { rejectWithValue }) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/concat-columns/types/?flow_id=${flowId}`
       );
       if (!response.ok) throw new Error("Failed to fetch properties");
 
@@ -237,6 +260,7 @@ export const fetchPropertyHistograms = createAsyncThunk(
     try {
       const response = await fetch(
         `${API_BASE_URL}/histograms/?flow_id=${flowId}&column_name=${column_name}`
+        //`${API_BASE_URL}/flows/concat-csv-column/?flow_id=${flowId}&column_name=${column_name}`
       );
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -324,7 +348,7 @@ export const postOptimizationData = createAsyncThunk(
         throw new Error(`POST failed: ${response.statusText}`);
       }
       const data = await response.json();
-      return { flowId, property, type, data };
+      return { flowId, property, type, payload, data };
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
     }
@@ -364,6 +388,51 @@ export const postOptimizationOrder = createAsyncThunk(
     }
   }
 );
+
+export const createModelThunk = createAsyncThunk(
+  "flows/createModel",
+  async (flowId, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/processing/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ flow_id: flowId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const pollFlowProgress = (flowId, toast) => (dispatch) => {
+  const intervalId = setInterval(async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/flows/progress/?flow_id=${flowId}`
+      );
+      const data = await response.json();
+      dispatch(updateFlow({ flowId: data.flow_id, progress: data.progress }));
+    } catch (error) {
+      console.error("Failed to fetch progress:", error);
+      toast({
+        title: "Error fetching progress",
+        description: error.message,
+        status: "error",
+      });
+    }
+  }, 3000);
+  return intervalId;
+};
 
 // 1. Feature Importance를 가져오는 thunk
 export const fetchSurrogateFeatureImportance = createAsyncThunk(
@@ -476,6 +545,12 @@ const flowSlice = createSlice({
         };
       }
     },
+    updateFlow: (state, action) => {
+      const { flowId, progress } = action.payload;
+      if (state.flows[flowId]) {
+        state.flows[flowId].progress = progress;
+      }
+    },
     setCurrentStep: (state, action) => {
       const { flowId, step } = action.payload;
       if (state.flows[flowId]) {
@@ -582,9 +657,9 @@ const flowSlice = createSlice({
       .addCase(fetchFlowDatasets.fulfilled, (state, action) => {
         const { flowId, datasets } = action.payload;
         if (!state.flows[flowId]) {
-          state.flows[flowId] = { datasets: [] };
+          state.flows[flowId] = { csv: [] };
         }
-        state.flows[flowId].datasets = datasets.csvs;
+        state.flows[flowId].csv = datasets.map((dataset) => dataset?.csvId);
       })
       .addCase(fetchFlowDatasets.rejected, (state, action) => {
         console.error("❌ Failed to fetch flow datasets:", action.payload);
@@ -631,6 +706,16 @@ const flowSlice = createSlice({
         );
         data.output.forEach((prop) => (categories[prop] = "output"));
         state.newCategories[flowId] = categories;
+      })
+      .addCase(fetchPropertyTypes.fulfilled, (state, action) => {
+        const { flowId, data } = action.payload;
+        // API에서 받아온 dataset properties
+        state.properties[flowId] = {
+          numerical: data.numerical,
+          categorical: data.categorical,
+          text: data.text,
+          unavailable: data.unavailable,
+        };
       })
       .addCase(fetchFlowProperties.rejected, (state, action) => {
         console.error("Flow properties 받아오기 실패:", action.payload);
@@ -698,25 +783,23 @@ const flowSlice = createSlice({
 
         state.optimizationData[flowId][property] = {
           minimum_value:
-            data.minimum_value !== undefined
-              ? parseFloat(data.minimum_value)
-                  .toFixed(4)
-                  .replace(/\.?0+$/, "")
-              : "",
+            data.minimum_value !== undefined ? data.minimum_value : "",
           maximum_value:
-            data.maximum_value !== undefined
-              ? parseFloat(data.maximum_value)
-                  .toFixed(4)
-                  .replace(/\.?0+$/, "")
-              : "",
+            data.maximum_value !== undefined ? data.maximum_value : "",
           goal: goalStr,
           type: type,
           order: data.optimize_order,
         };
       })
       .addCase(postOptimizationData.fulfilled, (state, action) => {
-        // API POST 성공 시 추가적인 처리가 필요하다면 여기서 구현
-        console.log("POST Optimization Data 성공:", action.payload);
+        // action.payload는 { flowId, property, type, payload, data } 형태로 반환됨
+        const { flowId, property, data } = action.payload;
+        // 만약 해당 flowId가 아직 없으면 초기화
+        if (!state.optimizationData[flowId]) {
+          state.optimizationData[flowId] = {};
+        }
+        // 해당 property의 데이터를 업데이트 (서버에서 반환한 data를 사용)
+        state.optimizationData[flowId][property] = data;
       })
       .addCase(postOptimizationData.rejected, (state, action) => {
         console.error("POST Optimization Data 실패:", action.payload);
@@ -763,6 +846,7 @@ const flowSlice = createSlice({
 
 export const {
   initializeFlow,
+  updateFlow,
   setCurrentStep,
   initializeCategories,
   updatePropertyCategory,

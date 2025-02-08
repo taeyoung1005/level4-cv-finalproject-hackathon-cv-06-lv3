@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text, Flex, Stack, Divider } from "@chakra-ui/react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { SimmmpleLogoWhite } from "components/Icons/Icons";
+import { SimmmpleEmojiIcon } from "components/Icons/Icons";
 
 const SidebarTimeline = () => {
   const { projectId, flowId } = useParams(); // 현재 URL에서 projectId와 flowId 가져오기
@@ -100,7 +101,7 @@ const SidebarTimeline = () => {
         position="relative"
       >
         <Flex align="center" justify="center" mb="12px">
-          <SimmmpleLogoWhite w="28px" h="28px" me="10px" mt="2px" />
+          <SimmmpleEmojiIcon w="28px" h="28px" me="10px" mt="2px" />
           <Box
             bg="linear-gradient(97.89deg, #FFFFFF 70.67%, rgba(117, 122, 140, 0) 108.55%)"
             bgClip="text"
@@ -109,7 +110,7 @@ const SidebarTimeline = () => {
               fontSize="md"
               letterSpacing="3px"
               mt="3px"
-              fontWeight="medium"
+              fontWeight="bold"
               color="transparent"
             >
               STEPS

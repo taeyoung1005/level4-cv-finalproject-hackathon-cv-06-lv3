@@ -28,6 +28,7 @@ import {
   updateCategory,
 } from "store/features/flowSlice";
 import { removeCategory } from "store/features/flowSlice";
+import { fetchPropertyTypes } from "store/features/flowSlice";
 
 /* ------------------------------------------------------
    (A) 개별 property를 Draggable로 표시하는 컴포넌트
@@ -55,15 +56,15 @@ function DraggableProperty({
             display="inline-flex" // or inline-block
             alignItems="center"
             justifyContent="center"
-            px={3}
-            py={2}
+            px={2}
+            py={1}
             bg={bgColor}
             borderRadius="md"
             color="white"
             fontWeight="bold"
             mb={1}
-            ml={2}
-            mr={2}
+            ml={1}
+            mr={1}
             mt={1}
             zIndex={snapshot.isDragging ? 1000 : "auto"}
             position={snapshot.isDragging ? "fixed" : "relative"}
@@ -81,7 +82,9 @@ function DraggableProperty({
             width="auto"
             whiteSpace="nowrap"
           >
-            <Text fontWeight={"medium"}>{prop}</Text>
+            <Text fontSize="xs" fontWeight={"bold"}>
+              {prop}
+            </Text>
           </Box>
         );
 
@@ -116,8 +119,15 @@ function DroppableList({
           borderRadius="xl"
           boxShadow={"none"}
           border={"none"}
-          minH={isLeftSide ? "auto" : "300px"} /* 오른쪽을 조금 더 크게 */
+          minH={isLeftSide ? "30px" : "300px"} /* 오른쪽을 조금 더 크게 */
+          maxH={isLeftSide ? "60px" : "600px"}
           minW="100%"
+          overflowY="auto"
+          css={{
+            "&::-webkit-scrollbar": {
+              width: "0px",
+            },
+          }}
         >
           {propertiesList.map((prop, index) => {
             const originalCat = getOriginalCategory(prop);
@@ -177,8 +187,8 @@ function LeftDatasetProperties({
       <CardBody h="100%" mt={4}>
         <Grid
           // 카테고리 개수만큼 row 생성
-          templateRows={`repeat(${categories.length}, auto`}
-          gap={4}
+          templateRows="150px 150px 120px 120px"
+          gap={3}
           h="100%"
           w="100%"
           alignItems={"start"}
@@ -347,7 +357,7 @@ const ConfigurePropertiesPage = () => {
      (F) 데이터 Fetch
   ------------------------------------------------------ */
   useEffect(() => {
-    dispatch(fetchFlowProperties(flowId));
+    dispatch(fetchPropertyTypes(flowId));
   }, [dispatch, flowId]);
 
   /* ------------------------------------------------------
@@ -514,7 +524,7 @@ const ConfigurePropertiesPage = () => {
       {renderHeader()}
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Grid templateColumns="1fr 3fr" h="calc(80vh - 100px)" gap={6} px={6}>
+        <Grid templateColumns="1fr 1.5fr" h="calc(80vh - 100px)" gap={6} px={6}>
           {/* 왼쪽: 기존 properties */}
           <LeftDatasetProperties
             datasetProperties={datasetProperties}
