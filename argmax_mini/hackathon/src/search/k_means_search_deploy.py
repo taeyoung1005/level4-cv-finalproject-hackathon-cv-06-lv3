@@ -45,7 +45,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
     # control중 importance 순서    
     sorted_control_index_by_importance = sorted([i for i in control_index if all_var_names[i] in importance.keys()], key=lambda x: importance[all_var_names[x]])
     # poppulation 열 index를 중요도 순서로 정렬 
-    sorted_pop_idx_by_importance = [control_index_to_pop_idx[i] for i in sorted_control_index_by_importance] 
+    sorted_pop_idx_by_importance = [control_index_to_pop_idx[i] for i in sorted_control_index_by_importance]
     # optimize를 importance 순서로 정렬 
     # sorted_optimize_dict_by_vars_idx = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in [i for i in control_index if all_var_names[i] in importance.keys()]}
     sorted_optimize_dict_by_importance = {all_var_names[k]: optmize_dict[all_var_names[k]] for k in sorted_control_index_by_importance}
@@ -87,28 +87,47 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
     #     std_dev = (x_max - x_min) / 6  # 99.7% 확률로 x_min과 x_max 사이에 생성 std 3! 
     #     return np.random.randn(n_features) * std_dev + mean
 
-    def generate_individual(is_nominal,pop_index_to_optimize):
+    def generate_individual(is_nominal, pop_index_to_optimize):
+        # is_nominal을 bool 타입의 NumPy 배열로 변환
         is_nominal = np.array(is_nominal, dtype=bool)
-
         
+        # 각 변수에 대해, x_max가 최소 x_min + 1 이상이 되도록 보장하여
+        # 제어 변수의 최소값과 최대값이 너무 가까워서 발생하는 오류를 방지함
+        local_x_min = x_min.copy()
+        local_x_max = np.maximum(x_min + 1, x_max)
+        
+        # 초기 individual 생성:
+        # - 범주형 변수인 경우 randint를 사용 (size를 지정하여 배열 생성)
+        # - 연속형 변수인 경우 uniform 분포를 사용하여 난수 생성
         individual = np.where(
-        is_nominal,
-        np.random.randint(x_min, x_max + 1),  # 범주형이면 randint 사용
-        np.random.uniform(x_min, x_max)       # 연속형이면 uniform 사용
+            is_nominal,
+            np.random.randint(local_x_min, local_x_max + 1, size=len(local_x_min)),
+            np.random.uniform(local_x_min, local_x_max)
         )
-        # min max optimize 고려 해서 초기값 생성 보류 
-        scale_factor = (x_max - x_min) / 3*5  # 범위 조절 (x_max - x_min)/3 -> 분모 범위내에서 샘플 95% 확률로 포함 
+        
+        # 지수 분포 조정을 위한 scale_factor 계산
+        # (local_x_max - local_x_min) * (5/3)는 값의 분포를 조절하는 역할을 함
+        scale_factor = (local_x_max - local_x_min) * (5 / 3)
+        
+        # 최적화할 변수들에 대해 각 인덱스별로 값 조정
         for i in pop_index_to_optimize.keys():
-            if pop_index_to_optimize[i] == 'maximize':
-                individual[i] = x_max[i] - np.random.exponential(scale_factor[i])
-            else:
-                individual[i] = x_min[i] + np.random.exponential(scale_factor[i])
+            # 인덱스가 individual의 범위를 초과하면 건너뜀
+            if i >= len(individual):
+                continue
             
-            individual[i] = np.clip(individual[i], x_min[i], x_max[i])
-
+            # 'maximize'인 경우: x_max에서 지수 분포 난수를 빼서 값을 조정
+            if pop_index_to_optimize[i] == 'maximize':
+                adjustment = np.random.exponential(scale_factor[i])
+                individual[i] = local_x_max[i] - adjustment
+            else:
+                # 'minimize'인 경우: x_min에 지수 분포 난수를 더해서 값을 조정
+                adjustment = np.random.exponential(scale_factor[i])
+                individual[i] = local_x_min[i] + adjustment
+            
+            # individual의 값이 local_x_min과 local_x_max 사이에 있도록 범위 제한(clip)
+            individual[i] = np.clip(individual[i], local_x_min[i], local_x_max[i])
+        
         return individual
-        # return np.random.uniform(x_min[control_index], x_max[control_index])
-        # return np.random.uniform(x_min, x_max)
 
 
 
@@ -177,7 +196,7 @@ def k_means_search_deploy(model, pred_func, X_train, X_test, y_test,\
                           indpb=INDPB, is_nominal=is_norminal)
 
         # 유전 알고리즘 세대 반복 
-        for gen in range(1,3):    
+        for gen in range(1,101):    
 
             offspring = algorithms.varAnd(population, toolbox, cxpb, mutpb)
 

@@ -1,6 +1,7 @@
 # csv_views.py
-import pandas as pd
-import polars as pl
+# import pandas as pd
+import fireducks.pandas as pd
+# import polars as pl
 
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, JSONParser, FormParser
