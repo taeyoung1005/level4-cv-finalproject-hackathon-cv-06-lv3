@@ -111,7 +111,6 @@ def main(args, scalers=None):
             model_load_func = getattr(surrogate, f'{model_name}_load')
 
     model = model_load_func(args.model_path)
-    print(model)
 
     if len(args.target) > 1:
         predict_func = getattr(surrogate, f'{model_name}_multi_predict')
@@ -181,7 +180,7 @@ def main(args, scalers=None):
     for pred_col, test_col in target_columns:
         df_transformed.append(
             {
-                "column_name": test_col.split("_")[-1],
+                "column_name": "_".join(test_col.split("_")[2:]),
                 "ground_truth": opt_df[test_col].tolist(),
                 "predicted": opt_df[pred_col].tolist(),
             }

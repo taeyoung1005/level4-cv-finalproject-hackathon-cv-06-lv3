@@ -1,8 +1,11 @@
 import shutil
 import argparse
 
+from time import time
+
 import numpy as np
-import pandas as pd
+# import pandas as pd
+import fireducks.pandas as pd
 from django.core.files.base import ContentFile
 
 from rest_framework.views import APIView
@@ -27,17 +30,24 @@ def flow_progress(flow, progress):
 def is_number(s):
     try:
         float(s)
+        if '_' in s:
+            return False
         return True
     except ValueError:
         return False
     
 def calculate_change_rate(ground_truth, predicted):
     try:
-        change_rate = [(p - g) / g * 100 for g, p in zip(ground_truth, predicted)]
+        sum_gt = np.sum(ground_truth)
+        sum_pred = np.sum(predicted)
+        if sum_gt == 0:
+            for gt, pred in zip(ground_truth, predicted):
+                print(f'{gt = }, {pred = }')
     except:
-        return 0.0
-    return sum(change_rate) / len(change_rate)  # 평균 변화율
+        return 0
 
+    return round((sum_pred - sum_gt) / sum_gt * 100, 2)
+    
 
 def update_model_instances(flow, model_cls, df, column_field, defaults_mapping):
     model_cls.objects.filter(flow=flow).delete()
@@ -101,6 +111,7 @@ class ProcessingView(APIView):
 
         # Read the concatenated CSV and perform preprocessing.
         concat_df = pd.read_csv(flow.concat_csv)
+        concat_df.drop(columns=ConcatColumnModel.objects.filter(flow=flow, column_type='unavailable').values_list('column_name', flat=True), inplace=True)
         flow_progress(flow, 1)
         preprocessed_df, df_scaled, dtype_info, scaler_info = preprocess_dynamic(concat_df)
 
@@ -150,7 +161,10 @@ class ProcessingView(APIView):
 
         # Clean up temporary files.
         shutil.rmtree('./temp')
-
+        print(f'{df_rank = }')
+        print(f'{df_eval = }')
+        print(f'{df_importance = }')
+    
         # Update or create SurrogateResultModel instances.
         update_model_instances(flow, SurrogateResultModel, df_rank, 'column_name', {
                                'ground_truth': 'y_test', 'predicted': 'y_pred', 'rank': 'rank'})
@@ -199,12 +213,12 @@ class ProcessingView(APIView):
         user_request_target = [OptimizationModel.objects.get(
             column__flow=flow, column__column_name=target).maximum_value for target in target_column]
         
-        print(f'control_name: {controllable_columns}')
-        print(f'control_range: {controllable_columns_range}')
-        print(f'target: {target_column}')
-        print(f'importance: {importance_column}')
-        print(f'optimize: {optimize}')
-        print(f'user_request_target: {user_request_target}')
+        # print(f'control_name: {controllable_columns}')
+        # print(f'control_range: {controllable_columns_range}')
+        # print(f'target: {target_column}')
+        # print(f'importance: {importance_column}')
+        # print(f'optimize: {optimize}')
+        # print(f'user_request_target: {user_request_target}')
 
         if surrogate_model_name == 'catboost':
             model_path = flow.model.path.removesuffix('.cbm')
@@ -228,9 +242,8 @@ class ProcessingView(APIView):
         )
 
         x_opt = search_model.main(search_args, scaler_info)
+        # print(x_opt)
         x_opt['average_change_rate'] = x_opt.apply(lambda row: calculate_change_rate(row['ground_truth'], row['predicted']), axis=1)
-        
-        print(f'{x_opt = }')
 
         update_model_instances(flow, SearchResultModel, x_opt, 'column_name', {
                                'ground_truth': 'ground_truth', 'predicted': 'predicted', 'average_change_rate': 'average_change_rate'})

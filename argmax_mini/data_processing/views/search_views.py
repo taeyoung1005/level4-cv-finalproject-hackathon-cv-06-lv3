@@ -57,6 +57,7 @@ class SearchResultView(APIView):
                 "property_type": column.property_type if column else None,
                 "ground_truth": item["ground_truth"],
                 "predicted": item["predicted"],
+                "average_change_rate": item["average_change_rate"],
             })
 
         return Response({"search_result": enhanced_results}, status=200)

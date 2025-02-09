@@ -68,7 +68,7 @@ def main(args, scalers=None):
         acc, prec, rec, f1, auc, logloss = surrogate.eval_classification_model(
             y_test, y_pred)
         df_eval = pd.DataFrame(
-            {'Accuracy': None, 'Precision': None, 'r2': acc, 'target': args.target})
+            {'rmse': None, 'mae': None, 'r2': acc, 'target': args.target})
     else:
         rmse, mae, r2 = surrogate.eval_surrogate_model(y_train, y_pred, y_test)
         df_eval = pd.DataFrame(

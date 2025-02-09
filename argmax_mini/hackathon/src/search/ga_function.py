@@ -84,24 +84,42 @@ def lexicographic_selection(population,k):
 
 def kmeans_clustering(population, k):
     """
-    K-means 클러스팅을 수행하는 함수
-
+    GPU 사용 여부에 따라 KMeans 클러스터링을 수행하는 함수.
+    GPU 옵션이 지원되지 않으면, CPU 인덱스를 GPU로 변환하는 방식으로 fallback 함.
     Args:
-        population (numpy.ndarray): 클러스팅할 데이터 배열
-        k (int): 클러스팅할 클러스터 개수
-    
+        population (numpy.ndarray): 클러스터링할 데이터 배열
+        k (int): 클러스터 개수
     Returns:
         cluster_labels (numpy.ndarray): 각 데이터의 클러스터 index
         centroids (numpy.ndarray): 각 클러스터의 중심점
     """
     n, d = population.shape
-    kmeans = faiss.Kmeans(d, k, niter=20, verbose=False)
     population = population.astype('float32')
+    # GPU가 사용 가능한지 확인
+    num_gpus = faiss.get_num_gpus() if hasattr(faiss, 'get_num_gpus') else 0
+    use_gpu = num_gpus > 0
+    res = None
+    try:
+        if use_gpu:
+            # gpu 옵션이 지원되면 바로 gpu=True로 Kmeans 생성
+            kmeans = faiss.Kmeans(d, k, niter=20, verbose=False, gpu=True)
+        else:
+            # GPU 사용 불가하면 CPU 버전으로 생성
+            kmeans = faiss.Kmeans(d, k, niter=20, verbose=False)
+    except TypeError as e:
+        # gpu 옵션을 지원하지 않는 경우, 예외가 발생하면 fallback
+        print("GPU 옵션이 Kmeans 생성 시 지원되지 않음, fallback 수행")
+        kmeans = faiss.Kmeans(d, k, niter=20, verbose=False)
+    # fallback: CPU 인덱스를 GPU로 변환
+    if use_gpu and not hasattr(kmeans, 'gpu') and not getattr(kmeans, 'gpu', False):
+        # StandardGpuResources 생성 (메모리 최적화도 가능)
+        res = faiss.StandardGpuResources()
+        res.setTempMemory(int(0.9 * 32 * 1024 * 1024 * 1024)) 
+        res.setDefaultNullStreamAllDevices()
+        gpu_index = faiss.index_cpu_to_gpu(res, 0, kmeans.index)
+        kmeans.index = gpu_index
     kmeans.train(population)
-
-    cluster_labels = kmeans.index.search(population, 1)[1].flatten()  
-    # centroids = kmeans.centroids
-    
+    cluster_labels = kmeans.index.search(population, 1)[1].flatten()
     return cluster_labels, kmeans.centroids
 
 def k_means_selection(population, k):
