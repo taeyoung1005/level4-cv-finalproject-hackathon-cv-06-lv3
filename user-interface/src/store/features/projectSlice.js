@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -8,11 +8,11 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 // 프로젝트 목록 가져오기
 export const fetchProjects = createAsyncThunk(
-  "projects/fetchProjects",
+  'projects/fetchProjects',
   async (_, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects/`);
-      if (!response.ok) throw new Error("Failed to fetch projects");
+      if (!response.ok) throw new Error('Failed to fetch projects');
 
       const projects = await response.json();
 
@@ -31,15 +31,15 @@ export const fetchProjects = createAsyncThunk(
 
 // 프로젝트 추가
 export const addProjectAsync = createAsyncThunk(
-  "projects/addProject",
+  'projects/addProject',
   async ({ name, description }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       });
-      if (!response.ok) throw new Error("Failed to add project");
+      if (!response.ok) throw new Error('Failed to add project');
 
       const newProject = await response.json();
 
@@ -56,15 +56,15 @@ export const addProjectAsync = createAsyncThunk(
 
 // 프로젝트 수정
 export const editProjectAsync = createAsyncThunk(
-  "projects/editProject",
+  'projects/editProject',
   async ({ projectId, name, description }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId, name, description }), // ✅ 백엔드 요청 시 project_id 사용
       });
-      if (!response.ok) throw new Error("Failed to edit project");
+      if (!response.ok) throw new Error('Failed to edit project');
 
       return { projectId, name, description }; // ✅ Redux에 저장 시 projectId 유지
     } catch (error) {
@@ -75,15 +75,15 @@ export const editProjectAsync = createAsyncThunk(
 
 // 프로젝트 삭제
 export const deleteProjectAsync = createAsyncThunk(
-  "projects/deleteProject",
+  'projects/deleteProject',
   async ({ projectId }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects/`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId }), // ✅ 백엔드 요청 시 project_id 사용
       });
-      if (!response.ok) throw new Error("Failed to delete project");
+      if (!response.ok) throw new Error('Failed to delete project');
 
       return { projectId }; // ✅ Redux에 저장 시 projectId 유지
     } catch (error) {
@@ -98,18 +98,18 @@ export const deleteProjectAsync = createAsyncThunk(
 
 // ✅ 프로젝트별 CSV 파일 조회
 export const fetchCsvFilesByProject = createAsyncThunk(
-  "datasets/fetchCsvFilesByProject",
+  'datasets/fetchCsvFilesByProject',
   async (projectId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/csvs/?project_id=${projectId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch CSV files");
+      if (!response.ok) throw new Error('Failed to fetch CSV files');
 
       const datasets = await response.json(); // ✅ API 응답 객체
 
       if (!datasets.csvs || !Array.isArray(datasets.csvs)) {
-        throw new Error("Invalid data format: Expected csvs array");
+        throw new Error('Invalid data format: Expected csvs array');
       }
 
       // ✅ csv_id → csvId 변환 후 Redux 상태에 저장
@@ -123,7 +123,7 @@ export const fetchCsvFilesByProject = createAsyncThunk(
 
       return { projectId, datasets: formattedDatasets };
     } catch (error) {
-      console.error("❌ CSV 파일 조회 실패:", error.message);
+      console.error('❌ CSV 파일 조회 실패:', error.message);
       return rejectWithValue(error.message);
     }
   }
@@ -131,20 +131,20 @@ export const fetchCsvFilesByProject = createAsyncThunk(
 
 // ✅ CSV 파일 업로드
 export const uploadCsvFile = createAsyncThunk(
-  "datasets/uploadCsvFile",
+  'datasets/uploadCsvFile',
   async ({ projectId, file, writer }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      formData.append("csv_file", file);
-      formData.append("writer", writer);
-      formData.append("project_id", projectId);
+      formData.append('csv_file', file);
+      formData.append('writer', writer);
+      formData.append('project_id', projectId);
 
       const response = await fetch(`${API_BASE_URL}/csvs/`, {
-        method: "POST",
+        method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to upload CSV file");
+      if (!response.ok) throw new Error('Failed to upload CSV file');
 
       const newCsv = await response.json();
 
@@ -161,16 +161,16 @@ export const uploadCsvFile = createAsyncThunk(
 
 // ✅ CSV 파일 삭제
 export const deleteCsvFile = createAsyncThunk(
-  "datasets/deleteCsvFile",
+  'datasets/deleteCsvFile',
   async ({ projectId, csvId }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/csvs/`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id: csvId }), // ✅ 요청 Body에 file_id 포함
       });
 
-      if (!response.ok) throw new Error("Failed to delete CSV file");
+      if (!response.ok) throw new Error('Failed to delete CSV file');
 
       return { projectId, csvId }; // ✅ Redux 상태에서 projectId 기반으로 삭제 처리
     } catch (error) {
@@ -180,18 +180,18 @@ export const deleteCsvFile = createAsyncThunk(
 );
 
 const projectSlice = createSlice({
-  name: "projects",
+  name: 'projects',
   initialState: {
     projects: [], // ✅ projectId 형태로 저장
     datasets: {}, // ✅ csvId 형태로 저장
-    status: "idle",
+    status: 'idle',
     error: null,
   },
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
       .addCase(fetchProjects.fulfilled, (state, action) => {
-        state.status = "succeeded";
+        state.status = 'succeeded';
         state.projects = action.payload; // ✅ projectId로 변환된 상태 저장
       })
       .addCase(addProjectAsync.fulfilled, (state, action) => {
@@ -200,7 +200,7 @@ const projectSlice = createSlice({
       .addCase(editProjectAsync.fulfilled, (state, action) => {
         const { projectId, name, description } = action.payload;
         const project = state.projects.find(
-          (proj) => proj.projectId === projectId
+          proj => proj.projectId === projectId
         );
         if (project) {
           project.name = name;
@@ -209,7 +209,7 @@ const projectSlice = createSlice({
       })
       .addCase(deleteProjectAsync.fulfilled, (state, action) => {
         state.projects = state.projects.filter(
-          (proj) => proj.projectId !== action.payload.projectId
+          proj => proj.projectId !== action.payload.projectId
         );
       })
 
@@ -240,7 +240,7 @@ const projectSlice = createSlice({
 
         if (state.datasets[projectId]) {
           state.datasets[projectId] = state.datasets[projectId].filter(
-            (dataset) => dataset.csvId !== csvId
+            dataset => dataset.csvId !== csvId
           );
         }
       })

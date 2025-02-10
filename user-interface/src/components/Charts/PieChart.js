@@ -1,14 +1,14 @@
-import React from "react";
-import Chart from "react-apexcharts";
+import React from 'react';
+import Chart from 'react-apexcharts';
 
 function PieChart({ data, colorsArray }) {
   // data: [{ label: 'Numeric', value: 10 }, { label: 'Categorical', value: 5 }, ...]
-  const series = data.map((item) => item.value);
+  const series = data.map(item => item.value);
   const options = {
     chart: {
-      type: "pie",
+      type: 'pie',
     },
-    labels: data.map((item) => item.label),
+    labels: data.map(item => item.label),
     stroke: {
       show: false,
     },
@@ -25,25 +25,25 @@ function PieChart({ data, colorsArray }) {
         return `${label}: ${val.toFixed(1)}%`;
       },
       style: {
-        fontSize: "10px",
-        colors: ["#fff"],
+        fontSize: '10px',
+        colors: ['#fff'],
       },
     },
     colors: colorsArray || [
-      "rgba(207, 158, 239, 1)",
-      "rgba(199, 163, 239, 0.9)",
-      "rgba(191, 169, 239, 0.8)",
-      "rgba(184, 174, 239, 0.7)",
-      "rgba(176, 180, 239, 0.6)",
-      "rgba(168, 185, 240, 0.5)",
-      "rgba(160, 191, 240, 0.6)",
-      "rgba(153, 196, 240, 0.7)",
-      "rgba(145, 202, 240, 0.8)",
-      "rgba(137, 207, 240, 0.9)",
+      'rgba(207, 158, 239, 1)',
+      'rgba(199, 163, 239, 0.9)',
+      'rgba(191, 169, 239, 0.8)',
+      'rgba(184, 174, 239, 0.7)',
+      'rgba(176, 180, 239, 0.6)',
+      'rgba(168, 185, 240, 0.5)',
+      'rgba(160, 191, 240, 0.6)',
+      'rgba(153, 196, 240, 0.7)',
+      'rgba(145, 202, 240, 0.8)',
+      'rgba(137, 207, 240, 0.9)',
     ],
 
     tooltip: {
-      theme: "dark",
+      theme: 'dark',
     },
   };
 

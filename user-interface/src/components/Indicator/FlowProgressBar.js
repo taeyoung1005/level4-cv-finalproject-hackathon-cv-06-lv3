@@ -1,14 +1,14 @@
-import React from "react";
-import { Flex, Box, Tooltip } from "@chakra-ui/react";
+import React from 'react';
+import { Flex, Box, Tooltip } from '@chakra-ui/react';
 
 // 각 단계에 대한 설명 (index 0부터 5까지)
 const steps = [
-  "Please move on to the next step!",
-  "Preprocessing Done",
-  "Surrogate Model Training Start",
-  "Surrogate Model Training Done",
-  "Optimization Started",
-  "Optimization Done",
+  'Please move on to the next step!',
+  'Preprocessing Done',
+  'Surrogate Model Training Start',
+  'Surrogate Model Training Done',
+  'Optimization Started',
+  'Optimization Done',
 ];
 
 export const FlowProgressBar = ({ progress }) => {

@@ -1,12 +1,12 @@
-import { Box, Flex, IconButton, Text, Tooltip } from "@chakra-ui/react";
-import React, { useState } from "react";
-import { FaLock, FaUnlock, FaPencilAlt, FaTrashAlt } from "react-icons/fa";
+import { Box, Flex, IconButton, Text, Tooltip } from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { FaLock, FaUnlock, FaPencilAlt, FaTrashAlt } from 'react-icons/fa';
 
 function FlowRow({ name: flowName, description, onEdit, onDelete, onClick }) {
   const [isLocked, setIsLocked] = useState(false);
 
   const handleLockToggle = () => {
-    setIsLocked((prev) => !prev);
+    setIsLocked(prev => !prev);
   };
 
   return (
@@ -14,7 +14,7 @@ function FlowRow({ name: flowName, description, onEdit, onDelete, onClick }) {
       p="16px"
       bg="linear-gradient(127.09deg, rgba(24, 29, 60, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%)"
       transition="background-color 0.3s ease"
-      _hover={!isLocked ? { bg: "rgba(6, 12, 41, 0.8)" } : undefined} // 잠금 상태일 때 hover 제거
+      _hover={!isLocked ? { bg: 'rgba(6, 12, 41, 0.8)' } : undefined} // 잠금 상태일 때 hover 제거
       cursor="pointer"
       onClick={onClick} // Flow 클릭 이벤트
       borderRadius="20px"
@@ -36,10 +36,10 @@ function FlowRow({ name: flowName, description, onEdit, onDelete, onClick }) {
           {/* 잠금 버튼 */}
           <IconButton
             size="sm"
-            color={isLocked ? "yellow.400" : "gray.500"}
+            color={isLocked ? 'yellow.400' : 'gray.500'}
             bg="transparent"
             icon={isLocked ? <FaLock /> : <FaUnlock />}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               handleLockToggle();
             }}
@@ -51,13 +51,13 @@ function FlowRow({ name: flowName, description, onEdit, onDelete, onClick }) {
             color="green.500"
             bg="transparent"
             icon={<FaPencilAlt />}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onEdit();
             }}
             aria-label="Edit Flow"
             isDisabled={isLocked} // 잠금 상태일 때 비활성화
-            _hover={isLocked ? { color: "green.400" } : undefined} // 잠금 상태에서 hover 제거
+            _hover={isLocked ? { color: 'green.400' } : undefined} // 잠금 상태에서 hover 제거
           />
           {/* 삭제 버튼 */}
           <IconButton
@@ -65,13 +65,13 @@ function FlowRow({ name: flowName, description, onEdit, onDelete, onClick }) {
             color="red.500"
             bg="transparent"
             icon={<FaTrashAlt />}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onDelete();
             }}
             aria-label="Delete Flow"
             isDisabled={isLocked} // 잠금 상태일 때 비활성화
-            _hover={isLocked ? { color: "red.400" } : undefined} // 잠금 상태에서 hover 제거
+            _hover={isLocked ? { color: 'red.400' } : undefined} // 잠금 상태에서 hover 제거
           />
         </Flex>
       </Flex>

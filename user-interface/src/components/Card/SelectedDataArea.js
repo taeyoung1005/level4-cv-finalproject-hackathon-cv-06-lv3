@@ -1,7 +1,7 @@
-import { Box, Button, Flex, Grid, Icon, Text, Tooltip } from "@chakra-ui/react";
-import React from "react";
-import { FaTrashAlt } from "react-icons/fa";
-import Card from "./Card";
+import { Box, Button, Flex, Grid, Icon, Text, Tooltip } from '@chakra-ui/react';
+import React from 'react';
+import { FaTrashAlt } from 'react-icons/fa';
+import Card from './Card';
 
 function SelectedFileCard({ fileName, onDeselect }) {
   return (
@@ -35,17 +35,17 @@ function SelectedDataArea({
   allDatasets = [],
 }) {
   // ✅ selectedFiles에서 csvId를 기준으로 allDatasets에서 파일명 찾기
-  const selectedDatasets = selectedFiles.map((csvId) => {
-    const dataset = allDatasets.find((d) => d.csvId === csvId);
+  const selectedDatasets = selectedFiles.map(csvId => {
+    const dataset = allDatasets.find(d => d.csvId === csvId);
     return dataset
-      ? { csvId: dataset.csvId, fileName: dataset.csv.split("/").pop() }
-      : { csvId, fileName: "Unknown File" };
+      ? { csvId: dataset.csvId, fileName: dataset.csv.split('/').pop() }
+      : { csvId, fileName: 'Unknown File' };
   });
 
   return (
     <Flex>
       {selectedDatasets.length > 0 ? (
-        selectedDatasets.map((file) => (
+        selectedDatasets.map(file => (
           <SelectedFileCard
             key={file.csvId}
             fileName={file.fileName} // ✅ 파일명만 표시

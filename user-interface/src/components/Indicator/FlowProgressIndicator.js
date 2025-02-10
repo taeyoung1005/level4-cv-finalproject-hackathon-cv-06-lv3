@@ -1,13 +1,13 @@
-import React from "react";
-import { Flex, Text, Tooltip, Box } from "@chakra-ui/react";
+import React from 'react';
+import { Flex, Text, Tooltip, Box } from '@chakra-ui/react';
 
 const steps = [
-  "Preprocessing Start",
-  "Preprocessing Done",
-  "Surrogate Training Start",
-  "Surrogate Training Done",
-  "Optimization Start",
-  "Optimization Done",
+  'Preprocessing Start',
+  'Preprocessing Done',
+  'Surrogate Training Start',
+  'Surrogate Training Done',
+  'Optimization Start',
+  'Optimization Done',
 ];
 
 export const FlowProgressIndicator = ({ progress }) => {
@@ -22,7 +22,7 @@ export const FlowProgressIndicator = ({ progress }) => {
               w="28px"
               h="28px"
               borderRadius="full"
-              bg={isActive ? "green.400" : "gray.400"}
+              bg={isActive ? 'green.400' : 'gray.400'}
               display="flex"
               alignItems="center"
               justifyContent="center"

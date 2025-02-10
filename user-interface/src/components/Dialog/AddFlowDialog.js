@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -10,15 +10,15 @@ import {
   Button,
   Input,
   VStack,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react';
 
 function AddFlowDialog({ isOpen, onClose, onAdd }) {
-  const [flowName, setFlowName] = useState("");
+  const [flowName, setFlowName] = useState('');
 
   const handleAdd = () => {
     if (flowName.trim()) {
       onAdd({ name: flowName });
-      setFlowName("");
+      setFlowName('');
       onClose();
     }
   };
@@ -34,7 +34,7 @@ function AddFlowDialog({ isOpen, onClose, onAdd }) {
             <Input
               placeholder="Flow Name"
               value={flowName}
-              onChange={(e) => setFlowName(e.target.value)}
+              onChange={e => setFlowName(e.target.value)}
               focusBorderColor="teal.400"
               bg="gray.800"
               borderRadius="md"

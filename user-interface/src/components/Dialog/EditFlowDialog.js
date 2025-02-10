@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -10,20 +10,20 @@ import {
   Button,
   Input,
   VStack,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react';
 
 function EditFlowDialog({ isOpen, onClose, flow, onUpdate }) {
-  const [flowName, setFlowName] = useState("");
+  const [flowName, setFlowName] = useState('');
 
   useEffect(() => {
     if (flow) {
-      setFlowName(flow.flow_name || "");
+      setFlowName(flow.flow_name || '');
     }
   }, [flow]);
 
   const handleUpdate = () => {
     if (flowName.trim()) {
-      console.log("✅ Updating flow:", { flowId: flow.flowId, flowName });
+      console.log('✅ Updating flow:', { flowId: flow.flowId, flowName });
       onUpdate(flow.flowId, flowName);
       onClose();
     }
@@ -40,7 +40,7 @@ function EditFlowDialog({ isOpen, onClose, flow, onUpdate }) {
             <Input
               placeholder="Flow Name"
               value={flowName}
-              onChange={(e) => setFlowName(e.target.value)}
+              onChange={e => setFlowName(e.target.value)}
               focusBorderColor="teal.400"
               bg="gray.800"
               borderRadius="md"

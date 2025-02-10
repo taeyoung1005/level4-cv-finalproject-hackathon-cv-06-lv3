@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -8,23 +8,23 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 // 특정 프로젝트의 Flows 가져오기
 export const fetchFlowsByProject = createAsyncThunk(
-  "flows/fetchFlowsByProject",
+  'flows/fetchFlowsByProject',
   async (projectId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/flows/?project_id=${projectId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch flows");
+      if (!response.ok) throw new Error('Failed to fetch flows');
 
       const data = await response.json();
 
       if (!Array.isArray(data.flows)) {
-        throw new Error("Invalid response format: flows is not an array");
+        throw new Error('Invalid response format: flows is not an array');
       }
 
       // ✅ "flows" 키 아래의 배열을 변환 (id → flowId)
       const formattedFlows = Object.fromEntries(
-        data.flows.map((flow) => [
+        data.flows.map(flow => [
           flow.id,
           { ...flow, flowId: flow.id, projectId },
         ])
@@ -38,16 +38,16 @@ export const fetchFlowsByProject = createAsyncThunk(
 
 // Flow 추가
 export const addFlowAsync = createAsyncThunk(
-  "flows/addFlow",
+  'flows/addFlow',
   async ({ projectId, flowName }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/flows/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId, flow_name: flowName }),
       });
 
-      if (!response.ok) throw new Error("Failed to add flow");
+      if (!response.ok) throw new Error('Failed to add flow');
 
       const newFlow = await response.json();
 
@@ -67,16 +67,16 @@ export const addFlowAsync = createAsyncThunk(
 
 // Flow 수정
 export const editFlowAsync = createAsyncThunk(
-  "flows/editFlow",
+  'flows/editFlow',
   async ({ flowId, flowName }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/flows/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ flow_id: flowId, flow_name: flowName }),
       });
 
-      if (!response.ok) throw new Error("Failed to edit flow");
+      if (!response.ok) throw new Error('Failed to edit flow');
 
       return { flowId, flowName };
     } catch (error) {
@@ -87,16 +87,16 @@ export const editFlowAsync = createAsyncThunk(
 
 // Flow 삭제
 export const deleteFlowAsync = createAsyncThunk(
-  "flows/deleteFlow",
+  'flows/deleteFlow',
   async ({ flowId }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/flows/`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ flow_id: flowId }),
       });
 
-      if (!response.ok) throw new Error("Failed to delete flow");
+      if (!response.ok) throw new Error('Failed to delete flow');
 
       return flowId;
     } catch (error) {
@@ -111,32 +111,32 @@ export const deleteFlowAsync = createAsyncThunk(
 
 // ✅ 특정 Flow에 추가된 CSV 목록 조회
 export const fetchFlowDatasets = createAsyncThunk(
-  "flows/fetchFlowDatasets",
+  'flows/fetchFlowDatasets',
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/flows/csv-add/?flow_id=${flowId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch flow datasets");
+      if (!response.ok) throw new Error('Failed to fetch flow datasets');
 
       const data = await response.json();
 
-      console.log("hi", data);
+      console.log('hi', data);
 
       // 🔍 응답 검증
       if (!data.csvs || !Array.isArray(data.csvs)) {
         console.error(
-          "❌ API response does not contain a valid csvs array:",
+          '❌ API response does not contain a valid csvs array:',
           data
         );
-        return rejectWithValue("Invalid API response");
+        return rejectWithValue('Invalid API response');
       }
 
       // ✅ "csvs" 배열을 변환하여 flow에 저장
       const formattedDatasets = data.csvs.map(({ id, csv_name }) => {
-        if (typeof csv_name !== "string") {
-          console.error("❌ Invalid csv_name:", csv_name);
-          return { csvId: id, fileName: "Unknown" }; // 기본값 설정
+        if (typeof csv_name !== 'string') {
+          console.error('❌ Invalid csv_name:', csv_name);
+          return { csvId: id, fileName: 'Unknown' }; // 기본값 설정
         }
 
         return {
@@ -145,11 +145,11 @@ export const fetchFlowDatasets = createAsyncThunk(
         };
       });
 
-      console.log("hello", formattedDatasets);
+      console.log('hello', formattedDatasets);
 
       return { flowId, datasets: formattedDatasets };
     } catch (error) {
-      console.error("❌ fetchFlowDatasets Error:", error);
+      console.error('❌ fetchFlowDatasets Error:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -157,16 +157,16 @@ export const fetchFlowDatasets = createAsyncThunk(
 
 // ✅ Flow에 CSV 추가
 export const addCsvToFlow = createAsyncThunk(
-  "flows/addCsvToFlow",
+  'flows/addCsvToFlow',
   async ({ flowId, csvIds }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/flows/csv-add/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ flow_id: parseInt(flowId), csv_ids: csvIds }),
       });
 
-      if (!response.ok) throw new Error("Failed to add CSV to flow");
+      if (!response.ok) throw new Error('Failed to add CSV to flow');
 
       return { flowId, csvIds };
     } catch (error) {
@@ -177,38 +177,38 @@ export const addCsvToFlow = createAsyncThunk(
 
 // ✅ 특정 Flow의 properties 조회
 export const fetchFlowProperties = createAsyncThunk(
-  "flows/fetchFlowProperties",
+  'flows/fetchFlowProperties',
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/concat-columns/properties/?flow_id=${flowId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch properties");
+      if (!response.ok) throw new Error('Failed to fetch properties');
 
       const data = await response.json();
 
       return { flowId, data };
     } catch (error) {
-      console.error("❌ Error fetching properties:", error);
+      console.error('❌ Error fetching properties:', error);
       return rejectWithValue(error.message);
     }
   }
 );
 
 export const fetchPropertyTypes = createAsyncThunk(
-  "flows/fetchPropertyTypes",
+  'flows/fetchPropertyTypes',
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/concat-columns/types/?flow_id=${flowId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch properties");
+      if (!response.ok) throw new Error('Failed to fetch properties');
 
       const data = await response.json();
 
       return { flowId, data };
     } catch (error) {
-      console.error("❌ Error fetching properties:", error);
+      console.error('❌ Error fetching properties:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -216,16 +216,16 @@ export const fetchPropertyTypes = createAsyncThunk(
 
 // 데이터 타입 변경 (숫자형, 문자형, 문자, 사용 불가)
 export const savePropertyTypes = createAsyncThunk(
-  "flows/savePropertyTypes",
+  'flows/savePropertyTypes',
   async ({ flowId, update }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/concat-columns/types/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(update),
       });
 
-      if (!response.ok) throw new Error("Failed to update property types");
+      if (!response.ok) throw new Error('Failed to update property types');
 
       return { flowId, update };
     } catch (error) {
@@ -236,26 +236,26 @@ export const savePropertyTypes = createAsyncThunk(
 
 // ✅ 특정 Flow의 히스토그램 데이터 가져오기
 export const fetchFlowHistograms = createAsyncThunk(
-  "flows/fetchFlowHistograms",
+  'flows/fetchFlowHistograms',
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/histograms/all?flow_id=${flowId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch histograms");
+      if (!response.ok) throw new Error('Failed to fetch histograms');
 
       const data = await response.json();
 
       return { flowId, histograms: data.histograms };
     } catch (error) {
-      console.error("❌ Error fetching histograms:", error);
+      console.error('❌ Error fetching histograms:', error);
       return rejectWithValue(error.message);
     }
   }
 );
 
 export const fetchPropertyHistograms = createAsyncThunk(
-  "flows/fetchPropertyHistograms",
+  'flows/fetchPropertyHistograms',
   async ({ flowId, column_name }, thunkAPI) => {
     try {
       const response = await fetch(
@@ -275,19 +275,19 @@ export const fetchPropertyHistograms = createAsyncThunk(
 
 // ✅ 새로운 카테고리 정보 PUT 요청 (Next Step 버튼 클릭 시 실행)
 export const savePropertyCategories = createAsyncThunk(
-  "flows/savePropertyCategories",
+  'flows/savePropertyCategories',
   async ({ flowId, update }, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/concat-columns/properties/`,
         {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(update),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to update property categories");
+      if (!response.ok) throw new Error('Failed to update property categories');
 
       return { flowId, update };
     } catch (error) {
@@ -297,7 +297,7 @@ export const savePropertyCategories = createAsyncThunk(
 );
 
 export const fetchOptimizationData = createAsyncThunk(
-  "flows/fetchOptimizationData",
+  'flows/fetchOptimizationData',
   async ({ flowId, property, type }, thunkAPI) => {
     // type에 따라 endpoint 선택
     try {
@@ -305,7 +305,7 @@ export const fetchOptimizationData = createAsyncThunk(
         `${API_BASE_URL}/optimization/goals/?flow_id=${flowId}&column_name=${property}`
       );
       if (!response.ok) {
-        throw new Error("Failed to get optimization data");
+        throw new Error('Failed to get optimization data');
       }
       const data = await response.json();
       // data 예시: { min: 10, max: 100, goal: "No Optimization" } 혹은 goal이 없으면 기본값으로 대체
@@ -317,17 +317,17 @@ export const fetchOptimizationData = createAsyncThunk(
 );
 
 export const postOptimizationData = createAsyncThunk(
-  "flows/postOptimizationData",
+  'flows/postOptimizationData',
   async (
     { flowId, property, type, goal, minimum_value, maximum_value },
     thunkAPI
   ) => {
     const goalMapping = {
-      "No Optimization": 1,
+      'No Optimization': 1,
       Maximize: 2,
       Minimize: 3,
-      "Fit to Range": 4,
-      "Fit to Property": 5,
+      'Fit to Range': 4,
+      'Fit to Property': 5,
     };
 
     let payload = {
@@ -340,8 +340,8 @@ export const postOptimizationData = createAsyncThunk(
 
     try {
       const response = await fetch(`${API_BASE_URL}/optimization/goals/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -357,26 +357,26 @@ export const postOptimizationData = createAsyncThunk(
 
 // ✅ 우선순위 저장 API 호출
 export const postOptimizationOrder = createAsyncThunk(
-  "flows/postOptimizationOrder",
+  'flows/postOptimizationOrder',
   async ({ flowId, priorities }, { rejectWithValue }) => {
     try {
       const responses = await Promise.all(
         priorities.map((column_name, index) =>
           fetch(`${API_BASE_URL}/optimization/orders/`, {
-            method: "POST",
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               flow_id: flowId,
               column_name,
               optimize_order: index + 1, // 1부터 시작하는 순서
             }),
-          }).then(async (response) => {
+          }).then(async response => {
             if (!response.ok) {
               // 응답이 ok가 아닐 경우 에러 메시지 추출
               const errorData = await response.json();
-              throw new Error(errorData.message || "Fetch error");
+              throw new Error(errorData.message || 'Fetch error');
             }
             return response.json();
           })
@@ -390,13 +390,13 @@ export const postOptimizationOrder = createAsyncThunk(
 );
 
 export const createModelThunk = createAsyncThunk(
-  "flows/createModel",
+  'flows/createModel',
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/processing/`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ flow_id: flowId }),
       });
@@ -414,7 +414,7 @@ export const createModelThunk = createAsyncThunk(
   }
 );
 
-export const pollFlowProgress = (flowId, toast) => (dispatch) => {
+export const pollFlowProgress = (flowId, toast) => dispatch => {
   const intervalId = setInterval(async () => {
     try {
       const response = await fetch(
@@ -423,11 +423,11 @@ export const pollFlowProgress = (flowId, toast) => (dispatch) => {
       const data = await response.json();
       dispatch(updateFlow({ flowId: data.flow_id, progress: data.progress }));
     } catch (error) {
-      console.error("Failed to fetch progress:", error);
+      console.error('Failed to fetch progress:', error);
       toast({
-        title: "Error fetching progress",
+        title: 'Error fetching progress',
         description: error.message,
-        status: "error",
+        status: 'error',
       });
     }
   }, 3000);
@@ -436,14 +436,14 @@ export const pollFlowProgress = (flowId, toast) => (dispatch) => {
 
 // 1. Feature Importance를 가져오는 thunk
 export const fetchSurrogateFeatureImportance = createAsyncThunk(
-  "flows/fetchSurrogateFeatureImportance",
+  'flows/fetchSurrogateFeatureImportance',
   async (flowId, thunkAPI) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/surrogate/feature-importance/?flow_id=${flowId}`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch surrogate feature importance");
+        throw new Error('Failed to fetch surrogate feature importance');
       }
       const data = await response.json();
       // data.surrogate_feature_importance는 배열 형태로 반환됨.
@@ -456,14 +456,14 @@ export const fetchSurrogateFeatureImportance = createAsyncThunk(
 
 // 2. Matric(혹은 Metrics)를 가져오는 thunk
 export const fetchSurrogateMatric = createAsyncThunk(
-  "flows/fetchSurrogateMatric",
+  'flows/fetchSurrogateMatric',
   async (flowId, thunkAPI) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/surrogate/matric/?flow_id=${flowId}`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch surrogate matric");
+        throw new Error('Failed to fetch surrogate matric');
       }
       const data = await response.json();
 
@@ -477,14 +477,14 @@ export const fetchSurrogateMatric = createAsyncThunk(
 
 // 3. Surrogate Result를 가져오는 thunk
 export const fetchSurrogateResult = createAsyncThunk(
-  "flows/fetchSurrogateResult",
+  'flows/fetchSurrogateResult',
   async (flowId, thunkAPI) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/surrogate/result/?flow_id=${flowId}`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch surrogate result");
+        throw new Error('Failed to fetch surrogate result');
       }
       const data = await response.json();
       // data.surrogate_result는 배열 형태
@@ -497,13 +497,13 @@ export const fetchSurrogateResult = createAsyncThunk(
 
 // 검색 결과 API 호출 thunk
 export const fetchSearchResult = createAsyncThunk(
-  "flows/fetchSearchResult",
+  'flows/fetchSearchResult',
   async (flowId, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/search/result/?flow_id=${flowId}`
       );
-      if (!response.ok) throw new Error("Failed to fetch search result");
+      if (!response.ok) throw new Error('Failed to fetch search result');
       const data = await response.json();
       // 반환된 data에서 search_result 배열 추출
       return { flowId, data: data.search_result };
@@ -528,12 +528,12 @@ const initialState = {
   histograms: {},
   properties: {}, // ✅ concat_csv_id를 키로 하는 properties 저장 공간 추가
   newCategories: {},
-  status: "idle",
+  status: 'idle',
   error: null,
 };
 
 const flowSlice = createSlice({
-  name: "flows",
+  name: 'flows',
   initialState,
   reducers: {
     initializeFlow: (state, action) => {
@@ -570,8 +570,8 @@ const flowSlice = createSlice({
       const propState = state.properties[flowId];
       if (propState) {
         // 삭제: 모든 카테고리에서 해당 property 제거
-        Object.keys(propState).forEach((cat) => {
-          propState[cat] = propState[cat].filter((p) => p !== property);
+        Object.keys(propState).forEach(cat => {
+          propState[cat] = propState[cat].filter(p => p !== property);
         });
         // 추가: newCategory에 추가 (만약 newCategory가 유효하다면)
         if (propState[newCategory]) {
@@ -630,14 +630,14 @@ const flowSlice = createSlice({
       }
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
       .addCase(fetchFlowsByProject.fulfilled, (state, action) => {
         const { flows } = action.payload;
         state.flows = { ...state.flows, ...flows };
       })
       .addCase(fetchFlowsByProject.rejected, (state, action) => {
-        console.error("❌ Failed to fetch flows in project", action.payload);
+        console.error('❌ Failed to fetch flows in project', action.payload);
         state.error = action.payload;
       })
       .addCase(addFlowAsync.fulfilled, (state, action) => {
@@ -659,10 +659,10 @@ const flowSlice = createSlice({
         if (!state.flows[flowId]) {
           state.flows[flowId] = { csv: [] };
         }
-        state.flows[flowId].csv = datasets.map((dataset) => dataset?.csvId);
+        state.flows[flowId].csv = datasets.map(dataset => dataset?.csvId);
       })
       .addCase(fetchFlowDatasets.rejected, (state, action) => {
-        console.error("❌ Failed to fetch flow datasets:", action.payload);
+        console.error('❌ Failed to fetch flow datasets:', action.payload);
         state.error = action.payload;
       })
 
@@ -678,13 +678,13 @@ const flowSlice = createSlice({
         const existingIds = state.flows[flowId].datasets || [];
 
         // 중복되지 않은 새로운 csvId만 추가
-        const newDatasets = csvIds.filter((id) => !existingIds.includes(id));
+        const newDatasets = csvIds.filter(id => !existingIds.includes(id));
 
         // 최종적으로 csvId 배열을 유지
         state.flows[flowId].datasets = [...existingIds, ...newDatasets];
       })
       .addCase(addCsvToFlow.rejected, (state, action) => {
-        console.error("❌ Failed to add CSV to flow:", action.payload);
+        console.error('❌ Failed to add CSV to flow:', action.payload);
         state.error = action.payload;
       })
       .addCase(fetchFlowProperties.fulfilled, (state, action) => {
@@ -699,12 +699,10 @@ const flowSlice = createSlice({
         // API에서 받아온 새로운 카테고리 정보를 newCategories에 저장
         const categories = {};
         data.environmental.forEach(
-          (prop) => (categories[prop] = "environmental")
+          prop => (categories[prop] = 'environmental')
         );
-        data.controllable.forEach(
-          (prop) => (categories[prop] = "controllable")
-        );
-        data.output.forEach((prop) => (categories[prop] = "output"));
+        data.controllable.forEach(prop => (categories[prop] = 'controllable'));
+        data.output.forEach(prop => (categories[prop] = 'output'));
         state.newCategories[flowId] = categories;
       })
       .addCase(fetchPropertyTypes.fulfilled, (state, action) => {
@@ -718,14 +716,14 @@ const flowSlice = createSlice({
         };
       })
       .addCase(fetchFlowProperties.rejected, (state, action) => {
-        console.error("Flow properties 받아오기 실패:", action.payload);
+        console.error('Flow properties 받아오기 실패:', action.payload);
       })
       .addCase(fetchFlowHistograms.fulfilled, (state, action) => {
         const { flowId, histograms } = action.payload;
         state.histograms[flowId] = histograms;
       })
       .addCase(fetchFlowHistograms.rejected, (state, action) => {
-        console.error("❌ Failed to fetch histograms:", action.payload);
+        console.error('❌ Failed to fetch histograms:', action.payload);
         state.error = action.payload;
       })
       .addCase(fetchPropertyHistograms.fulfilled, (state, action) => {
@@ -739,18 +737,18 @@ const flowSlice = createSlice({
         state.histograms[flowId][column_name] = histograms;
       })
       .addCase(fetchPropertyHistograms.rejected, (state, action) => {
-        console.error("fetchPropertyHistograms rejected:", action.payload);
+        console.error('fetchPropertyHistograms rejected:', action.payload);
         // 필요한 에러 처리를 추가
       })
       .addCase(savePropertyCategories.fulfilled, (state, action) => {
         console.log(
-          "✅ Property categories successfully updated:",
+          '✅ Property categories successfully updated:',
           action.payload
         );
       })
       .addCase(savePropertyCategories.rejected, (state, action) => {
         console.error(
-          "❌ Failed to update property categories:",
+          '❌ Failed to update property categories:',
           action.payload
         );
         state.error = action.payload;
@@ -762,30 +760,30 @@ const flowSlice = createSlice({
         }
 
         const defaultGoal =
-          type === "controllable" ? "No Optimization" : "Fit to Property";
+          type === 'controllable' ? 'No Optimization' : 'Fit to Property';
 
         // 매핑 객체 정의
         const goalMapping = {
-          1: "No Optimization",
-          2: "Maximize",
-          3: "Minimize",
-          4: "Fit to Range",
-          5: "Fit to Property",
+          1: 'No Optimization',
+          2: 'Maximize',
+          3: 'Minimize',
+          4: 'Fit to Range',
+          5: 'Fit to Property',
         };
 
         // data.goal 값이 숫자이면 매핑 객체로, 아니면 문자열이면 그대로 사용, 없으면 defaultGoal
         const goalStr =
-          typeof data.optimize_goal === "number"
+          typeof data.optimize_goal === 'number'
             ? goalMapping[data.optimize_goal] || defaultGoal
-            : typeof data.optimize_goal === "string"
+            : typeof data.optimize_goal === 'string'
             ? data.optimize_goal
             : defaultGoal;
 
         state.optimizationData[flowId][property] = {
           minimum_value:
-            data.minimum_value !== undefined ? data.minimum_value : "",
+            data.minimum_value !== undefined ? data.minimum_value : '',
           maximum_value:
-            data.maximum_value !== undefined ? data.maximum_value : "",
+            data.maximum_value !== undefined ? data.maximum_value : '',
           goal: goalStr,
           type: type,
           order: data.optimize_order,
@@ -802,7 +800,7 @@ const flowSlice = createSlice({
         state.optimizationData[flowId][property] = data;
       })
       .addCase(postOptimizationData.rejected, (state, action) => {
-        console.error("POST Optimization Data 실패:", action.payload);
+        console.error('POST Optimization Data 실패:', action.payload);
       })
       .addCase(postOptimizationOrder.fulfilled, (state, action) => {
         // 성공 시 추가 처리 (필요 시)

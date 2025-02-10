@@ -16,8 +16,8 @@
 
 */
 
-import React from "react";
-import ReactApexChart from "react-apexcharts";
+import React from 'react';
+import ReactApexChart from 'react-apexcharts';
 
 class LineChart extends React.Component {
   constructor(props) {
@@ -43,9 +43,9 @@ class LineChart extends React.Component {
       <ReactApexChart
         options={this.state.chartOptions}
         series={this.state.chartData}
-        type='area'
-        width='100%'
-        height='100%'
+        type="area"
+        width="100%"
+        height="100%"
       />
     );
   }

@@ -1,8 +1,8 @@
-import React from "react";
-import { Box, Text, Flex, Stack, Divider } from "@chakra-ui/react";
-import { Link, useLocation, useParams } from "react-router-dom";
-import { SimmmpleLogoWhite } from "components/Icons/Icons";
-import { SimmmpleEmojiIcon } from "components/Icons/Icons";
+import React from 'react';
+import { Box, Text, Flex, Stack, Divider } from '@chakra-ui/react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { SimmmpleLogoWhite } from 'components/Icons/Icons';
+import { SimmmpleEmojiIcon } from 'components/Icons/Icons';
 
 const SidebarTimeline = () => {
   const { projectId, flowId } = useParams(); // 현재 URL에서 projectId와 flowId 가져오기
@@ -10,49 +10,49 @@ const SidebarTimeline = () => {
 
   const steps = [
     {
-      title: "Datasets",
+      title: 'Datasets',
       subSteps: [
         {
-          name: "Select Datasets",
+          name: 'Select Datasets',
           path: `/projects/${projectId}/flows/${flowId}/select-datasets`,
         },
       ],
     },
     {
-      title: "Properties",
+      title: 'Properties',
       subSteps: [
         {
-          name: "Analyze Properties",
+          name: 'Analyze Properties',
           path: `/projects/${projectId}/flows/${flowId}/analyze-properties`,
         },
         {
-          name: "Configure Properties",
+          name: 'Configure Properties',
           path: `/projects/${projectId}/flows/${flowId}/configure-properties`,
         },
       ],
     },
     {
-      title: "Models",
+      title: 'Models',
       subSteps: [
         {
-          name: "Set Goals",
+          name: 'Set Goals',
           path: `/projects/${projectId}/flows/${flowId}/set-goals`,
         },
         {
-          name: "Set Priorities",
+          name: 'Set Priorities',
           path: `/projects/${projectId}/flows/${flowId}/set-priorities`,
         },
       ],
     },
     {
-      title: "Results",
+      title: 'Results',
       subSteps: [
         {
-          name: "Check Performance",
+          name: 'Check Performance',
           path: `/projects/${projectId}/flows/${flowId}/check-performance`,
         },
         {
-          name: "Optimization Results",
+          name: 'Optimization Results',
           path: `/projects/${projectId}/flows/${flowId}/optimization-results`,
         },
       ],
@@ -81,7 +81,7 @@ const SidebarTimeline = () => {
   return (
     <Box
       bg="linear-gradient(111.84deg, rgba(6, 11, 38, 0.94) 59.3%, rgba(26, 31, 55, 0) 100%)"
-      display={{ sm: "none", xl: "block" }}
+      display={{ sm: 'none', xl: 'block' }}
       position="fixed"
       h="calc(100vh - 32px)"
       w="260px"
@@ -136,7 +136,7 @@ const SidebarTimeline = () => {
                     w="16px"
                     h="16px"
                     borderRadius="full"
-                    bg={isStepActive ? "brand.400" : "gray.500"}
+                    bg={isStepActive ? 'brand.400' : 'gray.500'}
                     border="2px solid white"
                   />
                   {/* 마지막 step이 아니라면 subSteps 수에 따라 동적으로 연결선 길이 적용 */}
@@ -154,7 +154,7 @@ const SidebarTimeline = () => {
                 <Box ml={6}>
                   <Text
                     fontWeight="bold"
-                    color={isStepActive ? "brand.400" : "gray.400"}
+                    color={isStepActive ? 'brand.400' : 'gray.400'}
                     fontSize="lg"
                   >
                     {step.title}
@@ -168,8 +168,8 @@ const SidebarTimeline = () => {
                         <Link to={subStep.path} key={subIndex}>
                           <Text
                             fontSize="md"
-                            color={isSubActive ? "brand.100" : "gray.300"}
-                            _hover={{ color: "blue.400" }}
+                            color={isSubActive ? 'brand.100' : 'gray.300'}
+                            _hover={{ color: 'blue.400' }}
                           >
                             {subStep.name}
                           </Text>

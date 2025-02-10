@@ -1,12 +1,12 @@
-import { Box, Flex, IconButton, Text, Tooltip } from "@chakra-ui/react";
-import React, { useState } from "react";
-import { FaLock, FaUnlock, FaPencilAlt, FaTrashAlt } from "react-icons/fa";
+import { Box, Flex, IconButton, Text, Tooltip } from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { FaLock, FaUnlock, FaPencilAlt, FaTrashAlt } from 'react-icons/fa';
 
 function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
   const [isLocked, setIsLocked] = useState(false);
 
   const handleLockToggle = () => {
-    setIsLocked((prev) => !prev);
+    setIsLocked(prev => !prev);
   };
 
   return (
@@ -23,12 +23,12 @@ function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
         {/* 프로젝트 정보 */}
         <Flex direction="column" maxW="70%">
           <Tooltip label={projectName} aria-label="Project Name Tooltip">
-            <Text color="#fff" fontSize="lg" fontWeight="bold" isTruncated>
+            <Text color="brand.100" fontSize="xl" fontWeight="bold" isTruncated>
               {projectName}
             </Text>
           </Tooltip>
           <Tooltip label={description} aria-label="Project Description Tooltip">
-            <Text color="gray.400" fontSize="sm" isTruncated>
+            <Text color="#fff" fontSize="md" isTruncated>
               {description}
             </Text>
           </Tooltip>
@@ -39,10 +39,10 @@ function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
           {/* 잠금 버튼 */}
           <IconButton
             size="sm"
-            color={isLocked ? "yellow.400" : "gray.500"}
+            color={isLocked ? 'yellow.400' : 'gray.500'}
             bg="transparent"
             icon={isLocked ? <FaLock /> : <FaUnlock />}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               handleLockToggle();
             }}
@@ -54,13 +54,13 @@ function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
             color="green.500"
             bg="transparent"
             icon={<FaPencilAlt />}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onEdit();
             }}
             aria-label="Edit Project"
             isDisabled={isLocked} // 잠금 상태일 때 비활성화
-            _hover={isLocked ? { color: "green.400" } : undefined} // 잠금 상태에서 hover 제거
+            _hover={isLocked ? { color: 'green.400' } : undefined} // 잠금 상태에서 hover 제거
           />
           {/* 삭제 버튼 */}
           <IconButton
@@ -68,13 +68,13 @@ function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
             color="red.500"
             bg="transparent"
             icon={<FaTrashAlt />}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onDelete();
             }}
             aria-label="Delete Project"
             isDisabled={isLocked} // 잠금 상태일 때 비활성화
-            _hover={isLocked ? { color: "red.400" } : undefined} // 잠금 상태에서 hover 제거
+            _hover={isLocked ? { color: 'red.400' } : undefined} // 잠금 상태에서 hover 제거
           />
         </Flex>
       </Flex>

@@ -1,27 +1,27 @@
 // Chakra imports
-import { ChakraProvider, Portal, useDisclosure } from "@chakra-ui/react";
-import Configurator from "components/Configurator/Configurator";
-import Footer from "components/Footer/Footer.js";
+import { ChakraProvider, Portal, useDisclosure } from '@chakra-ui/react';
+import Configurator from 'components/Configurator/Configurator';
+import Footer from 'components/Footer/Footer.js';
 // Layout components
-import AdminNavbar from "components/Navbars/AdminNavbar.js";
-import Sidebar from "components/Sidebar/Sidebar.js";
-import React, { useState } from "react";
-import { Redirect, Route, Switch } from "react-router-dom";
-import routes from "routes.js";
+import AdminNavbar from 'components/Navbars/AdminNavbar.js';
+import Sidebar from 'components/Sidebar/Sidebar.js';
+import React, { useState } from 'react';
+import { Redirect, Route, Switch } from 'react-router-dom';
+import routes from 'routes.js';
 // Custom Chakra theme
-import theme from "theme/themeAdmin.js";
-import FixedPlugin from "../components/FixedPlugin/FixedPlugin";
+import theme from 'theme/themeAdmin.js';
+import FixedPlugin from '../components/FixedPlugin/FixedPlugin';
 // Custom components
-import MainPanel from "../components/Layout/MainPanel";
-import PanelContainer from "../components/Layout/PanelContainer";
-import PanelContent from "../components/Layout/PanelContent";
-import Project from "views/Project/Project"; // 프로젝트 세부 페이지 추가
+import MainPanel from '../components/Layout/MainPanel';
+import PanelContainer from '../components/Layout/PanelContainer';
+import PanelContent from '../components/Layout/PanelContent';
+import Project from 'views/Project/Project'; // 프로젝트 세부 페이지 추가
 
 export default function Dashboard(props) {
   const { ...rest } = props;
 
   // states and functions
-  const [sidebarVariant, setSidebarVariant] = useState("transparent");
+  const [sidebarVariant, setSidebarVariant] = useState('transparent');
   const [fixed, setFixed] = useState(false);
 
   // ref for main panel div
@@ -29,11 +29,11 @@ export default function Dashboard(props) {
 
   // functions for changing the states from components
   const getRoute = () => {
-    return window.location.pathname !== "/admin/full-screen-maps";
+    return window.location.pathname !== '/admin/full-screen-maps';
   };
 
-  const getActiveRoute = (routes) => {
-    let activeRoute = "Default Brand Text";
+  const getActiveRoute = routes => {
+    let activeRoute = 'Default Brand Text';
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].collapse) {
         let collapseActiveRoute = getActiveRoute(routes[i].views);
@@ -56,7 +56,7 @@ export default function Dashboard(props) {
     return activeRoute;
   };
 
-  const getActiveNavbar = (routes) => {
+  const getActiveNavbar = routes => {
     let activeNavbar = false;
     for (let i = 0; i < routes.length; i++) {
       if (routes[i].category) {
@@ -77,15 +77,15 @@ export default function Dashboard(props) {
     return activeNavbar;
   };
 
-  const getRoutes = (routes) => {
+  const getRoutes = routes => {
     return routes.map((prop, key) => {
       if (prop.collapse) {
         return getRoutes(prop.views);
       }
-      if (prop.category === "account") {
+      if (prop.category === 'account') {
         return getRoutes(prop.views);
       }
-      if (prop.layout === "/admin") {
+      if (prop.layout === '/admin') {
         return (
           <Route
             path={prop.layout + prop.path}
@@ -101,14 +101,14 @@ export default function Dashboard(props) {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  document.documentElement.dir = "ltr";
+  document.documentElement.dir = 'ltr';
 
   // Chakra Color Mode
   return (
     <ChakraProvider theme={theme} resetCss={false}>
       <Sidebar
         routes={routes}
-        logoText={"SIXSENSE"}
+        logoText={'SIXSENSE'}
         display="none"
         sidebarVariant={sidebarVariant}
         {...rest}
@@ -116,14 +116,14 @@ export default function Dashboard(props) {
       <MainPanel
         ref={mainPanel}
         w={{
-          base: "100%",
-          xl: "calc(100% - 275px)",
+          base: '100%',
+          xl: 'calc(100% - 275px)',
         }}
       >
         <Portal>
           <AdminNavbar
             onOpen={onOpen}
-            logoText={"HELLO"}
+            logoText={'HELLO'}
             brandText={getActiveRoute(routes)}
             secondary={getActiveNavbar(routes)}
             fixed={fixed}

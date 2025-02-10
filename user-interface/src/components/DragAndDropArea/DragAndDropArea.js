@@ -1,14 +1,14 @@
 // components/DragAndDropArea.js
-import React from "react";
-import { Icon, Text } from "@chakra-ui/react";
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import { useDropzone } from "react-dropzone";
-import { CartIcon } from "components/Icons/Icons.js";
+import React from 'react';
+import { Icon, Text } from '@chakra-ui/react';
+import Card from 'components/Card/Card.js';
+import CardBody from 'components/Card/CardBody.js';
+import { useDropzone } from 'react-dropzone';
+import { CartIcon } from 'components/Icons/Icons.js';
 
 const DragAndDropArea = ({ onFilesAdded }) => {
-  const onDrop = (acceptedFiles) => {
-    console.log("Dropped files:", acceptedFiles);
+  const onDrop = acceptedFiles => {
+    console.log('Dropped files:', acceptedFiles);
     onFilesAdded(acceptedFiles);
   };
 
@@ -24,7 +24,7 @@ const DragAndDropArea = ({ onFilesAdded }) => {
       w="100%"
       h="100%"
       overflow="hidden"
-      _hover={{ bg: "rgba(6, 12, 41, 0.8)" }}
+      _hover={{ bg: 'rgba(6, 12, 41, 0.8)' }}
     >
       <CardBody
         display="flex"

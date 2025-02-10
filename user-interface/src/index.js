@@ -1,12 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import { HashRouter, Route, Switch, Redirect } from "react-router-dom";
-import { Provider } from "react-redux";
-import store from "store/store";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { HashRouter, Route, Switch, Redirect } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import store from 'store/store';
 
-import Admin from "layouts/Admin.js";
-import ProjectLayout from "layouts/ProjectLayout.js";
-import FlowLayout from "layouts/FlowLayout";
+import Admin from 'layouts/Admin.js';
+import ProjectLayout from 'layouts/ProjectLayout.js';
+import FlowLayout from 'layouts/FlowLayout';
 
 ReactDOM.render(
   <Provider store={store}>
@@ -22,5 +22,5 @@ ReactDOM.render(
       </Switch>
     </HashRouter>
   </Provider>,
-  document.getElementById("root")
+  document.getElementById('root')
 );

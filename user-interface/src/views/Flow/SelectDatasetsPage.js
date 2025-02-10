@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState, useMemo } from "react";
-import { shallowEqual, useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
-import { createPortal } from "react-dom";
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Flex,
@@ -10,32 +10,33 @@ import {
   Tooltip,
   Text,
   useToast,
-} from "@chakra-ui/react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import Card from "components/Card/Card.js";
-import CardBody from "components/Card/CardBody.js";
-import CardHeader from "components/Card/CardHeader.js";
-import SelectedDataArea from "components/Card/SelectedDataArea";
-import DragAndDropArea from "components/DragAndDropArea/DragAndDropArea";
-import ProjectFileRow from "components/Tables/ProjectFileRows";
+} from '@chakra-ui/react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import Card from 'components/Card/Card.js';
+import CardBody from 'components/Card/CardBody.js';
+import CardHeader from 'components/Card/CardHeader.js';
+import SelectedDataArea from 'components/Card/SelectedDataArea';
+import DragAndDropArea from 'components/DragAndDropArea/DragAndDropArea';
+import ProjectFileRow from 'components/Tables/ProjectFileRows';
 
-import { addCsvToFlow, fetchFlowDatasets } from "store/features/flowSlice";
+import { addCsvToFlow, fetchFlowDatasets } from 'store/features/flowSlice';
 import {
   uploadCsvFile,
   deleteCsvFile,
   fetchCsvFilesByProject,
-} from "store/features/projectSlice";
+} from 'store/features/projectSlice';
 import {
   ArrowBackIcon,
   ArrowForwardIcon,
   AttachmentIcon,
   CheckIcon,
-} from "@chakra-ui/icons";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
-import { fetchFlowProperties } from "store/features/flowSlice";
-import { updatePropertyCategory } from "store/features/flowSlice";
-import { savePropertyTypes } from "store/features/flowSlice";
-import { fetchPropertyTypes } from "store/features/flowSlice";
+} from '@chakra-ui/icons';
+import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
+import { fetchFlowProperties } from 'store/features/flowSlice';
+import { updatePropertyCategory } from 'store/features/flowSlice';
+import { savePropertyTypes } from 'store/features/flowSlice';
+import { fetchPropertyTypes } from 'store/features/flowSlice';
+import { Spinner } from '@chakra-ui/react';
 
 const SelectDatasetsPage = () => {
   const { projectId, flowId } = useParams();
@@ -46,16 +47,15 @@ const SelectDatasetsPage = () => {
   const isMounted = useRef(true); // ✅ 컴포넌트 마운트 여부 확인
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Redux 상태에서 데이터 가져오기
-  const flow = useSelector((state) => state.flows.flows[flowId] || {});
+  const flow = useSelector(state => state.flows.flows[flowId] || {});
 
   // Redux store에서 flowDatasets 가져오기
-  let flowDatasets = useSelector(
-    (state) => state.flows.flows[flowId]?.csv || []
-  );
+  let flowDatasets = useSelector(state => state.flows.flows[flowId]?.csv || []);
   const projectDatasets = useSelector(
-    (state) => state.projects.datasets[projectId] || [],
+    state => state.projects.datasets[projectId] || [],
     shallowEqual
   );
 
@@ -64,7 +64,7 @@ const SelectDatasetsPage = () => {
   // ✅ 선택된 데이터셋을 로컬 상태에서 관리
   useEffect(() => {
     setSelectedDatasets(
-      projectDatasets.filter((ds) => flowDatasets.includes(ds.csvId))
+      projectDatasets.filter(ds => flowDatasets.includes(ds.csvId))
     );
   }, [flowDatasets, projectDatasets]);
 
@@ -73,7 +73,7 @@ const SelectDatasetsPage = () => {
   }, [selectedDatasets]);
 
   const properties = useSelector(
-    (state) =>
+    state =>
       state.flows.properties?.[flowId] || {
         numerical: [],
         categorical: [],
@@ -93,7 +93,7 @@ const SelectDatasetsPage = () => {
 
   // Redux 상태 변경 시 로컬 상태 동기화 (필요하다면)
   useEffect(() => {
-    setCategoriesState((prev) => {
+    setCategoriesState(prev => {
       // 간단한 비교 (예를 들어 JSON.stringify를 사용한 비교)
       const newState = {
         numerical: properties.numerical,
@@ -117,7 +117,7 @@ const SelectDatasetsPage = () => {
         await dispatch(fetchFlowDatasets(flowId));
         await dispatch(fetchPropertyTypes(flowId));
       } catch (error) {
-        console.error("❌ Failed to fetch data:", error);
+        console.error('❌ Failed to fetch data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -155,28 +155,28 @@ const SelectDatasetsPage = () => {
   };
 
   // ✅ 데이터셋 선택 핸들러 (useState에서 즉시 반영)
-  const handleDatasetSelect = (csvId) => {
+  const handleDatasetSelect = csvId => {
     if (totalSelectedSize >= 1024 * 1024) {
       toast({
-        title: "Capacity Error",
-        description: "The maximum selectable capacity is 1024MB.",
-        status: "error",
+        title: 'Capacity Error',
+        description: 'The maximum selectable capacity is 1024MB.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
-        containerStyle: { marginLeft: "280px" },
+        containerStyle: { marginLeft: '280px' },
       });
       return;
     }
 
-    const dataset = projectDatasets.find((ds) => ds.csvId === csvId);
+    const dataset = projectDatasets.find(ds => ds.csvId === csvId);
     if (!dataset) return;
 
-    setSelectedDatasets((prev) => [...prev, dataset]);
+    setSelectedDatasets(prev => [...prev, dataset]);
   };
 
   // ✅ 데이터셋 선택 해제 핸들러 (useState에서 즉시 반영)
-  const handleDatasetDeselect = async (csvId) => {
-    setSelectedDatasets((prev) => prev.filter((ds) => ds.csvId !== csvId));
+  const handleDatasetDeselect = async csvId => {
+    setSelectedDatasets(prev => prev.filter(ds => ds.csvId !== csvId));
   };
 
   // ✅ 파일 업로드 클릭 핸들러
@@ -185,20 +185,23 @@ const SelectDatasetsPage = () => {
   };
 
   // ✅ 파일 업로드 핸들러
-  const handleFilesAdded = async (files) => {
-    const allowedFormats = ["text/csv", "application/parquet"];
+  const handleFilesAdded = async files => {
+    setIsUploading(true); // 업로드 시작
+    const allowedFormats = ['text/csv', 'application/parquet', ''];
     const fileArray = Array.from(files);
 
-    const validFiles = fileArray.filter((file) => {
+    console.log(fileArray);
+
+    const validFiles = fileArray.filter(file => {
       if (!allowedFormats.includes(file.type)) {
         toast({
-          title: "Data types are only csv and parquet.",
+          title: 'Data types are only csv and parquet.',
           description: `Data types are only csv and parquet.`,
-          status: "warning",
+          status: 'warning',
           duration: 3000,
           isClosable: true,
           containerStyle: {
-            marginLeft: "280px",
+            marginLeft: '280px',
           },
         });
         return false;
@@ -206,24 +209,27 @@ const SelectDatasetsPage = () => {
       return true;
     });
 
-    if (validFiles.length === 0) return;
+    if (validFiles.length === 0) {
+      setIsUploading(false);
+      return;
+    }
 
     const uploadResults = await Promise.allSettled(
-      validFiles.map((file) =>
-        dispatch(uploadCsvFile({ projectId, file, writer: "admin" }))
+      validFiles.map(file =>
+        dispatch(uploadCsvFile({ projectId, file, writer: 'admin' }))
       )
     );
 
     uploadResults.forEach((result, index) => {
-      if (result.status === "fulfilled") {
+      if (result.status === 'fulfilled') {
         toast({
-          title: "File Upload Event",
+          title: 'File Upload Event',
           description: `File "${validFiles[index].name}" uploaded successfully.`,
-          status: "success",
+          status: 'success',
           duration: 3000,
           isClosable: true,
           containerStyle: {
-            marginLeft: "280px",
+            marginLeft: '280px',
           },
         });
       } else {
@@ -235,10 +241,11 @@ const SelectDatasetsPage = () => {
     });
 
     dispatch(fetchCsvFilesByProject(projectId));
+    setIsUploading(false);
   };
 
   // ✅ 데이터셋 삭제 핸들러
-  const handleFileDelete = async (csvId) => {
+  const handleFileDelete = async csvId => {
     try {
       await dispatch(deleteCsvFile({ projectId, csvId })).unwrap();
       dispatch(fetchCsvFilesByProject(projectId));
@@ -250,25 +257,25 @@ const SelectDatasetsPage = () => {
   // ✅ Flow에 선택된 데이터셋 저장
   const handleApplySelection = async () => {
     await dispatch(
-      addCsvToFlow({ flowId, csvIds: selectedDatasets.map((ds) => ds.csvId) })
+      addCsvToFlow({ flowId, csvIds: selectedDatasets.map(ds => ds.csvId) })
     );
     await dispatch(fetchPropertyTypes(flowId));
 
     toast({
-      title: "Saved as flow datasets",
+      title: 'Saved as flow datasets',
       description: `Saved as flow datasets`,
-      status: "success",
+      status: 'success',
       duration: 3000,
       isClosable: true,
       containerStyle: {
-        marginLeft: "280px",
+        marginLeft: '280px',
       },
     });
   };
 
   if (!flow) {
     return (
-      <Flex pt={{ base: "120px", md: "75px" }} justify="center">
+      <Flex pt={{ base: '120px', md: '75px' }} justify="center">
         <Text color="red.500">Flow not found</Text>
       </Flex>
     );
@@ -277,7 +284,7 @@ const SelectDatasetsPage = () => {
   // 예시: 초기 Redux 상태의 properties (numeric, categorical, text, unavailable)
   const DataPropertiesDragAndDrop = () => {
     // onDragEnd 핸들러
-    const onDragEnd = (result) => {
+    const onDragEnd = result => {
       const { source, destination } = result;
       if (!destination) return;
 
@@ -329,13 +336,13 @@ const SelectDatasetsPage = () => {
 
       // Toast 메시지: 어디서 어디로 이동했는지
       toast({
-        title: "Property Updated",
+        title: 'Property Updated',
         description: `Moved "${removed}" from ${sourceCategory} to ${destCategory}.`,
-        status: "success",
+        status: 'success',
         duration: 3000,
         isClosable: true,
         containerStyle: {
-          marginLeft: "280px",
+          marginLeft: '280px',
         },
       });
     };
@@ -359,6 +366,10 @@ const SelectDatasetsPage = () => {
                   ml={1}
                   mb={1}
                   //   borderRadius="md"
+                  _hover={{
+                    transform: 'scale(1.3)',
+                    transition: 'transform 0.2s ease-in-out',
+                  }}
                   color="gray.300"
                   fontSize="xs"
                   cursor="pointer"
@@ -392,18 +403,20 @@ const SelectDatasetsPage = () => {
             mb={2}
             fontSize="md"
             fontWeight="bold"
-            color={headerColor || "white"}
+            color={headerColor || 'white'}
             textAlign="center"
           >
             {categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
           </Text>
           <Droppable droppableId={categoryName}>
-            {(provided) => (
+            {provided => (
               <Box
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 minH="350px"
-                bg={bgColor || "transparent"}
+                h="95%"
+                overflowY="auto"
+                bg={bgColor || 'transparent'}
                 p={2}
                 borderRadius="md"
               >
@@ -475,7 +488,7 @@ const SelectDatasetsPage = () => {
   };
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
+    <Flex flexDirection="column" pt={{ base: '120px', md: '75px' }} px={6}>
       <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
         <IconButton
           icon={<ArrowBackIcon />}
@@ -523,16 +536,22 @@ const SelectDatasetsPage = () => {
                 type="file"
                 multiple
                 ref={fileInputRef}
-                style={{ display: "none" }}
-                onChange={(e) => handleFilesAdded(e.target.files)}
+                style={{ display: 'none' }}
+                onChange={e => handleFilesAdded(e.target.files)}
               />
             </Flex>
           </CardHeader>
 
           <CardBody h="100%" display="flex" flexDirection="column" gap={4}>
+            {isUploading && (
+              <Flex justify="center" align="center" mb={4}>
+                <Spinner size="xl" color="blue.500" />
+                <Text ml={3}>Uploading files, please wait...</Text>
+              </Flex>
+            )}
             <Box flex="2" overflowY="auto" w="100%">
               <Grid templateColumns="1fr 1fr" gap={4}>
-                {projectDatasets.map((dataset) => (
+                {projectDatasets.map(dataset => (
                   <ProjectFileRow
                     key={dataset.csvId}
                     fileName={dataset.csv}
@@ -592,9 +611,9 @@ const SelectDatasetsPage = () => {
 
             <CardBody>
               <SelectedDataArea
-                selectedFiles={selectedDatasets.map((ds) => ds.csvId)} // ✅ 이제 csvId 배열만 전달
+                selectedFiles={selectedDatasets.map(ds => ds.csvId)} // ✅ 이제 csvId 배열만 전달
                 allDatasets={projectDatasets} // ✅ 전체 프로젝트 데이터셋 전달
-                onDeselect={(csvId) => handleDatasetDeselect(csvId)}
+                onDeselect={csvId => handleDatasetDeselect(csvId)}
               />
             </CardBody>
           </Card>

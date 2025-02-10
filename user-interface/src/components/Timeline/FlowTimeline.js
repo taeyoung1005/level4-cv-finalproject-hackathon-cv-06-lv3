@@ -1,11 +1,11 @@
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text } from '@chakra-ui/react';
 
 const FlowTimeline = ({ currentStep, onStepChange }) => {
   const steps = [
-    "Dataset Upload",
-    "Model Generation",
-    "Goal Optimization",
-    "Recommendation",
+    'Dataset Upload',
+    'Model Generation',
+    'Goal Optimization',
+    'Recommendation',
   ];
 
   return (
@@ -32,13 +32,13 @@ const FlowTimeline = ({ currentStep, onStepChange }) => {
             w="12px"
             h="12px"
             borderRadius="full"
-            bg={currentStep === index ? "blue.500" : "gray.500"}
+            bg={currentStep === index ? 'blue.500' : 'gray.500'}
             mb={2}
           />
           <Text
             fontSize="sm"
-            fontWeight={currentStep === index ? "bold" : "normal"}
-            color={currentStep === index ? "#fff" : "gray.400"}
+            fontWeight={currentStep === index ? 'bold' : 'normal'}
+            color={currentStep === index ? '#fff' : 'gray.400'}
             mb={4}
           >
             {step}
@@ -48,7 +48,7 @@ const FlowTimeline = ({ currentStep, onStepChange }) => {
             <Box
               w="2px"
               h="40px"
-              bg={currentStep > index ? "blue.500" : "gray.500"}
+              bg={currentStep > index ? 'blue.500' : 'gray.500'}
               mb={4}
             />
           )}

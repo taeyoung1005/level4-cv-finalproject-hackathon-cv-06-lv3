@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useParams, useHistory } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import React, { useEffect, useState, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useParams, useHistory } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   Flex,
   Grid,
@@ -16,27 +16,27 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react';
 import {
   ArrowBackIcon,
   ArrowForwardIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-} from "@chakra-ui/icons";
+} from '@chakra-ui/icons';
 
-import Card from "components/Card/Card";
-import CardHeader from "components/Card/CardHeader";
-import CardBody from "components/Card/CardBody";
-import BarChart from "components/Charts/BarChart";
+import Card from 'components/Card/Card';
+import CardHeader from 'components/Card/CardHeader';
+import CardBody from 'components/Card/CardBody';
+import BarChart from 'components/Charts/BarChart';
 import {
   fetchFlowProperties,
   fetchFlowDatasets,
   fetchPropertyHistograms,
-} from "store/features/flowSlice";
-import { fetchCsvFilesByProject } from "store/features/projectSlice";
-import PieChart from "components/Charts/PieChart";
-import HorizontalBarChart from "components/Charts/HorizontalBarChart";
-import { fetchPropertyTypes } from "store/features/flowSlice";
+} from 'store/features/flowSlice';
+import { fetchCsvFilesByProject } from 'store/features/projectSlice';
+import PieChart from 'components/Charts/PieChart';
+import HorizontalBarChart from 'components/Charts/HorizontalBarChart';
+import { fetchPropertyTypes } from 'store/features/flowSlice';
 
 const PROPERTIES_PER_PAGE = 3; // 한 페이지당 3개
 
@@ -52,13 +52,11 @@ function AnalyzePropertiesPage() {
   // Redux 상태
   // -------------------------------
   const projectDatasets = useSelector(
-    (state) => state.projects.datasets[projectId] || []
+    state => state.projects.datasets[projectId] || []
   );
-  const histograms = useSelector(
-    (state) => state.flows.histograms[flowId] || {}
-  );
+  const histograms = useSelector(state => state.flows.histograms[flowId] || {});
   const properties = useSelector(
-    (state) =>
+    state =>
       state.flows.properties?.[flowId] || {
         numerical: [],
         categorical: [],
@@ -66,9 +64,9 @@ function AnalyzePropertiesPage() {
         unavailable: [],
       }
   );
-  const redux = useSelector((state) => state);
+  const redux = useSelector(state => state);
 
-  const flowDatasets = useSelector((state) => {
+  const flowDatasets = useSelector(state => {
     return state.flows.flows[flowId]?.csv;
   });
 
@@ -77,7 +75,7 @@ function AnalyzePropertiesPage() {
   useEffect(() => {
     if (flowDatasets?.length && projectDatasets?.length) {
       setSelectedDatasets(
-        projectDatasets.filter((ds) => flowDatasets.includes(ds.csvId))
+        projectDatasets.filter(ds => flowDatasets.includes(ds.csvId))
       );
     }
   }, [flowDatasets, projectDatasets]);
@@ -129,13 +127,13 @@ function AnalyzePropertiesPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tabFromQuery = params.get("tab");
-    if (tabFromQuery === "categorical") {
+    const tabFromQuery = params.get('tab');
+    if (tabFromQuery === 'categorical') {
       setTabIndex(1);
-    } else if (tabFromQuery === "numeric") {
+    } else if (tabFromQuery === 'numeric') {
       setTabIndex(0);
     } else if (location.state && location.state.activeTab) {
-      setTabIndex(location.state.activeTab === "categorical" ? 1 : 0);
+      setTabIndex(location.state.activeTab === 'categorical' ? 1 : 0);
     }
   }, [location]);
 
@@ -159,7 +157,7 @@ function AnalyzePropertiesPage() {
   );
 
   useEffect(() => {
-    numericCurrentPageProperties.forEach((prop) => {
+    numericCurrentPageProperties.forEach(prop => {
       if (!histograms[prop] && !numericFetchedRef.current[prop]) {
         numericFetchedRef.current[prop] = true;
         dispatch(fetchPropertyHistograms({ flowId, column_name: prop }));
@@ -168,7 +166,7 @@ function AnalyzePropertiesPage() {
   }, [numericCurrentPageProperties, histograms, dispatch, flowId]);
 
   useEffect(() => {
-    categoricalCurrentPageProperties.forEach((prop) => {
+    categoricalCurrentPageProperties.forEach(prop => {
       if (!histograms[prop] && !categoricalFetchedRef.current[prop]) {
         categoricalFetchedRef.current[prop] = true;
         dispatch(fetchPropertyHistograms({ flowId, column_name: prop }));
@@ -177,18 +175,18 @@ function AnalyzePropertiesPage() {
   }, [categoricalCurrentPageProperties, histograms, dispatch, flowId]);
 
   const handleNextNumericPage = () => {
-    if (numericPage < numericTotalPages - 1) setNumericPage((p) => p + 1);
+    if (numericPage < numericTotalPages - 1) setNumericPage(p => p + 1);
   };
   const handlePrevNumericPage = () => {
-    if (numericPage > 0) setNumericPage((p) => p - 1);
+    if (numericPage > 0) setNumericPage(p => p - 1);
   };
 
   const handleNextCategoricalPage = () => {
     if (categoricalPage < categoricalTotalPages - 1)
-      setCategoricalPage((p) => p + 1);
+      setCategoricalPage(p => p + 1);
   };
   const handlePrevCategoricalPage = () => {
-    if (categoricalPage > 0) setCategoricalPage((p) => p - 1);
+    if (categoricalPage > 0) setCategoricalPage(p => p - 1);
   };
 
   // -------------------------------
@@ -208,7 +206,7 @@ function AnalyzePropertiesPage() {
     const othersValue = data
       .slice(limit - 1)
       .reduce((acc, item) => acc + item.value, 0);
-    return [...topCategories, { label: "Others", value: othersValue }];
+    return [...topCategories, { label: 'Others', value: othersValue }];
   }
 
   const DistributionCard = () => {
@@ -229,7 +227,7 @@ function AnalyzePropertiesPage() {
         >
           <Tabs
             index={tabIndex}
-            onChange={(index) => setTabIndex(index)}
+            onChange={index => setTabIndex(index)}
             variant="enclosed"
             colorScheme="red"
             w="100%"
@@ -248,7 +246,7 @@ function AnalyzePropertiesPage() {
                     w="100%"
                     mb={6}
                   >
-                    {numericCurrentPageProperties.map((prop) => {
+                    {numericCurrentPageProperties.map(prop => {
                       const hData = histograms[prop];
                       let binEdges = [];
                       let counts = [];
@@ -262,18 +260,18 @@ function AnalyzePropertiesPage() {
                           const parsedBinEdges =
                             JSON.parse(hData.bin_edges) || [];
                           const parsedCounts = JSON.parse(hData.counts) || [];
-                          binEdges = parsedBinEdges.map((edge) =>
+                          binEdges = parsedBinEdges.map(edge =>
                             parseFloat(edge.toFixed(4))
                           );
-                          counts = parsedCounts.map((val) => parseFloat(val));
+                          counts = parsedCounts.map(val => parseFloat(val));
                           const total = counts.reduce(
                             (sum, val) => sum + val,
                             0
                           );
                           avgValue =
                             counts.length > 0 ? total / counts.length : 0;
-                          colorsArray = counts.map((val) =>
-                            val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
+                          colorsArray = counts.map(val =>
+                            val === Math.max(...counts) ? '#582CFF' : '#2CD9FF'
                           );
                           if (binEdges.length > 1) {
                             binMin = binEdges[0];
@@ -285,7 +283,7 @@ function AnalyzePropertiesPage() {
                             diff = 0;
                           }
                         } catch (e) {
-                          console.error("Histogram parse error:", e);
+                          console.error('Histogram parse error:', e);
                         }
                       }
                       return (
@@ -310,7 +308,7 @@ function AnalyzePropertiesPage() {
                             ]}
                             barChartOptions={{
                               chart: {
-                                type: "bar",
+                                type: 'bar',
                                 toolbar: { show: false },
                                 zoom: { enabled: false },
                               },
@@ -318,31 +316,31 @@ function AnalyzePropertiesPage() {
                                 bar: {
                                   distributed: true,
                                   borderRadius: 8,
-                                  columnWidth: "12px",
+                                  columnWidth: '12px',
                                 },
                               },
                               xaxis: {
-                                type: "numeric",
+                                type: 'numeric',
                                 min: binMin,
                                 max: binMax,
                                 tickAmount: binEdges.length,
                                 labels: {
                                   show: false,
-                                  style: { colors: "#fff", fontSize: "10px" },
-                                  formatter: (value) => value.toFixed(2),
+                                  style: { colors: '#fff', fontSize: '10px' },
+                                  formatter: value => value.toFixed(2),
                                   rotateAlways: true,
                                   rotate: -45, // 라벨을 -45도 회전
                                 },
                               },
                               yaxis: {
                                 labels: {
-                                  style: { colors: "#fff", fontSize: "10px" },
+                                  style: { colors: '#fff', fontSize: '10px' },
                                 },
                               },
                               dataLabels: { enabled: false },
                               legend: { show: false },
                               tooltip: {
-                                theme: "dark",
+                                theme: 'dark',
                                 custom: ({
                                   series,
                                   seriesIndex,
@@ -365,21 +363,21 @@ function AnalyzePropertiesPage() {
                                             )}</div>
                                           </div>`;
                                 },
-                                style: { fontSize: "14px" },
+                                style: { fontSize: '14px' },
                               },
                               colors: colorsArray,
                               annotations: {
                                 yaxis: [
                                   {
                                     y: avgValue,
-                                    borderColor: "red",
+                                    borderColor: 'red',
                                     label: {
-                                      position: "left",
+                                      position: 'left',
                                       offsetX: 35,
                                       style: {
-                                        color: "#fff",
-                                        background: "#0c0c0c",
-                                        fontSize: "8px",
+                                        color: '#fff',
+                                        background: '#0c0c0c',
+                                        fontSize: '8px',
                                       },
                                     },
                                   },
@@ -428,7 +426,7 @@ function AnalyzePropertiesPage() {
                     w="100%"
                     mb={6}
                   >
-                    {categoricalCurrentPageProperties.map((prop) => {
+                    {categoricalCurrentPageProperties.map(prop => {
                       const hData = histograms[prop];
                       let binEdges = [];
                       let counts = [];
@@ -437,7 +435,7 @@ function AnalyzePropertiesPage() {
                           binEdges = JSON.parse(hData.bin_edges) || [];
                           counts = JSON.parse(hData.counts) || [];
                         } catch (e) {
-                          console.error("Histogram parse error:", e);
+                          console.error('Histogram parse error:', e);
                         }
                       }
                       // HorizontalBarChart data: 각 bin의 label과 value로 구성
@@ -509,8 +507,8 @@ function AnalyzePropertiesPage() {
           mt={2}
           overflowY="auto"
           css={{
-            "&::-webkit-scrollbar": {
-              width: "0px",
+            '&::-webkit-scrollbar': {
+              width: '0px',
             },
           }}
         >
@@ -519,10 +517,10 @@ function AnalyzePropertiesPage() {
               templateColumns="repeat(auto-fit, minmax(150px, 1fr))"
               gap={2}
             >
-              {selectedDatasets.map((ds) => (
+              {selectedDatasets.map(ds => (
                 <Card key={ds.csvId} p={2} alignItems="center">
                   <Text color="brand.400" fontSize="md" fontWeight="bold">
-                    {ds.csv.split("/").pop()}
+                    {ds.csv.split('/').pop()}
                   </Text>
                   <Text color="gray.400" fontSize="xs">
                     Rows: {ds.rows.toLocaleString()}
@@ -551,17 +549,17 @@ function AnalyzePropertiesPage() {
     unavailableCount,
   }) => {
     const pieData = [
-      { label: "Numeric", value: numericCount },
-      { label: "Categorical", value: categoricalCount },
-      { label: "Text", value: textCount || 0 },
-      { label: "Unavailable", value: unavailableCount },
+      { label: 'Numeric', value: numericCount },
+      { label: 'Categorical', value: categoricalCount },
+      { label: 'Text', value: textCount || 0 },
+      { label: 'Unavailable', value: unavailableCount },
     ];
 
     const colorsArray = [
-      "rgba(111, 81, 219, 0.77)",
-      "rgba(217, 101, 235, 0.6)",
-      "rgba(146, 245, 121, 0.6)",
-      "rgba(255, 94, 94, 0.5)",
+      'rgba(111, 81, 219, 0.77)',
+      'rgba(217, 101, 235, 0.6)',
+      'rgba(146, 245, 121, 0.6)',
+      'rgba(255, 94, 94, 0.5)',
     ];
 
     totalSize = (parseFloat(totalSize) / 1024).toFixed(2);
@@ -684,7 +682,7 @@ function AnalyzePropertiesPage() {
   };
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
+    <Flex flexDirection="column" pt={{ base: '120px', md: '75px' }} px={6}>
       {/* 상단 헤더 */}
       <Flex justifyContent="space-between" alignItems="center" mb={6} px={6}>
         <IconButton

@@ -5,15 +5,15 @@ import {
   Box,
   Flex,
   Icon,
-} from "@chakra-ui/react";
-import { CheckCircleIcon, ArrowRightIcon } from "@chakra-ui/icons";
+} from '@chakra-ui/react';
+import { CheckCircleIcon, ArrowRightIcon } from '@chakra-ui/icons';
 
 const FlowBreadcrumb = ({ currentStep, onStepChange }) => {
   const steps = [
-    { label: "Dataset Upload", icon: <CheckCircleIcon /> },
-    { label: "Model Generation", icon: <ArrowRightIcon /> },
-    { label: "Goal Optimization", icon: <ArrowRightIcon /> },
-    { label: "Recommendation", icon: <ArrowRightIcon /> },
+    { label: 'Dataset Upload', icon: <CheckCircleIcon /> },
+    { label: 'Model Generation', icon: <ArrowRightIcon /> },
+    { label: 'Goal Optimization', icon: <ArrowRightIcon /> },
+    { label: 'Recommendation', icon: <ArrowRightIcon /> },
   ];
 
   return (
@@ -36,7 +36,7 @@ const FlowBreadcrumb = ({ currentStep, onStepChange }) => {
               <Box
                 w="10px"
                 h="10px"
-                bg={currentStep === index ? "blue.500" : "gray.500"}
+                bg={currentStep === index ? 'blue.500' : 'gray.500'}
                 borderRadius="full"
                 mr={2}
               />

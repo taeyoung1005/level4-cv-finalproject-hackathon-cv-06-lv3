@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useParams, useHistory } from "react-router-dom";
-import { createPortal } from "react-dom";
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useParams, useHistory } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Flex,
@@ -13,20 +13,20 @@ import {
   AspectRatio,
   Grid,
   CircularProgress,
-} from "@chakra-ui/react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { ArrowForwardIcon, ArrowBackIcon } from "@chakra-ui/icons";
-import Card from "components/Card/Card";
-import CardBody from "components/Card/CardBody";
-import CardHeader from "components/Card/CardHeader";
+} from '@chakra-ui/react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { ArrowForwardIcon, ArrowBackIcon } from '@chakra-ui/icons';
+import Card from 'components/Card/Card';
+import CardBody from 'components/Card/CardBody';
+import CardHeader from 'components/Card/CardHeader';
 import {
   fetchFlowProperties,
   updatePriorities,
   initializePriorities,
   fetchOptimizationData,
-} from "store/features/flowSlice";
-import { postOptimizationOrder } from "store/features/flowSlice";
-import { createModelThunk } from "store/features/flowSlice";
+} from 'store/features/flowSlice';
+import { postOptimizationOrder } from 'store/features/flowSlice';
+import { createModelThunk } from 'store/features/flowSlice';
 
 const SetPrioritiesPage = () => {
   const { projectId, flowId } = useParams();
@@ -35,7 +35,7 @@ const SetPrioritiesPage = () => {
 
   // Redux: newCategories (property -> category)
   const properties = useSelector(
-    (state) => state.flows.newCategories[flowId] || {}
+    state => state.flows.newCategories[flowId] || {}
   );
 
   // Fetch flow properties on mount
@@ -45,31 +45,31 @@ const SetPrioritiesPage = () => {
 
   // controllable, output 속성에 대해서만 optimizationData fetch
   useEffect(() => {
-    Object.keys(properties).forEach((property) => {
+    Object.keys(properties).forEach(property => {
       const type = properties[property];
-      if (type === "controllable" || type === "output") {
+      if (type === 'controllable' || type === 'output') {
         dispatch(fetchOptimizationData({ flowId, property, type }));
       }
     });
   }, [dispatch, flowId, properties]);
 
   const optimizationData = useSelector(
-    (state) => state.flows.optimizationData[flowId] || {}
+    state => state.flows.optimizationData[flowId] || {}
   );
   const storedPriorities = useSelector(
-    (state) => state.flows.priorities[flowId] || []
+    state => state.flows.priorities[flowId] || []
   );
 
   // controllable과 output property 분리
   const controllableProperties = useMemo(() => {
     return Object.entries(properties)
-      .filter(([_, cat]) => cat === "controllable")
+      .filter(([_, cat]) => cat === 'controllable')
       .map(([prop]) => prop);
   }, [properties]);
 
   const outputProperties = useMemo(() => {
     return Object.entries(properties)
-      .filter(([_, cat]) => cat === "output")
+      .filter(([_, cat]) => cat === 'output')
       .map(([prop]) => prop);
   }, [properties]);
 
@@ -108,7 +108,7 @@ const SetPrioritiesPage = () => {
     dispatch(initializePriorities({ flowId }));
   }, [dispatch, flowId]);
 
-  const onDragEnd = (result) => {
+  const onDragEnd = result => {
     if (!result.destination) return;
     const newPriorities = Array.from(priorities);
     const [movedItem] = newPriorities.splice(result.source.index, 1);
@@ -118,20 +118,20 @@ const SetPrioritiesPage = () => {
   };
 
   // 각 goal에 따른 색상 결정 함수 - 어두운 배경에 맞춰 색상을 조금 더 진하게 조정
-  const getGoalColor = (goal) => {
+  const getGoalColor = goal => {
     switch (goal) {
-      case "No Optimization":
-        return "gray.200";
-      case "Maximize":
-        return "green.200";
-      case "Minimize":
-        return "red.200";
-      case "Fit to Range":
-        return "orange.200";
-      case "Fit to Property":
-        return "purple.200";
+      case 'No Optimization':
+        return 'gray.200';
+      case 'Maximize':
+        return 'green.200';
+      case 'Minimize':
+        return 'red.200';
+      case 'Fit to Range':
+        return 'orange.200';
+      case 'Fit to Property':
+        return 'purple.200';
       default:
-        return "gray.200";
+        return 'gray.200';
     }
   };
 
@@ -149,7 +149,7 @@ const SetPrioritiesPage = () => {
         );
       }, 1000);
     } catch (error) {
-      console.error("Failed to post optimization orders:", error);
+      console.error('Failed to post optimization orders:', error);
       setIsPreparing(false);
     }
   };
@@ -167,11 +167,11 @@ const SetPrioritiesPage = () => {
               {...provided.dragHandleProps}
               bg={
                 snapshot.isDragging
-                  ? "gray.900"
-                  : "linear-gradient(126.97deg, #060C29 35.26%, rgba(4, 12, 48, 0.5) 70.2%)"
+                  ? 'gray.900'
+                  : 'linear-gradient(126.97deg, #060C29 35.26%, rgba(4, 12, 48, 0.5) 70.2%)'
               }
               p={2}
-              maxH="200"
+              maxH="300"
             >
               <AspectRatio ratio={1} w="100%">
                 <Flex
@@ -182,43 +182,48 @@ const SetPrioritiesPage = () => {
                   maxH="200"
                 >
                   <CardHeader p={1}>
-                    <Flex align="center">
-                      <Badge mr={2} colorScheme="teal">
-                        {index + 1}
-                      </Badge>
-                      <Text
-                        fontSize="sm"
-                        fontWeight="bold"
-                        color="white"
-                        maxW="150px"
-                        isTruncated
-                      >
-                        {prop}
+                    <Flex direction="column">
+                      <Flex align="center">
+                        <Badge mr={2} colorScheme="teal">
+                          {index + 1}
+                        </Badge>
+                        <Text
+                          fontSize="md"
+                          fontWeight="bold"
+                          color="white"
+                          maxW="150px"
+                          isTruncated
+                        >
+                          {prop}
+                        </Text>
+                      </Flex>
+                      <Text fontSize="xs" color="gray.400" mt={0} ml={0}>
+                        {data.type}
                       </Text>
                     </Flex>
                   </CardHeader>
 
                   <CardBody p={1} mt={4}>
                     <Flex direction="column">
-                      {data.goal === "Fit to Property" ? (
+                      {data.goal === 'Fit to Property' ? (
                         <Text fontSize="xs" color="white">
-                          {data.minimum_value !== " "
+                          {data.minimum_value !== ' '
                             ? data.minimum_value
-                            : "NaN"}
+                            : 'NaN'}
                         </Text>
                       ) : (
                         <Text fontSize="xs" color="white">
-                          {data.minimum_value !== " "
+                          {data.minimum_value !== ' '
                             ? data.minimum_value
-                            : "NaN"}{" "}
-                          ~{" "}
-                          {data.maximum_value !== " "
+                            : 'NaN'}{' '}
+                          ~{' '}
+                          {data.maximum_value !== ' '
                             ? data.maximum_value
-                            : "NaN"}
+                            : 'NaN'}
                         </Text>
                       )}
                       <Text fontSize="xs" color={textColor}>
-                        {data.goal || "-"}
+                        {data.goal || '-'}
                       </Text>
                     </Flex>
                   </CardBody>
@@ -237,7 +242,7 @@ const SetPrioritiesPage = () => {
   return (
     <Flex
       flexDirection="column"
-      pt={{ base: "120px", md: "75px" }}
+      pt={{ base: '120px', md: '75px' }}
       px={6}
       color="white"
     >
@@ -268,7 +273,7 @@ const SetPrioritiesPage = () => {
       <Box mb={6} py={50}>
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="priorities" direction="horizontal">
-            {(provided) => (
+            {provided => (
               <Flex
                 ref={provided.innerRef}
                 {...provided.droppableProps}

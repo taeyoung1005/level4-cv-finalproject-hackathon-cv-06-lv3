@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -12,17 +12,17 @@ import {
   Textarea,
   VStack,
   Flex,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react';
 
 function AddProjectDialog({ isOpen, onClose, onAdd }) {
-  const [newProjectName, setNewProjectName] = useState("");
-  const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDescription, setNewProjectDescription] = useState('');
 
   const handleAdd = () => {
     if (newProjectName.trim() && newProjectDescription.trim()) {
       onAdd({ name: newProjectName, description: newProjectDescription });
-      setNewProjectName("");
-      setNewProjectDescription("");
+      setNewProjectName('');
+      setNewProjectDescription('');
       onClose();
     }
   };
@@ -38,22 +38,22 @@ function AddProjectDialog({ isOpen, onClose, onAdd }) {
             <Input
               placeholder="Project Name"
               value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
+              onChange={e => setNewProjectName(e.target.value)}
               focusBorderColor="teal.400"
               bg="gray.800"
               borderRadius="md"
               color="white"
-              _placeholder={{ color: "gray.400" }}
+              _placeholder={{ color: 'gray.400' }}
             />
             <Textarea
               placeholder="Project Description"
               value={newProjectDescription}
-              onChange={(e) => setNewProjectDescription(e.target.value)}
+              onChange={e => setNewProjectDescription(e.target.value)}
               focusBorderColor="teal.400"
               bg="gray.800"
               borderRadius="md"
               color="white"
-              _placeholder={{ color: "gray.400" }}
+              _placeholder={{ color: 'gray.400' }}
             />
           </VStack>
         </ModalBody>

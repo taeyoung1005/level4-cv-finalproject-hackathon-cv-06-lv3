@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { shallowEqual, useDispatch, useSelector } from "react-redux";
-import { useParams, useHistory } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useParams, useHistory } from 'react-router-dom';
 import {
   Box,
   Flex,
@@ -11,17 +11,17 @@ import {
   Input,
   Grid,
   useToast,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react';
 import {
   ArrowForwardIcon,
   ArrowBackIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-} from "@chakra-ui/icons";
-import Card from "components/Card/Card";
-import CardBody from "components/Card/CardBody";
-import CardHeader from "components/Card/CardHeader";
-import BarChart from "components/Charts/BarChart";
+} from '@chakra-ui/icons';
+import Card from 'components/Card/Card';
+import CardBody from 'components/Card/CardBody';
+import CardHeader from 'components/Card/CardHeader';
+import BarChart from 'components/Charts/BarChart';
 
 import {
   fetchFlowProperties,
@@ -29,9 +29,9 @@ import {
   fetchOptimizationData,
   fetchPropertyHistograms,
   postOptimizationData,
-} from "store/features/flowSlice";
-import PieChart from "components/Charts/PieChart";
-import { createModelThunk } from "store/features/flowSlice";
+} from 'store/features/flowSlice';
+import PieChart from 'components/Charts/PieChart';
+import { createModelThunk } from 'store/features/flowSlice';
 
 const SetGoalsPage = () => {
   const { projectId, flowId } = useParams();
@@ -41,45 +41,43 @@ const SetGoalsPage = () => {
 
   // Redux
   const properties = useSelector(
-    (state) => state.flows.newCategories[flowId] || {},
+    state => state.flows.newCategories[flowId] || {},
     shallowEqual
   );
   const histograms = useSelector(
-    (state) => state.flows.histograms[flowId] || {},
+    state => state.flows.histograms[flowId] || {},
     shallowEqual
   );
 
   const types = useSelector(
-    (state) => state.flows.properties[flowId] || {},
+    state => state.flows.properties[flowId] || {},
     shallowEqual
   );
 
   const optimizationData = useSelector(
-    (state) => state.flows.optimizationData[flowId] || {},
+    state => state.flows.optimizationData[flowId] || {},
     shallowEqual
   );
 
-  const redux = useSelector((state) => state);
+  const redux = useSelector(state => state);
 
   // Property 분류
   const controllableProperties = useMemo(
     () =>
-      Object.keys(properties).filter(
-        (key) => properties[key] === "controllable"
-      ),
+      Object.keys(properties).filter(key => properties[key] === 'controllable'),
     [properties]
   );
   const outputProperties = useMemo(
-    () => Object.keys(properties).filter((key) => properties[key] === "output"),
+    () => Object.keys(properties).filter(key => properties[key] === 'output'),
     [properties]
   );
 
   const getPropertyType = (property, types) => {
-    if (types.numerical.includes(property)) return "numerical";
-    if (types.categorical.includes(property)) return "categorical";
-    if (types.text.includes(property)) return "text";
-    if (types.unavailable.includes(property)) return "unavailable";
-    return "numerical"; // 기본값
+    if (types.numerical.includes(property)) return 'numerical';
+    if (types.categorical.includes(property)) return 'categorical';
+    if (types.text.includes(property)) return 'text';
+    if (types.unavailable.includes(property)) return 'unavailable';
+    return 'numerical'; // 기본값
   };
 
   // 페이징
@@ -107,7 +105,7 @@ const SetGoalsPage = () => {
     const othersValue = data
       .slice(limit - 1)
       .reduce((acc, item) => acc + item.value, 0);
-    return [...topCategories, { label: "Others", value: othersValue }];
+    return [...topCategories, { label: 'Others', value: othersValue }];
   }
 
   // ------------------------------------------------------------
@@ -122,7 +120,7 @@ const SetGoalsPage = () => {
         try {
           await dispatch(fetchFlowProperties(flowId)).unwrap();
         } catch (err) {
-          console.error("Failed to fetch flow properties:", err);
+          console.error('Failed to fetch flow properties:', err);
         }
       }
       setInitPropertyReady(true);
@@ -160,7 +158,7 @@ const SetGoalsPage = () => {
       controllableProperties[currentControllablePage - 1];
     const outputProp = outputProperties[currentOutputPage - 1];
 
-    const handlePropertyFetch = async (prop) => {
+    const handlePropertyFetch = async prop => {
       if (!prop) return;
 
       // Case 1: 이미 optimizationData가 있는 경우 → 바로 리턴
@@ -181,7 +179,7 @@ const SetGoalsPage = () => {
             })
           ).unwrap();
         } catch (err) {
-          console.error("Failed to fetch optimization data:", err);
+          console.error('Failed to fetch optimization data:', err);
         }
         return;
       }
@@ -193,7 +191,7 @@ const SetGoalsPage = () => {
           fetchPropertyHistograms({ flowId, column_name: prop })
         ).unwrap();
       } catch (err) {
-        console.error("Failed to fetch histogram:", err);
+        console.error('Failed to fetch histogram:', err);
       }
 
       try {
@@ -206,7 +204,7 @@ const SetGoalsPage = () => {
         ).unwrap();
       } catch (err) {
         console.error(
-          "Failed to fetch optimization data after fetching histogram:",
+          'Failed to fetch optimization data after fetching histogram:',
           err
         );
         // fallback: redux에 저장된 histograms[prop]가 없으면 fetchedHistogramData 사용
@@ -222,10 +220,10 @@ const SetGoalsPage = () => {
               const diff = maxEdge - minEdge;
               const newMin = (minEdge - diff * 0.1)
                 .toFixed(4)
-                .replace(/\.?0+$/, "");
+                .replace(/\.?0+$/, '');
               const newMax = (maxEdge + diff * 0.1)
                 .toFixed(4)
-                .replace(/\.?0+$/, "");
+                .replace(/\.?0+$/, '');
 
               await dispatch(
                 updateOptimizationData({
@@ -235,15 +233,15 @@ const SetGoalsPage = () => {
                     minimum_value: newMin,
                     maximum_value: newMax,
                     goal:
-                      properties[prop] === "output" ||
-                      types[prop] === "categorical"
-                        ? "Fit to Property"
-                        : "No Optimization",
+                      properties[prop] === 'output' ||
+                      types[prop] === 'categorical'
+                        ? 'Fit to Property'
+                        : 'No Optimization',
                   },
                   type: properties[prop],
                 })
               );
-              setLocalValues((prev) => ({
+              setLocalValues(prev => ({
                 ...prev,
                 [prop]: {
                   ...(prev[prop] || {}),
@@ -253,7 +251,7 @@ const SetGoalsPage = () => {
               }));
             }
           } catch (e) {
-            console.error("Error initializing optimization data:", e);
+            console.error('Error initializing optimization data:', e);
           }
         }
       }
@@ -289,17 +287,17 @@ const SetGoalsPage = () => {
       controllableProperties[currentControllablePage - 1];
     const outputProp = outputProperties[currentOutputPage - 1];
 
-    const updateChartDataForProperty = (prop) => {
+    const updateChartDataForProperty = prop => {
       if (!prop) return;
       const hData = histograms[prop]; // histogram 데이터 (redux에서 읽음)
       const oData = optimizationData[prop]; // optimizationData (redux에서 읽음)
       // histogram 데이터가 없으면 차트 생성 자체 불가
       if (!hData) return;
 
-      const propertyType = getPropertyType(prop, types) || "numerical";
+      const propertyType = getPropertyType(prop, types) || 'numerical';
 
       try {
-        if (propertyType === "numerical") {
+        if (propertyType === 'numerical') {
           const binEdges = JSON.parse(hData.bin_edges);
           const counts = JSON.parse(hData.counts);
           if (binEdges.length < 2) return;
@@ -319,8 +317,8 @@ const SetGoalsPage = () => {
               : parseFloat(binEdges[binEdges.length - 1]) + diff;
           const total = counts.reduce((sum, val) => sum + val, 0);
           const avgValue = total / counts.length;
-          const colorsArray = counts.map((val) =>
-            val === Math.max(...counts) ? "#582CFF" : "#2CD9FF"
+          const colorsArray = counts.map(val =>
+            val === Math.max(...counts) ? '#582CFF' : '#2CD9FF'
           );
 
           // 만약 optimizationData가 없으면 fallback 로직 실행
@@ -331,10 +329,10 @@ const SetGoalsPage = () => {
             const fallbackDiff = maxEdgeFallback - minEdgeFallback;
             const fallbackMin = (minEdgeFallback - fallbackDiff * 0.1)
               .toFixed(4)
-              .replace(/\.?0+$/, "");
+              .replace(/\.?0+$/, '');
             const fallbackMax = (maxEdgeFallback + fallbackDiff * 0.1)
               .toFixed(4)
-              .replace(/\.?0+$/, "");
+              .replace(/\.?0+$/, '');
             // Redux 업데이트 fallback
             dispatch(
               updateOptimizationData({
@@ -344,15 +342,15 @@ const SetGoalsPage = () => {
                   minimum_value: fallbackMin,
                   maximum_value: fallbackMax,
                   goal:
-                    properties[prop] === "output"
-                      ? "Fit to Property"
-                      : "No Optimization",
+                    properties[prop] === 'output'
+                      ? 'Fit to Property'
+                      : 'No Optimization',
                 },
                 type: properties[prop],
               })
             );
             // localValues 업데이트 fallback (input 영역 초기값 설정)
-            setLocalValues((prev) => ({
+            setLocalValues(prev => ({
               ...prev,
               [prop]: {
                 ...(prev[prop] || {}),
@@ -363,10 +361,10 @@ const SetGoalsPage = () => {
           }
 
           // 최종 chartData 세팅 (oData가 있든 없든, fallback 경우 위에서 localValues만 업데이트)
-          setChartData((prev) => ({
+          setChartData(prev => ({
             ...prev,
             [prop]: {
-              type: "bar",
+              type: 'bar',
               barChartData: [
                 {
                   name: prop,
@@ -378,7 +376,7 @@ const SetGoalsPage = () => {
               ],
               barChartOptions: {
                 chart: {
-                  type: "bar",
+                  type: 'bar',
                   toolbar: { show: false },
                   zoom: { enabled: false },
                 },
@@ -386,13 +384,13 @@ const SetGoalsPage = () => {
                   bar: {
                     distributed: true,
                     borderRadius: 8,
-                    columnWidth: "12px",
+                    columnWidth: '12px',
                   },
                 },
                 dataLabels: { enabled: false },
                 legend: { show: false },
                 xaxis: {
-                  type: "numeric",
+                  type: 'numeric',
                   min:
                     Math.min(parseFloat(minX), parseFloat(binEdges[0])) -
                     diff * 0.5,
@@ -404,24 +402,24 @@ const SetGoalsPage = () => {
                     diff * 0.5,
                   labels: {
                     show: false,
-                    style: { colors: "#fff", fontSize: "10px" },
+                    style: { colors: '#fff', fontSize: '10px' },
                     rotate: -45,
                     rotateAlways: true,
                   },
                 },
                 yaxis: {
-                  labels: { style: { colors: "#fff", fontSize: "12px" } },
+                  labels: { style: { colors: '#fff', fontSize: '12px' } },
                 },
                 tooltip: {
-                  theme: "dark",
+                  theme: 'dark',
                   custom: ({ series, seriesIndex, dataPointIndex, w }) => {
                     // binEdges 배열은 상위 스코프에서 정의되어 있어야 함.
                     const startEdge = parseFloat(binEdges[dataPointIndex])
                       .toFixed(3)
-                      .replace(/\.?0+$/, "");
+                      .replace(/\.?0+$/, '');
                     const endEdge = parseFloat(binEdges[dataPointIndex + 1])
                       .toFixed(3)
-                      .replace(/\.?0+$/, "");
+                      .replace(/\.?0+$/, '');
                     const countValue = series[seriesIndex][dataPointIndex];
                     return `<div style="padding: 8px; color: #fff; background: #00000080;">
                               <div><strong>Range:</strong> ${parseFloat(
@@ -434,26 +432,26 @@ const SetGoalsPage = () => {
                               )}</div>
                             </div>`;
                   },
-                  style: { fontSize: "14px" },
+                  style: { fontSize: '14px' },
                 },
                 colors: colorsArray,
                 annotations: {
                   yaxis: [
                     {
                       y: avgValue,
-                      borderColor: "yellow",
+                      borderColor: 'yellow',
                       // 선 두께 조절 (만약 동작하지 않으면 CSS 오버라이드 필요)
                       borderWidth: 3,
                       // 또는 strokeWidth: 3,
                       label: {
                         //    text: `Avg: ${avgValue.toFixed(2)}`,
-                        position: "left",
+                        position: 'left',
                         offsetX: 35,
                         style: {
-                          color: "#fff",
-                          background: "#0c0c0c",
-                          fontSize: "10px",
-                          fontWeight: "bold",
+                          color: '#fff',
+                          background: '#0c0c0c',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
                         },
                       },
                     },
@@ -461,29 +459,29 @@ const SetGoalsPage = () => {
                   xaxis: [
                     {
                       x: minX,
-                      borderColor: "rgba(72,187,120,1)",
+                      borderColor: 'rgba(72,187,120,1)',
                       borderWidth: 3,
                       label: {
                         //    text: `Min: ${minX}`,
                         style: {
-                          color: "#fff",
-                          background: "#0c0c0c",
-                          fontSize: "10px",
-                          fontWeight: "bold",
+                          color: '#fff',
+                          background: '#0c0c0c',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
                         },
                       },
                     },
                     {
                       x: maxX,
-                      borderColor: "rgba(252,130,129,1)",
+                      borderColor: 'rgba(252,130,129,1)',
                       borderWidth: 3,
                       label: {
                         // text: `Max: ${maxX}`,
                         style: {
-                          color: "#fff",
-                          background: "#0c0c0c",
-                          fontSize: "10px",
-                          fontWeight: "bold",
+                          color: '#fff',
+                          background: '#0c0c0c',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
                         },
                       },
                     },
@@ -492,7 +490,7 @@ const SetGoalsPage = () => {
               },
             },
           }));
-        } else if (propertyType === "categorical") {
+        } else if (propertyType === 'categorical') {
           // categorical인 경우 PieChart 데이터 생성
           const binEdges = JSON.parse(hData.bin_edges);
           const counts = JSON.parse(hData.counts);
@@ -500,19 +498,19 @@ const SetGoalsPage = () => {
             label: edge,
             value: counts[i] || 0,
           }));
-          pieData = combineCategories(pieData, 15);
 
-          setChartData((prev) => ({
+          setChartData(prev => ({
             ...prev,
             [prop]: {
-              type: "pie",
-              pieChartData: pieData,
+              type: 'pie',
+              pieChartData: combineCategories(pieData, 15),
+              pieRealData: pieData,
               pieChartOptions: {},
             },
           }));
         }
       } catch (err) {
-        console.error("Error making chart data for property:", err);
+        console.error('Error making chart data for property:', err);
       }
     };
 
@@ -534,7 +532,7 @@ const SetGoalsPage = () => {
   const handleNextStep = async () => {
     try {
       // 1. optimizationData에 대해 POST 요청 실행
-      const postPromises = Object.keys(optimizationData).map((prop) => {
+      const postPromises = Object.keys(optimizationData).map(prop => {
         const data = optimizationData[prop];
         if (!data) return null;
         return dispatch(
@@ -553,35 +551,35 @@ const SetGoalsPage = () => {
       // 3. 모델 생성 후, 다음 페이지로 이동 (예: set-priorities 페이지)
       history.push(`/projects/${projectId}/flows/${flowId}/set-priorities`);
     } catch (error) {
-      console.error("Failed to post optimization data or create model:", error);
+      console.error('Failed to post optimization data or create model:', error);
       toast({
-        title: "Error",
-        description: "Failed to update optimization data or create model.",
-        status: "error",
+        title: 'Error',
+        description: 'Failed to update optimization data or create model.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
-        position: "bottom",
+        position: 'bottom',
         containerStyle: {
-          marginLeft: "280px",
+          marginLeft: '280px',
         },
       });
     }
   };
 
-  const getGoalColor = (goal) => {
+  const getGoalColor = goal => {
     switch (goal) {
-      case "No Optimization":
-        return "gray.100";
-      case "Maximize":
-        return "green.100";
-      case "Minimize":
-        return "red.100";
-      case "Fit to Range":
-        return "orange.100";
-      case "Fit to Property":
-        return "purple.100";
+      case 'No Optimization':
+        return 'gray.100';
+      case 'Maximize':
+        return 'green.100';
+      case 'Minimize':
+        return 'red.100';
+      case 'Fit to Range':
+        return 'orange.100';
+      case 'Fit to Property':
+        return 'purple.100';
       default:
-        return "gray.100";
+        return 'gray.100';
     }
   };
 
@@ -632,12 +630,12 @@ const SetGoalsPage = () => {
     }
 
     const propertyData = optimizationData[property] || {
-      minimum_value: "",
-      maximum_value: "",
-      goal: category === "output" ? "Fit to Property" : "No Optimization",
+      minimum_value: '',
+      maximum_value: '',
+      goal: category === 'output' ? 'Fit to Property' : 'No Optimization',
     };
     const editing = isEditing[property] || false;
-    const currentType = getPropertyType(property, types) || "numerical"; // "categorical"일 수도 있음
+    const currentType = getPropertyType(property, types) || 'numerical'; // "categorical"일 수도 있음
 
     const chartForProperty = chartData[property] || {
       barChartData: [],
@@ -645,7 +643,7 @@ const SetGoalsPage = () => {
     };
 
     const chartComponent =
-      currentType === "categorical" ? (
+      currentType === 'categorical' ? (
         <PieChart data={chartForProperty.pieChartData || []} />
       ) : (
         <BarChart
@@ -655,12 +653,12 @@ const SetGoalsPage = () => {
       );
 
     const optimizationOptions =
-      currentType === "categorical" || category === "output"
-        ? ["Maximize", "Minimize", "Fit to Range", "Fit to Property"]
-        : ["No Optimization", "Maximize", "Minimize", "Fit to Range"];
+      currentType === 'categorical' || category === 'output'
+        ? ['Maximize', 'Minimize', 'Fit to Range', 'Fit to Property']
+        : ['No Optimization', 'Maximize', 'Minimize', 'Fit to Range'];
 
     return (
-      <Card w="100%" h="calc(80vh - 140px)">
+      <Card w="100%" h="calc(80vh - 130px)">
         <CardHeader
           display="flex"
           justifyContent="space-between"
@@ -680,38 +678,38 @@ const SetGoalsPage = () => {
               color={getGoalColor(propertyData.goal)}
               textAlign="center"
             >
-              {propertyData.goal || "-"}
+              {propertyData.goal || '-'}
             </Text>
           </Card>
         </CardHeader>
         <Divider borderColor="gray.600" />
         <CardBody display="flex" flexDirection="column" alignItems="center">
-          {currentType !== "categorical" && (
+          {currentType !== 'categorical' && (
             <Box w="100%" h="310px">
               {chartComponent}
             </Box>
           )}
-          {currentType === "categorical" && (
+          {currentType === 'categorical' && (
             <Box h="300px" mt={4}>
               {chartComponent}
             </Box>
           )}
           {/* Target 입력 */}
-          {propertyData.goal === "Fit to Property" ||
-          currentType === "categorical" ? (
+          {propertyData.goal === 'Fit to Property' ||
+          currentType === 'categorical' ? (
             <Box w="50%" mt={8}>
               <Text fontSize="xs" color="gray.300" textAlign="center">
                 Target Value
               </Text>
               <Input
                 value={
-                  localValues[property]?.target ?? propertyData.target ?? ""
+                  localValues[property]?.target ?? propertyData.target ?? ''
                 }
                 isReadOnly={!editing}
                 color="rgba(144, 0, 227, 0.5)"
                 textAlign="center"
-                onChange={(e) =>
-                  setLocalValues((prev) => ({
+                onChange={e =>
+                  setLocalValues(prev => ({
                     ...prev,
                     [property]: {
                       ...prev[property],
@@ -720,38 +718,38 @@ const SetGoalsPage = () => {
                   }))
                 }
                 onFocus={() =>
-                  setIsEditing((prev) => ({ ...prev, [property]: true }))
+                  setIsEditing(prev => ({ ...prev, [property]: true }))
                 }
                 onBlur={() => {
-                  setIsEditing((prev) => ({ ...prev, [property]: false }));
+                  setIsEditing(prev => ({ ...prev, [property]: false }));
                   const newValRaw = localValues[property]?.target;
 
-                  if (currentType === "numerical") {
+                  if (currentType === 'numerical') {
                     console.log(newValRaw);
                     // 숫자 타입 검증
                     let newVal = parseFloat(newValRaw);
                     if (isNaN(newVal)) {
-                      setLocalValues((prev) => ({
+                      setLocalValues(prev => ({
                         ...prev,
                         [property]: {
                           ...prev[property],
-                          target: propertyData.target || "",
+                          target: propertyData.target || '',
                         },
                       }));
                       toast({
-                        title: "Invalid value",
-                        description: "Please enter a numeric value for Target.",
-                        status: "error",
+                        title: 'Invalid value',
+                        description: 'Please enter a numeric value for Target.',
+                        status: 'error',
                         duration: 1000,
                         isClosable: true,
                         containerStyle: {
-                          marginLeft: "280px",
+                          marginLeft: '280px',
                         },
                       });
                       return;
                     }
-                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
-                    setLocalValues((prev) => ({
+                    const formatted = newVal.toFixed(4).replace(/\.?0+$/, '');
+                    setLocalValues(prev => ({
                       ...prev,
                       [property]: { ...prev[property], target: formatted },
                     }));
@@ -768,22 +766,22 @@ const SetGoalsPage = () => {
                       })
                     );
                     toast({
-                      title: "Optimization target updated.",
+                      title: 'Optimization target updated.',
                       description: `Target value updated to ${newVal}.`,
-                      status: "success",
+                      status: 'success',
                       duration: 1000,
                       isClosable: true,
                       containerStyle: {
-                        marginLeft: "280px",
+                        marginLeft: '280px',
                       },
                     });
-                  } else if (currentType === "categorical") {
+                  } else if (currentType === 'categorical') {
                     // 범주형 타입 검증
                     // chartForProperty.pieChartData에 실제 카테고리 값들이 있다고 가정
-                    const allowedValues = (chartForProperty.pieChartData || [])
-                      .map((item) => item.label)
+                    const allowedValues = (chartForProperty.pieRealData || [])
+                      .map(item => item.label)
                       .map(String);
-                    console.log(allowedValues, newValRaw, "!!");
+                    console.log(allowedValues, newValRaw, '!!');
                     if (allowedValues.includes(newValRaw)) {
                       // 여기서 target 대신에 minimum_value(또는 maximum_value)로 저장할 수 있음.
                       // 예시로 minimum_value를 업데이트하는 식으로 처리:
@@ -799,34 +797,34 @@ const SetGoalsPage = () => {
                         })
                       );
                       toast({
-                        title: "Optimization value updated.",
+                        title: 'Optimization value updated.',
                         description: `Target value updated to ${newValRaw}.`,
-                        status: "success",
+                        status: 'success',
                         duration: 1000,
                         isClosable: true,
                         containerStyle: {
-                          marginLeft: "280px",
+                          marginLeft: '280px',
                         },
                       });
                     } else {
                       // 유효하지 않으면 이전 값으로 복구
-                      setLocalValues((prev) => ({
+                      setLocalValues(prev => ({
                         ...prev,
                         [property]: {
                           ...prev[property],
-                          target: propertyData.target || "",
+                          target: propertyData.target || '',
                         },
                       }));
                       toast({
-                        title: "Invalid value",
+                        title: 'Invalid value',
                         description:
-                          "Please enter one of the allowed category values: " +
-                          allowedValues.join(", "),
-                        status: "error",
+                          'Please enter one of the allowed category values: ' +
+                          allowedValues.join(', '),
+                        status: 'error',
                         duration: 1000,
                         isClosable: true,
                         containerStyle: {
-                          marginLeft: "280px",
+                          marginLeft: '280px',
                         },
                       });
                     }
@@ -853,23 +851,23 @@ const SetGoalsPage = () => {
                     isReadOnly={!editing}
                     color="rgba(0, 227, 150, 0.5)"
                     textAlign="center"
-                    onChange={(e) =>
-                      setLocalValues((prev) => ({
+                    onChange={e =>
+                      setLocalValues(prev => ({
                         ...prev,
                         [property]: { ...prev[property], min: e.target.value },
                       }))
                     }
                     onFocus={() =>
-                      setIsEditing((prev) => ({ ...prev, [property]: true }))
+                      setIsEditing(prev => ({ ...prev, [property]: true }))
                     }
                     onBlur={() => {
-                      setIsEditing((prev) => ({ ...prev, [property]: false }));
+                      setIsEditing(prev => ({ ...prev, [property]: false }));
                       const newValRaw = localValues[property]?.min;
                       let newVal = parseFloat(newValRaw);
                       const currentMax = parseFloat(propertyData.maximum_value);
                       if (isNaN(newVal)) {
                         console.log(newValRaw);
-                        setLocalValues((prev) => ({
+                        setLocalValues(prev => ({
                           ...prev,
                           [property]: {
                             ...prev[property],
@@ -877,19 +875,19 @@ const SetGoalsPage = () => {
                           },
                         }));
                         toast({
-                          title: "Invalid value",
-                          description: "Please enter a numeric value for Min.",
-                          status: "error",
+                          title: 'Invalid value',
+                          description: 'Please enter a numeric value for Min.',
+                          status: 'error',
                           duration: 1000,
                           isClosable: true,
                           containerStyle: {
-                            marginLeft: "280px",
+                            marginLeft: '280px',
                           },
                         });
                         return;
                       }
-                      if (newVal >= currentMax) {
-                        setLocalValues((prev) => ({
+                      if (newVal > currentMax) {
+                        setLocalValues(prev => ({
                           ...prev,
                           [property]: {
                             ...prev[property],
@@ -897,21 +895,20 @@ const SetGoalsPage = () => {
                           },
                         }));
                         toast({
-                          title: "Invalid range",
-                          description:
-                            "Min cannot be greater than or equal to Max.",
-                          status: "error",
+                          title: 'Invalid range',
+                          description: 'Min cannot be greater than Max.',
+                          status: 'error',
                           duration: 1000,
                           isClosable: true,
                           containerStyle: {
-                            marginLeft: "280px",
+                            marginLeft: '280px',
                           },
                         });
                         return;
                       }
                       // 포맷팅: 숫자를 원하는 소수점 자리까지 표현한 문자열로 변환
-                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
-                      setLocalValues((prev) => ({
+                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, '');
+                      setLocalValues(prev => ({
                         ...prev,
                         [property]: { ...prev[property], min: formatted },
                       }));
@@ -925,13 +922,13 @@ const SetGoalsPage = () => {
                         })
                       );
                       toast({
-                        title: "Optimization range updated.",
+                        title: 'Optimization range updated.',
                         description: `Min value has been updated to ${formatted}.`,
-                        status: "success",
+                        status: 'success',
                         duration: 1000,
                         isClosable: true,
                         containerStyle: {
-                          marginLeft: "280px",
+                          marginLeft: '280px',
                         },
                       });
                     }}
@@ -953,22 +950,22 @@ const SetGoalsPage = () => {
                     isReadOnly={!editing}
                     color="rgba(255, 69, 96, 0.5)"
                     textAlign="center"
-                    onChange={(e) =>
-                      setLocalValues((prev) => ({
+                    onChange={e =>
+                      setLocalValues(prev => ({
                         ...prev,
                         [property]: { ...prev[property], max: e.target.value },
                       }))
                     }
                     onFocus={() =>
-                      setIsEditing((prev) => ({ ...prev, [property]: true }))
+                      setIsEditing(prev => ({ ...prev, [property]: true }))
                     }
                     onBlur={() => {
-                      setIsEditing((prev) => ({ ...prev, [property]: false }));
+                      setIsEditing(prev => ({ ...prev, [property]: false }));
                       const newValRaw = localValues[property]?.max;
                       let newVal = parseFloat(newValRaw);
                       const currentMin = parseFloat(propertyData.minimum_value);
                       if (isNaN(newVal)) {
-                        setLocalValues((prev) => ({
+                        setLocalValues(prev => ({
                           ...prev,
                           [property]: {
                             ...prev[property],
@@ -976,19 +973,19 @@ const SetGoalsPage = () => {
                           },
                         }));
                         toast({
-                          title: "Invalid value",
-                          description: "Please enter a numeric value for Max.",
-                          status: "error",
+                          title: 'Invalid value',
+                          description: 'Please enter a numeric value for Max.',
+                          status: 'error',
                           duration: 1000,
                           isClosable: true,
                           containerStyle: {
-                            marginLeft: "280px",
+                            marginLeft: '280px',
                           },
                         });
                         return;
                       }
-                      if (newVal <= currentMin) {
-                        setLocalValues((prev) => ({
+                      if (newVal < currentMin) {
+                        setLocalValues(prev => ({
                           ...prev,
                           [property]: {
                             ...prev[property],
@@ -996,20 +993,19 @@ const SetGoalsPage = () => {
                           },
                         }));
                         toast({
-                          title: "Invalid range",
-                          description:
-                            "Max cannot be less than or equal to Min.",
-                          status: "error",
+                          title: 'Invalid range',
+                          description: 'Max cannot be less than Min.',
+                          status: 'error',
                           duration: 1000,
                           isClosable: true,
                           containerStyle: {
-                            marginLeft: "280px",
+                            marginLeft: '280px',
                           },
                         });
                         return;
                       }
-                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, "");
-                      setLocalValues((prev) => ({
+                      const formatted = newVal.toFixed(4).replace(/\.?0+$/, '');
+                      setLocalValues(prev => ({
                         ...prev,
                         [property]: { ...prev[property], max: formatted },
                       }));
@@ -1022,13 +1018,13 @@ const SetGoalsPage = () => {
                         })
                       );
                       toast({
-                        title: "Optimization range updated.",
+                        title: 'Optimization range updated.',
                         description: `Max value has been updated to ${formatted}.`,
-                        status: "success",
+                        status: 'success',
                         duration: 1000,
                         isClosable: true,
                         containerStyle: {
-                          marginLeft: "280px",
+                          marginLeft: '280px',
                         },
                       });
                     }}
@@ -1040,33 +1036,33 @@ const SetGoalsPage = () => {
           ;{/* Goal 설정 */}
           <Box w="100%" mt={0}>
             <Grid templateColumns="repeat(2, 2fr)" gap={2}>
-              {optimizationOptions.map((option) => (
+              {optimizationOptions.map(option => (
                 <Button
                   key={option}
                   bg={
                     propertyData.goal === option
                       ? getGoalColor(option)
-                      : "linear-gradient(125deg,rgba(74, 81, 114, 0.5) 0%,rgba(98, 119, 157, 0.8) 50%, rgba(13, 23, 67, 0.5) 100%)"
+                      : 'linear-gradient(125deg,rgba(74, 81, 114, 0.5) 0%,rgba(98, 119, 157, 0.8) 50%, rgba(13, 23, 67, 0.5) 100%)'
                   }
-                  color={propertyData.goal === option ? "#0c1c1c" : "#fff"}
+                  color={propertyData.goal === option ? '#0c1c1c' : '#fff'}
                   isDisabled={propertyData.goal === option}
-                  _hover={{ bg: "blue.100" }}
+                  _hover={{ bg: 'blue.100' }}
                   onClick={() => {
                     // 만약 categorical 또는 output인데 옵션이 Fit to Property가 아니면 경고 toast
                     if (
-                      (currentType === "categorical" ||
-                        category === "output") &&
-                      option !== "Fit to Property"
+                      (currentType === 'categorical' ||
+                        category === 'output') &&
+                      option !== 'Fit to Property'
                     ) {
                       toast({
-                        title: "Invalid Option",
+                        title: 'Invalid Option',
                         description:
                           "For categorical or output properties, only 'Fit to Property' is allowed.",
-                        status: "warning",
+                        status: 'warning',
                         duration: 3000,
                         isClosable: true,
                         containerStyle: {
-                          marginLeft: "280px",
+                          marginLeft: '280px',
                         },
                       });
                       return;
@@ -1095,15 +1091,15 @@ const SetGoalsPage = () => {
   const totalControllablePages = controllableProperties.length;
   const totalOutputPages = outputProperties.length;
   const currentControllableProperty =
-    controllableProperties[currentControllablePage - 1] || "";
-  const currentOutputProperty = outputProperties[currentOutputPage - 1] || "";
+    controllableProperties[currentControllablePage - 1] || '';
+  const currentOutputProperty = outputProperties[currentOutputPage - 1] || '';
 
   const renderPagination = (currentPage, totalPages, setPage) => (
     <Flex justify="center" align="center" mt={4}>
       <IconButton
         aria-label="Previous Page"
         icon={<ChevronLeftIcon />}
-        onClick={() => setPage((prev) => (prev > 1 ? prev - 1 : prev))}
+        onClick={() => setPage(prev => (prev > 1 ? prev - 1 : prev))}
         isDisabled={currentPage === 1}
       />
       <Text color="white" mx={2}>
@@ -1112,18 +1108,18 @@ const SetGoalsPage = () => {
       <IconButton
         aria-label="Next Page"
         icon={<ChevronRightIcon />}
-        onClick={() => setPage((prev) => (prev < totalPages ? prev + 1 : prev))}
+        onClick={() => setPage(prev => (prev < totalPages ? prev + 1 : prev))}
         isDisabled={currentPage === totalPages}
       />
     </Flex>
   );
 
   return (
-    <Flex flexDirection="column" pt={{ base: "120px", md: "75px" }} px={6}>
+    <Flex flexDirection="column" pt={{ base: '120px', md: '75px' }} px={6}>
       {renderHeader()}
-      <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6} px={6}>
+      <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6} px={6}>
         <Box>
-          {renderPropertyCard("controllable", currentControllableProperty)}
+          {renderPropertyCard('controllable', currentControllableProperty)}
           {totalControllablePages > 1 &&
             renderPagination(
               currentControllablePage,
@@ -1132,7 +1128,7 @@ const SetGoalsPage = () => {
             )}
         </Box>
         <Box>
-          {renderPropertyCard("output", currentOutputProperty)}
+          {renderPropertyCard('output', currentOutputProperty)}
           {totalOutputPages > 1 &&
             renderPagination(
               currentOutputPage,
