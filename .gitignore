@@ -2,8 +2,9 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=django,visualstudiocode,python
 
 ### React ###
-node_modules/
+user-interface/node_modules/
 user-interface/package-lock.json
+user-interface/.env
 
 ### Django ###
 *.log
