@@ -1,6 +1,11 @@
 # Created by https://www.toptal.com/developers/gitignore/api/django,visualstudiocode,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=django,visualstudiocode,python
 
+### React ###
+user-interface/node_modules/
+user-interface/package-lock.json
+user-interface/.env
+
 ### Django ###
 *.log
 *.pot
