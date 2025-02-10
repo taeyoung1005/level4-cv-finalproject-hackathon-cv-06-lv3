@@ -48,7 +48,7 @@ export default function Footer(props) {
             fontSize="sm"
             href="https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3.git"
           >
-            {'Github'}
+            {'GitHub'}
           </Link>
         </ListItem>
         <ListItem

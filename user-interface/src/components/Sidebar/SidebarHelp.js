@@ -45,11 +45,11 @@ export function SidebarHelp(props) {
         Need help?
       </Text>
       <Text fontSize="xs" color="white" mb="10px">
-        Please check our docs
+        Please check our README.md
       </Text>
       <Link
         w="100%"
-        href="https://demos.creative-tim.com/docs-vision-ui-dashboard-chakra/"
+        href="https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/"
       >
         <Button
           fontSize="10px"
@@ -68,7 +68,7 @@ export function SidebarHelp(props) {
           }}
           color="white"
         >
-          DOCUMENTATION
+          README
         </Button>
       </Link>
     </Flex>

@@ -1,25 +1,6 @@
-/*!
-
-=========================================================
-* Vision UI Free Chakra - v1.0.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/vision-ui-free-chakra
-* Copyright 2021 Creative Tim (https://www.creative-tim.com/)
-* Licensed under MIT (https://github.com/creativetimofficial/vision-ui-free-chakra/blob/master LICENSE.md)
-
-* Design and Coded by Simmmple & Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-
 import {
   Avatar,
   Badge,
-  Button,
   Flex,
   Td,
   Text,
@@ -27,6 +8,8 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react';
 import React from 'react';
+import { FaGithub } from 'react-icons/fa';
+import { SiNotion } from 'react-icons/si';
 
 function TablesTableRow(props) {
   const {
@@ -35,16 +18,16 @@ function TablesTableRow(props) {
     email,
     subdomain,
     domain,
-    status,
-    date,
+    status, // GitHub URL
+    notion, // Notion URL
     lastItem,
   } = props;
+  // 기본 텍스트 색상 등은 필요에 따라 설정
   const textColor = useColorModeValue('gray.700', 'white');
-  const bgStatus = useColorModeValue('gray.400', '#1a202c');
-  const colorStatus = useColorModeValue('white', 'gray.400');
 
   return (
     <Tr>
+      {/* Author Column */}
       <Td
         minWidth={{ sm: '250px' }}
         ps="0px"
@@ -75,6 +58,7 @@ function TablesTableRow(props) {
         </Flex>
       </Td>
 
+      {/* Function/Details Column */}
       <Td
         border={lastItem ? 'none' : null}
         borderBottomColor="#56577A"
@@ -84,40 +68,37 @@ function TablesTableRow(props) {
           <Text fontSize="sm" color="#fff" fontWeight="normal">
             {domain}
           </Text>
-          <Text fontSize="sm" color="gray.400" fontWeight="normal">
+          <Text
+            fontSize="sm"
+            color="gray.400"
+            fontWeight="normal"
+            whiteSpace="pre-wrap"
+          >
             {subdomain}
           </Text>
         </Flex>
       </Td>
+
+      {/* Links Column: GitHub and Notion */}
       <Td border={lastItem ? 'none' : null} borderBottomColor="#56577A">
-        <Badge
-          bg={status === 'Online' ? 'green.400' : 'transparent'}
-          color={status === 'Online' ? 'white' : colorStatus}
-          fontSize="sm"
-          p="3px 10px"
-          borderRadius="8px"
-          border={status === 'Online' ? 'none' : '1px solid #fff'}
-          fontWeight="normal"
-        >
-          {status}
-        </Badge>
-      </Td>
-      <Td border={lastItem ? 'none' : null} borderBottomColor="#56577A">
-        <Text fontSize="sm" color="#fff" fontWeight="normal">
-          {date}
-        </Text>
-      </Td>
-      <Td border={lastItem ? 'none' : null} borderBottomColor="#56577A">
-        <Button p="0px" bg="transparent" variant="no-hover">
-          <Text
-            fontSize="sm"
-            color="gray.400"
-            fontWeight="bold"
-            cursor="pointer"
-          >
-            Edit
-          </Text>
-        </Button>
+        <Flex align="center" gap={4}>
+          <a href={status} target="_blank" rel="noopener noreferrer">
+            <Flex align="center">
+              <FaGithub color="blue.400" size="16px" />
+              <Text fontSize="sm" color="blue.200" ml={1}>
+                GitHub
+              </Text>
+            </Flex>
+          </a>
+          <a href={notion} target="_blank" rel="noopener noreferrer">
+            <Flex align="center">
+              <SiNotion color="black" size="16px" />
+              <Text fontSize="sm" color="blackAlpha.900" ml={1}>
+                Notion
+              </Text>
+            </Flex>
+          </a>
+        </Flex>
       </Td>
     </Tr>
   );
