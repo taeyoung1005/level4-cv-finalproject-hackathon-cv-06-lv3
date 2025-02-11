@@ -121,8 +121,6 @@ export const fetchFlowDatasets = createAsyncThunk(
 
       const data = await response.json();
 
-      console.log('hi', data);
-
       // 🔍 응답 검증
       if (!data.csvs || !Array.isArray(data.csvs)) {
         console.error(
@@ -144,8 +142,6 @@ export const fetchFlowDatasets = createAsyncThunk(
           fileName: csv_name,
         };
       });
-
-      console.log('hello', formattedDatasets);
 
       return { flowId, datasets: formattedDatasets };
     } catch (error) {

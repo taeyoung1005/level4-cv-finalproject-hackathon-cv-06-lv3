@@ -90,15 +90,6 @@ function AnalyzePropertiesPage() {
     0
   );
 
-  console.log(
-    redux,
-    projectDatasets,
-    flowDatasets,
-    selectedDatasets,
-    totalSelectedRows,
-    totalSelectedSize
-  );
-
   const numericCount = properties.numerical?.length || 0;
   const categoricalCount = properties.categorical?.length || 0;
   const textCount = properties.text?.length || 0;
