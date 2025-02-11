@@ -49,7 +49,7 @@ export function SidebarHelp(props) {
       </Text>
       <Link
         w="100%"
-        href="https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/"
+        href="https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/user-interface/README.md"
       >
         <Button
           fontSize="10px"
