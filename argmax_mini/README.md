@@ -29,17 +29,11 @@
 
 ---
 
-## 📊 데이터베이스 설계 (ERD)
-다음은 프로젝트의 데이터베이스 ERD(Entity Relationship Diagram)입니다.
-
-![ERD](../blueprint/ERD.png)
-
----
-
-## 🏗 기능 명세서
-아래는 시스템 기능 명세서입니다.
-
-![기능 명세서](../blueprint/기능명세서.png)
+## ⚙️ Backend Tech Stack
+- 🛠 **Framework**: Django, Django REST Framework (DRF)
+- 🗄 **Database**: SQLite3
+- 📡 **API Docs**: drf-yasg (Swagger)
+- 🐳 **Deployment**: Docker & Docker Compose
 
 ---
 
@@ -151,7 +145,19 @@ python manage.py test data_processing.tests.test_analytics
 ```
 
 ---
+## 📊 데이터베이스 설계 (ERD)
+다음은 프로젝트의 데이터베이스 ERD(Entity Relationship Diagram)입니다.
 
+![ERD](../blueprint/ERD.png)
+
+---
+
+## 🏗 기능 명세서
+아래는 시스템 기능 명세서입니다.
+
+![기능 명세서](../blueprint/기능명세서.png)
+
+---
 
 ## 📧 문의
 - 프로젝트 관련 문의: **mu07010@gmail.com**

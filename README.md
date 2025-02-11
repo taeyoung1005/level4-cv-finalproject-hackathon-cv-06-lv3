@@ -107,7 +107,7 @@
 
 ### 💻 Backend
 
-- 
+-
 
 ## 🚀 How to Run with Docker Compose  
 
