@@ -3,6 +3,9 @@ import bgBody from 'assets/img/background-body-admin.png';
 export const bgAdmin = {
   styles: {
     global: props => ({
+      '*': {
+        userSelect: 'none',
+      },
       html: {
         msOverflowStyle: 'none', // IE, Edge
         scrollbarWidth: 'none', // Firefox
