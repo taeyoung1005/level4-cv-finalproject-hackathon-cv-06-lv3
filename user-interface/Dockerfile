@@ -1,4 +1,3 @@
-# 예시 Dockerfile (React 앱 빌드 후 Nginx 서빙)
 FROM node:14 as build
 WORKDIR /app
 COPY package*.json ./
