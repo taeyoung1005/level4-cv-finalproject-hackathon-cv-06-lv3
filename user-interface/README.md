@@ -75,12 +75,12 @@ user-interface/
 
 1. **Clone the Repository:**
 
-   Clone the repository to your local machine and navigate to the project folder:
-
-   ```bash
-   git clone https://github.com/your-username/your-repository.git
-   cd user-interface/
-   ```
+    Clone the repository to your local machine and navigate to the project folder:
+    
+    ```bash
+    git clone https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3.git
+    cd user-interface/
+    ```
 
 2. **Install Dependencies:**
 
