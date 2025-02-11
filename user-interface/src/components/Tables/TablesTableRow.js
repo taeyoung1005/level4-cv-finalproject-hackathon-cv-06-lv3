@@ -92,8 +92,8 @@ function TablesTableRow(props) {
           </a>
           <a href={notion} target="_blank" rel="noopener noreferrer">
             <Flex align="center">
-              <SiNotion color="black" size="16px" />
-              <Text fontSize="sm" color="blackAlpha.900" ml={1}>
+              <SiNotion color="white" size="16px" />
+              <Text fontSize="sm" color="#fff" ml={1}>
                 Notion
               </Text>
             </Flex>
