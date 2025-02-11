@@ -190,8 +190,6 @@ const SelectDatasetsPage = () => {
     const allowedFormats = ['text/csv', 'application/parquet', ''];
     const fileArray = Array.from(files);
 
-    console.log(fileArray);
-
     const validFiles = fileArray.filter(file => {
       if (!allowedFormats.includes(file.type)) {
         toast({

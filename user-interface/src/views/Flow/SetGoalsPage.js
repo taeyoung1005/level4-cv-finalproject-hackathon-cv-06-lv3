@@ -725,7 +725,6 @@ const SetGoalsPage = () => {
                   const newValRaw = localValues[property]?.target;
 
                   if (currentType === 'numerical') {
-                    console.log(newValRaw);
                     // 숫자 타입 검증
                     let newVal = parseFloat(newValRaw);
                     if (isNaN(newVal)) {
@@ -781,7 +780,7 @@ const SetGoalsPage = () => {
                     const allowedValues = (chartForProperty.pieRealData || [])
                       .map(item => item.label)
                       .map(String);
-                    console.log(allowedValues, newValRaw, '!!');
+
                     if (allowedValues.includes(newValRaw)) {
                       // 여기서 target 대신에 minimum_value(또는 maximum_value)로 저장할 수 있음.
                       // 예시로 minimum_value를 업데이트하는 식으로 처리:
@@ -866,7 +865,6 @@ const SetGoalsPage = () => {
                       let newVal = parseFloat(newValRaw);
                       const currentMax = parseFloat(propertyData.maximum_value);
                       if (isNaN(newVal)) {
-                        console.log(newValRaw);
                         setLocalValues(prev => ({
                           ...prev,
                           [property]: {
