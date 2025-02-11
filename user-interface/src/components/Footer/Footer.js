@@ -76,7 +76,7 @@ export default function Footer(props) {
             fontSize="sm"
             href="https://wise-columnist-5eb.notion.site/CV06-Hand-bone-Semantic-Segmentation-162218e09e1680eca386e32c28e46799?pvs=4"
           >
-            {'SIXSENSE'}
+            {'Notion'}
           </Link>
         </ListItem>
       </List>
