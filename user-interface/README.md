@@ -4,7 +4,7 @@
 
 SIXSENSE mini is a prescriptive AI application that goes beyond predictions to provide actionable recommendations. It helps users not only forecast outcomes but also prescribe optimal actions to improve decision-making.
 
-![Image](https://github.com/user-attachments/assets/83cc44ec-0715-4a8b-81eb-9713e6113ca4)
+![Image](https://github.com/user-attachments/assets/88b650ed-997f-4417-ad7d-7ef5d7a8926e)
 
 ## Table of Contents
 
