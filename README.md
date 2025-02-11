@@ -109,4 +109,30 @@
 
 - 
 
+## 🚀 How to Run with Docker Compose  
+
+이 프로젝트는 `Docker Compose`를 사용하여 간편하게 실행할 수 있습니다.  
+아래의 명령어를 따라 실행하세요.  
+
+---
+
+### 1️⃣ **Docker Compose 빌드 및 실행**  
+아래 명령어를 실행하여 컨테이너를 빌드하고 실행합니다.  
+```bash
+docker compose up --build -d
+```
+> `-d` 옵션은 백그라운드에서 실행되도록 합니다.
+
+---
+
+### 2️⃣ **컨테이너 종료**  
+모든 컨테이너를 중지하려면:  
+```bash
+docker compose down
+```
+
+---
+
+이제 Docker Compose로 프로젝트를 쉽게 실행할 수 있습니다! 🚀🔥
+
 ## Links

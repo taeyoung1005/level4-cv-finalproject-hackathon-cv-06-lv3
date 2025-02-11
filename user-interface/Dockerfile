@@ -1,12 +1,13 @@
-FROM node:14 as build
+FROM node:14
+
 WORKDIR /app
+
 COPY package*.json ./
-RUN npm install
+
+RUN npm install --legacy-peer-deps  # 일부 버전 문제 해결 가능
+
 COPY . .
+
 RUN npm run build
 
-FROM nginx:stable-alpine
-COPY --from=build /app/build /usr/share/nginx/html
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "start"]
