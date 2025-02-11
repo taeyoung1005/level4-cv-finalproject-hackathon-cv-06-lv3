@@ -13,6 +13,7 @@ SIXSENSE mini is a prescriptive AI application that goes beyond predictions to p
 - [Routing Structure](#routing-structure)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
+- [Docker Deployment](#docker-deployment)
 - [Usage Instructions](#usage-instructions)
 - [License](#license)
 
@@ -75,12 +76,12 @@ user-interface/
 
 1. **Clone the Repository:**
 
-    Clone the repository to your local machine and navigate to the project folder:
-    
-    ```bash
-    git clone https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3.git
-    cd user-interface/
-    ```
+   Clone the repository to your local machine and navigate to the project folder:
+
+   ```bash
+   git clone https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3.git
+   cd user-interface/
+   ```
 
 2. **Install Dependencies:**
 
@@ -113,6 +114,73 @@ user-interface/
    ```
 
    The application will launch in development mode. Open http://localhost:3000 in your browser to view the app.
+
+## Docker Deployment
+
+This project includes Docker support for containerizing the application. You can build a Docker image and run the application in a container using Docker and Docker Compose.
+
+### Dockerfile Overview
+
+The provided `Dockerfile` uses a multi-stage build process:
+
+1. **Build Stage:**
+   - Uses a Node.js image to install dependencies and build the React application.
+   - The build output is generated in the `build` folder.
+2. **Production Stage:**
+
+   - Uses an Nginx image to serve the static files from the build folder.
+   - The final image is lightweight and optimized for production.
+
+3. **Environment Variables:**
+   - Environment variables can be set via the `.env` file or directly in the Dockerfile using the `ENV` command.
+
+### docker-compose.yml Overview
+
+The `docker-compose.yml` file simplifies running the application container. It also leverages an `.env` file to pass environment-specific variables to the container.
+
+Example `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - '80:80'
+    env_file:
+      - .env
+```
+
+### How to Run the Application with Docker
+
+1. **Build the Docker Image:**
+
+   In the project root (where your `Dockerfile` and `docker-compose.yml` are located), run:
+
+   ```bash
+   docker-compose build
+   ```
+
+2. **Start the Docker Container:**
+
+   Launch the container in detached mode with:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Access the Application:**
+
+   Open your browser and navigate to http://localhost (or use your host's IP address) to view the application.
+
+4. **Stop and Remove the Container:**
+
+   When you're done, stop and remove the container by running:
+
+   ```bash
+   docker-compose down
+   ```
 
 ## Usage Instructions
 
