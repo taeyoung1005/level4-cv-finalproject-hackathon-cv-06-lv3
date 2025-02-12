@@ -70,6 +70,7 @@ function ProjectRow({ name: projectName, description, onEdit, onDelete }) {
             icon={<FaTrashAlt />}
             onClick={e => {
               e.stopPropagation();
+              if (!window.confirm('Are you sure you want to delete this project?')) return;
               onDelete();
             }}
             aria-label="Delete Project"

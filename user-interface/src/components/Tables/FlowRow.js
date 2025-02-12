@@ -67,6 +67,9 @@ function FlowRow({ name: flowName, description, onEdit, onDelete, onClick }) {
             icon={<FaTrashAlt />}
             onClick={e => {
               e.stopPropagation();
+              if (!window.confirm('Are you sure you want to delete this flow?')) {
+                return;
+              }
               onDelete();
             }}
             aria-label="Delete Flow"

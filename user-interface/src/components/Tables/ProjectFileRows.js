@@ -93,7 +93,11 @@ function ProjectFileRow(props) {
               cursor={isSelected ? 'not-allowed' : 'pointer'}
               onClick={e => {
                 e.stopPropagation();
-                if (!isSelected) onDelete();
+                if (!isSelected) 
+                  if (!window.confirm('Are you sure you want to delete this file?')) {
+                    return;
+                  }
+                  onDelete();
               }}
             >
               <Flex
