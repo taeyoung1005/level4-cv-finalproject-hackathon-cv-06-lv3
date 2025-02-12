@@ -141,15 +141,25 @@ The `docker-compose.yml` file simplifies running the application container. It a
 Example `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
-  web:
+  react:
     build: .
+    volumes:
+      - react-build:/app/build
+    environment:
+      - REACT_APP_API_BASE_URL = "http://localhost:8000"
+
+  nginx:
+    image: nginx:stable-alpine
     ports:
-      - '80:80'
-    env_file:
-      - .env
+      - "80:80"
+    volumes:
+      - react-build:/usr/share/nginx/html:ro
+    depends_on:
+      - react
+
+volumes:
+  react-build:
 ```
 
 ### How to Run the Application with Docker
@@ -159,7 +169,7 @@ services:
    In the project root (where your `Dockerfile` and `docker-compose.yml` are located), run:
 
    ```bash
-   docker-compose build
+   docker compose build
    ```
 
 2. **Start the Docker Container:**
@@ -167,7 +177,7 @@ services:
    Launch the container in detached mode with:
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. **Access the Application:**
@@ -179,7 +189,7 @@ services:
    When you're done, stop and remove the container by running:
 
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 ## Usage Instructions
