@@ -107,7 +107,7 @@
 
 ### 💻 Backend
 
--
+- [argmax_mini](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/argmax_mini) / [README.md](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/argmax_mini/README.md)
 
 ## 🚀 How to Run with Docker Compose  
 
