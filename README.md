@@ -74,8 +74,6 @@
 
 
 
-
-
 ## ✅ 시스템 구성도 및 플로우 차트
 
 
@@ -92,7 +90,7 @@
 
 ### 💫 Model
 
-- 
+- [Modeling](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/modeling) / [README.md](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/modeling/ReadMe.md)
 
 ### 📊 Data
 
