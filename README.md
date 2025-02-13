@@ -79,7 +79,7 @@
 
 ![image-20250210234205329](https://github.com/user-attachments/assets/b6c54b76-91dd-4efd-a036-e72d92a08d25)
 
-## ✅ Data 처리 플로우
+## ✅ 최적화 값 추천 과정
 
 ![Image](https://github.com/user-attachments/assets/495658d2-1bb8-4d3a-8fd5-a9ad57bb90a0)
 
