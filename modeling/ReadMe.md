@@ -21,11 +21,15 @@ Surrogate Model 학습과, Surrogate Model을 환경으로 하여 특정 Y값에
 	- 탐색(Exploration)과 활용(Exploitation) 중에서 탐색에 초점을 맞춘 모델을 사용
 	- Genetic Algorithm을 선정, 니치 보호 기법을 K-means를 사용하여 구현 
 
-
-
 # How To Use
 ----
-[jupyter 파일]([https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/user_request_ipynb/argmax_mini/how_to_use_model.ipynb](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/modeling/how_to_use_model.ipynb)) 제공
+[jupyter 파일](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/modeling/how_to_use_model.ipynb) 참고
+
+search_using_user_request.ipynb
+- user가 원하는 csv idx를 받아 추천을 수행하는 jupter notebook
+  
+search_using_user_request_value.ipynb
+- user가 원하는 envronment (고정된 X값) 변수를 입력하는 jupter notebook
 
 
 ``` python
