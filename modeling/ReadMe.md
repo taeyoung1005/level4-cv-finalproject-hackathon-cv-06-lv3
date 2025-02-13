@@ -84,7 +84,10 @@ args = argparse.Namespace(
     prj_id=42,
     seed=42,
     user_request_target=[user_request_target],
-    model_path='./temp/surrogate_model/model'
+    model_path='./temp/surrogate_model/model,
+    user_request_idx=-1,
+    user_request_value=None
+
 )
 
 x_opt = search_model.main(args,ret_dict[-1])
