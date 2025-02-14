@@ -49,14 +49,14 @@
 
 ### 👪 역할
 
-| 이름 | 구성 및 역할                                                 |
-| :--- | ------------------------------------------------------------ |
-| 영석 | RL을 응용한 search 모델 작성, 테스트 코드 정리, 데이터셋 별 테스트 후 오류 발견 및 공유 또는 수정 |
-| 태성 | 문제 정의 및 평가 지표 정의, 모델링 코드 작성 및 실험. UI 요구 사항 반영. |
-| 태영 | 요구사항 분석, 기능 및 DB 설계, BackEnd Server 구현, 모델 서빙 구현 |
-| 경윤 | GA 구현 및 실험, Surrogate - Search 연결, Evaluation Metric 구현, TabPFN, CatBoost 구현, Surrogate Model 고도화 |
-| 로운 | React & Chakra UI를 활용한 웹 기반 User-interface 개발       |
-| 영태 | 데이터 전처리 자동화 구현 및 최적화, 타 팀 데이터셋에 대한 EDA 및 feature engineering, Surrogate(LightGBM) 구현 |
+| 이름  | 구성 및 역할                                                 |
+| ---- | ------------------------------------------------------------ |
+| 영석  | RL을 응용한 search 모델 작성, 테스트 코드 정리, 데이터셋 별 테스트 후 오류 발견 및 공유 또는 수정 |
+| 태성  | 문제 정의 및 평가 지표 정의, 모델링 코드 작성 및 실험. UI 요구 사항 반영. |
+| 태영  | 요구사항 분석, 기능 및 DB 설계, BackEnd Server 구현, 모델 서빙 구현 |
+| 경윤  | GA 구현 및 실험, Surrogate - Search 연결, Evaluation Metric 구현, TabPFN, CatBoost 구현, Surrogate Model 고도화 |
+| 로운  | React & Chakra UI를 활용한 웹 기반 User-interface 개발       |
+| 영태  | 데이터 전처리 자동화 구현 및 최적화, 타 팀 데이터셋에 대한 EDA 및 feature engineering, Surrogate(LightGBM) 구현 |
 
 
 
