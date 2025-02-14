@@ -33,7 +33,6 @@
 
 ## ✅ 팀원 소개
 
-**Todo:** **우리 팀 소개글 간단히 적기**
 
 ### 👪 팀원
 
@@ -96,7 +95,7 @@
 
 ### 📊 Data
 
-- [Data Preprocess](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/argmax_mini/hackathon/src/preprocess) / [README.md]()
+- [Data Preprocess](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/argmax_mini/hackathon/src/preprocess) / [README.md](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/argmax_mini/hackathon/src/preprocess)
   - Merge & Feature Engineering
     - [DVM](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/argmax_mini/hackathon/src/preprocess/dvm) / [README.md](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/argmax_mini/hackathon/src/preprocess/dvm/README.md)
     - [Ecommerce](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/tree/main/argmax_mini/hackathon/src/preprocess/ecommerce) / [README.md](https://github.com/boostcampaitech7/level4-cv-finalproject-hackathon-cv-06-lv3/blob/main/argmax_mini/hackathon/src/preprocess/ecommerce/README.md)
@@ -134,5 +133,3 @@ docker compose down
 ---
 
 이제 Docker Compose로 프로젝트를 쉽게 실행할 수 있습니다! 🚀🔥
-
-## Links
