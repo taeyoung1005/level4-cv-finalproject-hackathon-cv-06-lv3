@@ -49,36 +49,8 @@
 
 ### 👪 역할
 
-<table>
-  <tr>
-    <th>이름</th>
-    <th>구성 및 역할</th>
-  </tr>
-  <tr>
-    <td>영석</td>
-    <td>RL을 응용한 search 모델 작성, 테스트 코드 정리, 데이터셋 별 테스트 후 오류 발견 및 공유 또는 수정</td>
-  </tr>
-  <tr>
-    <td>태성</td>
-    <td>문제 정의 및 평가 지표 정의, 모델링 코드 작성 및 실험. UI 요구 사항 반영.</td>
-  </tr>
-  <tr>
-    <td>태영</td>
-    <td>요구사항 분석, 기능 및 DB 설계, BackEnd Server 구현, 모델 서빙 구현</td>
-  </tr>
-  <tr>
-    <td>경윤</td>
-    <td>GA 구현 및 실험, Surrogate - Search 연결, Evaluation Metric 구현, TabPFN, CatBoost 구현, Surrogate Model 고도화</td>
-  </tr>
-  <tr>
-    <td>로운</td>
-    <td>React & Chakra UI를 활용한 웹 기반 User-interface 개발</td>
-  </tr>
-  <tr>
-    <td>영태</td>
-    <td>데이터 전처리 자동화 구현 및 최적화, 타 팀 데이터셋에 대한 EDA 및 feature engineering, Surrogate(LightGBM) 구현</td>
-  </tr>
-</table>
+![image](https://github.com/user-attachments/assets/d6075c95-20c4-4a45-a9cc-46112492fe71)
+
 
 
 
