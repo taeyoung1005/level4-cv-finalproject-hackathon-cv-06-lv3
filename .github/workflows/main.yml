@@ -1,0 +1,26 @@
+name: Deploy to Self-Hosted Server
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 push될 때 실행
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Self-Hosted Runner에서 실행
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Compose
+      run: |
+        docker-compose down
+        docker-compose pull
+        docker-compose up -d --build
+
+    - name: Verify Deployment
+      run: |
+        sleep 10  # 컨테이너가 뜰 시간을 줌
+        docker ps -a
+        curl -Is http://localhost:8080 | head -n 1
